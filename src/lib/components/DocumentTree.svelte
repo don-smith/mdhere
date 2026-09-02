@@ -153,6 +153,7 @@
       type="button"
       role="treeitem"
       class:selected={selectedPath === item.node.path}
+      class:current={cursorPath === item.node.path}
       class:folder={item.node.kind === 'folder'}
       aria-level={item.level}
       aria-selected={selectedPath === item.node.path}

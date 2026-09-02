@@ -32,7 +32,11 @@ test('uses Vim tree commands and centers the keyboard-help overlay', async ({ pa
   const folder = page.getByRole('treeitem', { name: 'guides' });
   await folder.focus();
   await page.keyboard.press('G');
-  await expect(page.getByRole('treeitem', { name: 'Second.md' })).toBeFocused();
+  const second = page.getByRole('treeitem', { name: 'Second.md' });
+  await expect(second).toBeFocused();
+  await expect(second).toHaveClass(/current/);
+  await page.keyboard.press('j');
+  await expect(second).toHaveClass(/current/);
 
   await page.keyboard.press('h');
   await expect(folder).toBeFocused();
