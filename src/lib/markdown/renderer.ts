@@ -90,16 +90,23 @@ export class MarkdownRenderer {
     parser.renderer.rules.fence = (tokens, index, options, environment, self) => {
       const token = tokens[index];
       const language = token.info.trim().split(/\s+/, 1)[0] || 'text';
+      const content = token.content.replace(/\r?\n$/, '');
       try {
-        return syntaxHighlighter.codeToHtml(token.content, {
+        return syntaxHighlighter.codeToHtml(content, {
           lang: language,
           themes: { light: 'github-light', dark: 'github-dark' },
           defaultColor: false
         });
       } catch {
-        return defaultFence
-          ? defaultFence(tokens, index, options, environment, self)
-          : self.renderToken(tokens, index, options);
+        const originalContent = token.content;
+        token.content = content;
+        try {
+          return defaultFence
+            ? defaultFence(tokens, index, options, environment, self)
+            : self.renderToken(tokens, index, options);
+        } finally {
+          token.content = originalContent;
+        }
       }
     };
 

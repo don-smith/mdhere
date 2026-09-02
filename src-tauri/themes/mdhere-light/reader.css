@@ -32,6 +32,11 @@
   border-radius: 0.5rem;
   overflow: auto;
 }
+.reader-content pre > code {
+  background: transparent;
+  border-radius: 0;
+  padding: 0;
+}
 .reader-content table {
   width: 100%;
   border-collapse: collapse;

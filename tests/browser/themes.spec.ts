@@ -1,4 +1,20 @@
-import { expect, test } from '@playwright/test';
+import { readFile } from 'node:fs/promises';
+
+import { expect, test, type Locator } from '@playwright/test';
+
+async function installBuiltinThemeCss(reader: Locator, theme: string) {
+  const css = await readFile(
+    new URL(`../../src-tauri/themes/${theme.replaceAll(' ', '-')}/reader.css`, import.meta.url),
+    'utf8'
+  );
+  await reader.evaluate(async (host: HTMLElement, stylesheet: string) => {
+    const shadow = host.shadowRoot;
+    if (!shadow) throw new Error('Reader Shadow DOM was not mounted');
+    const sheet = new CSSStyleSheet();
+    await sheet.replace(stylesheet);
+    shadow.adoptedStyleSheets = [...shadow.adoptedStyleSheets, sheet];
+  }, css);
+}
 
 for (const theme of ['mdhere light', 'mdhere dark']) {
   test(`applies the ${theme} reader and shell theme`, async ({ page }) => {
@@ -8,11 +24,20 @@ for (const theme of ['mdhere light', 'mdhere dark']) {
 
     const reader = page.getByTestId('reader');
     await expect(reader.locator('h1')).toHaveText('Welcome');
-    await expect(reader).toHaveScreenshot(`${theme.toLowerCase().replaceAll(' ', '-')}.png`);
+    await expect
+      .poll(() => reader.evaluate((host) => host.shadowRoot?.adoptedStyleSheets.length ?? 0))
+      .toBe(2);
+    await installBuiltinThemeCss(reader, theme);
 
     if (theme === 'mdhere dark') {
       await expect(reader.locator('pre.shiki')).toHaveCSS('background-color', 'rgb(36, 41, 46)');
       await expect(reader.locator('pre.shiki')).toHaveCSS('color', 'rgb(225, 228, 232)');
+      await expect(reader.locator('pre.shiki > code')).toHaveCSS(
+        'background-color',
+        'rgba(0, 0, 0, 0)'
+      );
     }
+
+    await expect(reader).toHaveScreenshot(`${theme.toLowerCase().replaceAll(' ', '-')}.png`);
   });
 }

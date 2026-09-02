@@ -46,6 +46,7 @@ describe('MarkdownRenderer', () => {
     expect(rendered.html).toContain('--shiki-light:');
     expect(rendered.html).toContain('--shiki-dark:');
     expect(rendered.html).toContain('--shiki-dark-bg:');
+    expect(rendered.html.match(/class="line"/g)).toHaveLength(1);
   });
 
   it('marks unavailable images and exposes only validated external links', async () => {
