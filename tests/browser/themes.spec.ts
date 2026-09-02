@@ -29,14 +29,17 @@ for (const theme of ['mdhere light', 'mdhere dark']) {
       .toBe(2);
     await installBuiltinThemeCss(reader, theme);
 
-    if (theme === 'mdhere dark') {
+    if (theme === 'mdhere light') {
+      await expect(reader.locator('pre.shiki')).toHaveCSS('background-color', 'rgb(255, 255, 255)');
+      await expect(reader.locator('pre.shiki')).toHaveCSS('color', 'rgb(36, 41, 46)');
+    } else {
       await expect(reader.locator('pre.shiki')).toHaveCSS('background-color', 'rgb(36, 41, 46)');
       await expect(reader.locator('pre.shiki')).toHaveCSS('color', 'rgb(225, 228, 232)');
-      await expect(reader.locator('pre.shiki > code')).toHaveCSS(
-        'background-color',
-        'rgba(0, 0, 0, 0)'
-      );
     }
+    await expect(reader.locator('pre.shiki > code')).toHaveCSS(
+      'background-color',
+      'rgba(0, 0, 0, 0)'
+    );
 
     await expect(reader).toHaveScreenshot(`${theme.toLowerCase().replaceAll(' ', '-')}.png`);
   });
