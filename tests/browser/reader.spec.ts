@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test';
 
 test('renders sanitized GFM inside the reader Shadow DOM', async ({ page }) => {
   await page.goto('/');
-  await page.getByRole('button', { name: 'Welcome.md' }).click();
+  await page.getByRole('treeitem', { name: 'Welcome.md' }).click();
 
   const reader = page.getByTestId('reader');
   await expect(reader.locator('h1')).toHaveText('Welcome');

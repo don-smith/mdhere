@@ -68,8 +68,19 @@ nav button.selected {
   outline: none;
 }
 article {
+  display: flex;
+  min-width: 0;
+  overflow: hidden;
+}
+.reader-pane {
+  flex: 1;
   overflow: auto;
   padding: 2rem clamp(1.5rem, 5vw, 5rem);
+}
+.reader-pane:focus-visible,
+.document-tree [role='treeitem']:focus-visible {
+  outline: 3px solid #195bbd;
+  outline-offset: -3px;
 }
 article h1 {
   margin-top: 0;

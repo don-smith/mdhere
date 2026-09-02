@@ -1,7 +1,9 @@
 <script lang="ts">
   import { onMount } from 'svelte';
+  import { SvelteMap } from 'svelte/reactivity';
 
   import type { Document } from '../contracts';
+  import type { KeyboardCommand } from '../keyboard/types';
   import baseReaderCss from '../markdown/base-reader.css?inline';
   import { MarkdownRenderer } from '../markdown/renderer';
 
@@ -16,6 +18,7 @@
   let host: HTMLDivElement;
   let shadow: ShadowRoot | undefined;
   let renderer: MarkdownRenderer | undefined;
+  const scrollPositions = new SvelteMap<string, number>();
 
   onMount(() => {
     shadow = host.attachShadow({ mode: 'open' });
@@ -53,10 +56,33 @@
       return;
     }
     content.innerHTML = `<article class="reader-content">${renderer.render(document.content, document.path).html}</article>`;
+    host.scrollTop = scrollPositions.get(document.path) ?? 0;
     if (fragment) {
       const target = shadow.querySelector<HTMLElement>(`[id="${CSS.escape(fragment)}"]`);
       target?.focus();
     }
+  }
+
+  export function focus() {
+    host?.focus();
+  }
+
+  export function run(command: KeyboardCommand) {
+    if (command.kind !== 'scroll-reader') return;
+    const distance = Math.max(64, host.clientHeight * 0.45);
+    const movement = {
+      'line-up': -48,
+      'line-down': 48,
+      'page-up': -distance,
+      'page-down': distance,
+      top: -host.scrollTop,
+      bottom: host.scrollHeight
+    }[command.intent];
+    host.scrollBy({ top: movement, behavior: 'smooth' });
+  }
+
+  function rememberScroll() {
+    if (document) scrollPositions.set(document.path, host.scrollTop);
   }
 
   function installStyles(root: ShadowRoot) {
@@ -97,4 +123,14 @@
   }
 </script>
 
-<div bind:this={host} data-testid="reader" aria-live="polite"></div>
+<!-- svelte-ignore a11y_no_noninteractive_tabindex -->
+<div
+  bind:this={host}
+  class="reader-pane"
+  role="region"
+  data-testid="reader"
+  aria-label="Reader content"
+  aria-live="polite"
+  tabindex="0"
+  onscroll={rememberScroll}
+></div>
