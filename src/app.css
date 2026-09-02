@@ -8,7 +8,10 @@ body {
   margin: 0;
 }
 main {
-  min-height: 100vh;
+  display: flex;
+  height: 100vh;
+  overflow: hidden;
+  flex-direction: column;
 }
 header {
   display: flex;
@@ -30,10 +33,12 @@ header button {
 }
 .workspace {
   display: grid;
-  grid-template-columns: minmax(14rem, 22rem) 1fr;
-  min-height: calc(100vh - 3.25rem);
+  min-height: 0;
+  flex: 1;
+  grid-template-columns: minmax(14rem, 22rem) minmax(0, 1fr);
 }
 nav {
+  min-height: 0;
   overflow: auto;
   border-right: 1px solid #d9dfea;
   background: #fbfcff;
@@ -109,6 +114,55 @@ button {
 button:disabled {
   cursor: wait;
   opacity: 0.65;
+}
+.keyboard-help-backdrop {
+  position: fixed;
+  z-index: 10;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: rgb(23 32 51 / 35%);
+}
+.keyboard-help {
+  position: static;
+  inset: auto;
+  width: min(32rem, calc(100vw - 2rem));
+  margin: 0;
+  padding: 1.25rem;
+  border: 1px solid #b9c4d6;
+  border-radius: 0.65rem;
+  box-shadow: 0 1rem 3rem rgb(23 32 51 / 25%);
+}
+.keyboard-help header {
+  padding: 0;
+  border: 0;
+}
+.keyboard-help header button {
+  margin-left: auto;
+}
+.keyboard-help h2 {
+  margin: 0;
+  font-size: 1.1rem;
+}
+.keyboard-help dl {
+  margin: 1rem 0 0;
+}
+.keyboard-help dl div {
+  display: grid;
+  grid-template-columns: minmax(7rem, auto) 1fr;
+  gap: 0.75rem;
+  padding: 0.4rem 0;
+}
+.keyboard-help dt,
+.keyboard-help dd {
+  margin: 0;
+}
+kbd {
+  font:
+    0.85em ui-monospace,
+    SFMono-Regular,
+    Menlo,
+    monospace;
 }
 @media (max-width: 720px) {
   .workspace {

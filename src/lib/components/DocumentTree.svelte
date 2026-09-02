@@ -74,8 +74,34 @@
     else if (command.kind === 'move-tree-edge') {
       cursorPath = command.edge === 'first' ? items[0]?.node.path : items.at(-1)?.node.path;
       focusCursor();
-    } else if (command.kind === 'toggle-folder') activateCurrent();
+    } else if (command.kind === 'collapse-folder') collapseCurrent();
+    else if (command.kind === 'expand-folder') expandCurrent();
     else if (command.kind === 'open-selected') activateCurrent();
+  }
+
+  function collapseCurrent() {
+    const current = items.find((item) => item.node.path === cursorPath);
+    if (!current) return;
+    if (current.node.kind === 'folder' && expanded.has(current.node.path)) {
+      toggle(current.node.path);
+    } else if (current.parentPath) {
+      const parent = items.find((item) => item.node.path === current.parentPath);
+      cursorPath = current.parentPath;
+      if (parent?.node.kind === 'folder' && expanded.has(parent.node.path))
+        toggle(parent.node.path);
+      focusCursor();
+    }
+  }
+
+  function expandCurrent() {
+    const current = items.find((item) => item.node.path === cursorPath);
+    if (!current) return;
+    if (current.node.kind === 'folder') {
+      if (!expanded.has(current.node.path)) toggle(current.node.path);
+      else move(1);
+    } else {
+      onSelect(current.node.path);
+    }
   }
 
   function onKeydown(event: KeyboardEvent) {

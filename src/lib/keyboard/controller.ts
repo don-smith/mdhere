@@ -50,8 +50,8 @@ export class KeyboardController {
         { kind: 'move-tree', delta: -8 },
         { kind: 'scroll-reader', intent: 'page-up' }
       ],
-      h: [{ kind: 'toggle-folder' }, { kind: 'toggle-folder' }],
-      l: [{ kind: 'toggle-folder' }, { kind: 'toggle-folder' }],
+      h: [{ kind: 'collapse-folder' }, { kind: 'collapse-folder' }],
+      l: [{ kind: 'expand-folder' }, { kind: 'expand-folder' }],
       Enter: [{ kind: 'open-selected' }, { kind: 'open-selected' }]
     };
     const pair = commands[key];

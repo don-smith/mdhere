@@ -13,8 +13,8 @@ describe('KeyboardController', () => {
   it.each([
     ['tree', 'j', { kind: 'move-tree', delta: 1 }],
     ['tree', 'k', { kind: 'move-tree', delta: -1 }],
-    ['tree', 'h', { kind: 'toggle-folder' }],
-    ['tree', 'l', { kind: 'toggle-folder' }],
+    ['tree', 'h', { kind: 'collapse-folder' }],
+    ['tree', 'l', { kind: 'expand-folder' }],
     ['tree', 'Enter', { kind: 'open-selected' }],
     ['reader', 'j', { kind: 'scroll-reader', intent: 'line-down' }],
     ['reader', 'k', { kind: 'scroll-reader', intent: 'line-up' }],
