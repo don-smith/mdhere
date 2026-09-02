@@ -16,6 +16,7 @@
   // eslint-disable-next-line svelte/no-unnecessary-state-wrap
   let expanded = $state<Set<string>>(new SvelteSet());
   let cursorPath = $state<string | undefined>();
+  let observedSelectedPath = $state<string | undefined>();
   let treeElement: HTMLDivElement;
   let initialized = false;
   let items = $derived(visibleItems(tree, expanded));
@@ -30,8 +31,11 @@
   });
 
   $effect(() => {
-    if (selectedPath && items.some((item) => item.node.path === selectedPath))
+    if (selectedPath === observedSelectedPath) return;
+    observedSelectedPath = selectedPath;
+    if (selectedPath && items.some((item) => item.node.path === selectedPath)) {
       cursorPath = selectedPath;
+    }
   });
 
   function toggle(path: string) {

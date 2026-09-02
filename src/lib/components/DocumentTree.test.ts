@@ -34,4 +34,28 @@ describe('DocumentTree', () => {
     await fireEvent.keyDown(document, { key: 'Enter' });
     expect(onSelect).toHaveBeenCalledWith('guides/Welcome.md');
   });
+
+  it('retains the navigation cursor when a visible document remains selected', async () => {
+    const twoFolders = [
+      {
+        kind: 'folder' as const,
+        name: 'First',
+        path: 'first',
+        children: [{ kind: 'document' as const, name: 'One.md', path: 'first/One.md' }]
+      },
+      {
+        kind: 'folder' as const,
+        name: 'Second',
+        path: 'second',
+        children: [{ kind: 'document' as const, name: 'Two.md', path: 'second/Two.md' }]
+      }
+    ];
+    render(DocumentTree, { tree: twoFolders, selectedPath: 'second/Two.md', onSelect: vi.fn() });
+
+    const first = screen.getByRole('treeitem', { name: /First/ });
+    await fireEvent.click(first);
+    await fireEvent.keyDown(first, { key: 'ArrowDown' });
+
+    expect(screen.getByRole('treeitem', { name: /Second/ })).toHaveFocus();
+  });
 });
