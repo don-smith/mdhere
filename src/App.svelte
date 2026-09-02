@@ -58,6 +58,7 @@
   let snapshot = $state<LibrarySnapshot | undefined>();
   let selectedDocument = $state<Document | undefined>();
   let error = $state<string | undefined>();
+  let needsFolder = $state(false);
   let fragment = $state<string | undefined>();
   let loading = $state(true);
   const demoThemes: ThemeSnapshot = {
@@ -123,7 +124,9 @@
     error = undefined;
     try {
       snapshot = await client.snapshot();
+      needsFolder = false;
     } catch (reason) {
+      needsFolder = isUnregisteredLibrary(reason);
       error = messageFor(reason);
     } finally {
       loading = false;
@@ -157,6 +160,7 @@
         snapshot = nextSnapshot;
         selectedDocument = undefined;
         fragment = undefined;
+        needsFolder = false;
       }
     } catch (reason) {
       error = messageFor(reason);
@@ -177,6 +181,15 @@
     if (reason instanceof Error) return reason.message;
     if (typeof reason === 'object' && reason && 'message' in reason) return String(reason.message);
     return 'mdhere could not complete that request.';
+  }
+
+  function isUnregisteredLibrary(reason: unknown): boolean {
+    return (
+      typeof reason === 'object' &&
+      reason !== null &&
+      'kind' in reason &&
+      reason.kind === 'notRegistered'
+    );
   }
 
   function handleKeydown(event: KeyboardEvent) {
@@ -264,6 +277,12 @@
 
   {#if loading}
     <p class="status">Loading library…</p>
+  {:else if needsFolder}
+    <section class="status">
+      <h1>Choose a folder</h1>
+      <p>Select a folder containing Markdown documents to start reading.</p>
+      <button onclick={openFolder}>Open Folder</button>
+    </section>
   {:else if error}
     <section class="status error" role="alert">
       <h1>Unable to open the library</h1>

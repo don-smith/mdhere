@@ -1,7 +1,13 @@
 import { invoke } from '@tauri-apps/api/core';
+import { listen } from '@tauri-apps/api/event';
 
 import type { Document, LibrarySnapshot } from './contracts';
 import type { LibraryClient } from './library-client';
+
+interface FolderPickResult {
+  snapshot: LibrarySnapshot | null;
+  error: string | null;
+}
 
 export class TauriLibraryClient implements LibraryClient {
   snapshot(): Promise<LibrarySnapshot> {
@@ -16,8 +22,23 @@ export class TauriLibraryClient implements LibraryClient {
     return invoke('refresh_library');
   }
 
-  openFolder(): Promise<LibrarySnapshot | undefined> {
-    return invoke('open_folder');
+  async openFolder(): Promise<LibrarySnapshot | undefined> {
+    let resolvePick: (result: FolderPickResult) => void;
+    const picked = new Promise<FolderPickResult>((resolve) => {
+      resolvePick = resolve;
+    });
+    const unlisten = await listen<FolderPickResult>('folder-picked', (event) => {
+      resolvePick(event.payload);
+    });
+
+    try {
+      await invoke('open_folder');
+      const result = await picked;
+      if (result.error) throw new Error(result.error);
+      return result.snapshot ?? undefined;
+    } finally {
+      unlisten();
+    }
   }
 
   openExternalLink(url: string): Promise<void> {

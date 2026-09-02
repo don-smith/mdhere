@@ -10,4 +10,8 @@ fn production_windows_are_created_by_the_coordinator_not_static_config() {
             .unwrap()
             .contains("mdhere-asset:")
     );
+
+    let app_source = include_str!("../src/lib.rs");
+    assert!(!app_source.contains("blocking_pick_folder"));
+    assert!(app_source.contains(".pick_folder("));
 }

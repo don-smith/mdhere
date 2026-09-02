@@ -90,6 +90,47 @@ fn open_themes_folder(catalog: tauri::State<'_, ThemeCatalog>) -> Result<(), Str
 
 static NEXT_WINDOW_LABEL: AtomicU64 = AtomicU64::new(1);
 
+#[derive(Clone, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+struct FolderPickResult {
+    snapshot: Option<LibrarySnapshot>,
+    error: Option<String>,
+}
+
+fn request_folder(app: AppHandle, window: tauri::WebviewWindow, show_window_after_pick: bool) {
+    let label = window.label().to_owned();
+    let callback_window = window.clone();
+    app.dialog().file().pick_folder(move |folder| {
+        let result = folder
+            .map(|folder| {
+                let path = folder.into_path().map_err(|error| error.to_string())?;
+                let registry = app.state::<LibraryRegistry>();
+                registry
+                    .register_root(&label, path)
+                    .map_err(|error| error.to_string())?;
+                registry.snapshot(&label).map_err(|error| error.to_string())
+            })
+            .transpose();
+
+        if show_window_after_pick {
+            let _ = callback_window.show();
+            return;
+        }
+
+        let payload = match result {
+            Ok(snapshot) => FolderPickResult {
+                snapshot,
+                error: None,
+            },
+            Err(error) => FolderPickResult {
+                snapshot: None,
+                error: Some(error),
+            },
+        };
+        let _ = callback_window.emit("folder-picked", payload);
+    });
+}
+
 fn create_window(app: &AppHandle, root: Option<PathBuf>) -> Result<(), String> {
     let label = format!(
         "mdhere-{}",
@@ -112,34 +153,15 @@ fn create_window(app: &AppHandle, root: Option<PathBuf>) -> Result<(), String> {
             error.to_string()
         })?;
     if needs_folder {
-        if let Some(folder) = app.dialog().file().blocking_pick_folder() {
-            let path = folder.into_path().map_err(|error| error.to_string())?;
-            app.state::<LibraryRegistry>()
-                .register_root(&label, path)
-                .map_err(|error| error.to_string())?;
-        }
-        window.show().map_err(|error| error.to_string())?;
+        request_folder(app.clone(), window, true);
     }
     Ok(())
 }
 
 #[tauri::command]
-fn open_folder(
-    window: tauri::Window,
-    app: tauri::AppHandle,
-    registry: tauri::State<'_, LibraryRegistry>,
-) -> Result<Option<LibrarySnapshot>, String> {
-    let Some(folder) = app.dialog().file().blocking_pick_folder() else {
-        return Ok(None);
-    };
-    let path = folder.into_path().map_err(|error| error.to_string())?;
-    registry
-        .register_root(window.label(), path)
-        .map_err(|error| error.to_string())?;
-    registry
-        .snapshot(window.label())
-        .map(Some)
-        .map_err(|error| error.to_string())
+fn open_folder(window: tauri::WebviewWindow, app: tauri::AppHandle) -> Result<(), String> {
+    request_folder(app, window, false);
+    Ok(())
 }
 
 #[tauri::command]
