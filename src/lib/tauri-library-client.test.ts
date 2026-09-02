@@ -34,6 +34,13 @@ describe('TauriLibraryClient', () => {
     expect(unlisten).toHaveBeenCalledOnce();
   });
 
+  it('invokes the narrow native new-window command', async () => {
+    tauri.invoke.mockResolvedValue(undefined);
+
+    await expect(new TauriLibraryClient().newWindow()).resolves.toBeUndefined();
+    expect(tauri.invoke).toHaveBeenCalledWith('new_window');
+  });
+
   it('keeps the current library when the native folder picker is cancelled', async () => {
     let picked: ((event: { payload: { snapshot: null; error: null } }) => void) | undefined;
     tauri.listen.mockImplementation(async (_event, handler) => {

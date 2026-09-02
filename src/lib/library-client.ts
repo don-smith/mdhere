@@ -5,5 +5,6 @@ export interface LibraryClient {
   readDocument(path: string): Promise<Document>;
   refresh(): Promise<LibrarySnapshot>;
   openFolder(): Promise<LibrarySnapshot | undefined>;
+  newWindow(): Promise<void>;
   openExternalLink(url: string): Promise<void>;
 }

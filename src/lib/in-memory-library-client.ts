@@ -29,6 +29,10 @@ export class InMemoryLibraryClient implements LibraryClient {
     return this.librarySnapshot;
   }
 
+  async newWindow(): Promise<void> {
+    // Browser tests do not create native windows.
+  }
+
   async openExternalLink(): Promise<void> {
     // Browser tests deliberately do not launch external applications.
   }

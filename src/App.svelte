@@ -193,6 +193,11 @@
   }
 
   function handleKeydown(event: KeyboardEvent) {
+    if (event.metaKey && !event.altKey && !event.ctrlKey && event.key.toLowerCase() === 'n') {
+      event.preventDefault();
+      void client.newWindow().catch((reason) => (error = messageFor(reason)));
+      return;
+    }
     if (event.altKey || event.ctrlKey || event.metaKey) return;
     const target = event.target as HTMLElement | null;
     const treeTarget = target?.closest('[role="treeitem"], [role="tree"]');

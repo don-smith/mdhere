@@ -41,6 +41,10 @@ export class TauriLibraryClient implements LibraryClient {
     }
   }
 
+  newWindow(): Promise<void> {
+    return invoke('new_window');
+  }
+
   openExternalLink(url: string): Promise<void> {
     return invoke('open_external_link', { url });
   }
