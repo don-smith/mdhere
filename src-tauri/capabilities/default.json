@@ -1,7 +1,7 @@
 {
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "default",
-  "description": "The default MD Here webview capability.",
+  "description": "The default mdhere webview capability.",
   "windows": ["main"],
   "permissions": ["core:default"]
 }

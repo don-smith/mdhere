@@ -1,4 +1,4 @@
-use md_here_lib::external_links::validate_external_url;
+use mdhere_lib::external_links::validate_external_url;
 
 #[test]
 fn accepts_only_well_formed_https_urls() {

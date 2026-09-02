@@ -1,3 +1,3 @@
 fn main() {
-    md_here_lib::run();
+    mdhere_lib::run();
 }

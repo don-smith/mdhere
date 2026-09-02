@@ -8,7 +8,9 @@ test('renders sanitized GFM inside the reader Shadow DOM', async ({ page }) => {
   await expect(reader.locator('h1')).toHaveText('Welcome');
   await expect(reader.locator('h1')).toHaveAttribute('id', 'welcome');
   await expect(reader.locator('del')).toHaveText('Rendered safely');
-  await expect(reader.locator('img[data-mdhere-image-unavailable="true"]')).toHaveCount(1);
+  await expect(reader.locator('[data-mdhere-image-unavailable="true"]')).toHaveText(
+    'Image unavailable: remote'
+  );
   await expect(reader.locator('script')).toHaveCount(0);
 
   const initialUrl = page.url();

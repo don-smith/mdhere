@@ -1,6 +1,6 @@
 use std::{fs, path::Path};
 
-use md_here_lib::library::{LibraryError, LibraryRegistry, TreeNode};
+use mdhere_lib::library::{LibraryError, LibraryRegistry, TreeNode};
 use tempfile::tempdir;
 
 fn write(root: &Path, relative_path: &str, contents: &[u8]) {

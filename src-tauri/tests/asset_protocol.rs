@@ -1,6 +1,6 @@
 use std::{fs, path::Path};
 
-use md_here_lib::{assets::AssetProtocol, library::LibraryRegistry};
+use mdhere_lib::{assets::AssetProtocol, library::LibraryRegistry};
 use tempfile::tempdir;
 
 const PNG: &[u8] = b"\x89PNG\r\n\x1a\n\0\0\0\rIHDR\0\0\0\x01\0\0\0\x01\x08\x02\0\0\0\x90wS\xde\0\0\0\x0cIDAT\x08\xd7c\xf8\xcf\xc0\0\0\x03\x01\x01\0\x18\xdd\x8d\xb4\0\0\0\0IEND\xaeB`\x82";
@@ -24,8 +24,7 @@ fn serves_a_valid_image_from_the_requesting_windows_root_with_nosniff() {
         .register_root("window", root.path().into())
         .unwrap();
 
-    let response =
-        AssetProtocol::serve(&registry, "window", "mdhere-asset://local/images/cover.png");
+    let response = AssetProtocol::serve(&registry, "window", "/images/cover.png");
 
     assert_eq!(response.status, 200);
     assert_eq!(response.mime, Some("image/png".into()));
@@ -58,14 +57,14 @@ fn rejects_paths_and_content_that_cannot_be_safe_images() {
         .unwrap();
 
     for url in [
-        "mdhere-asset://local/../outside.png",
-        "mdhere-asset://local/%2e%2e/outside.png",
-        "mdhere-asset://local/%2Fetc%2Fpasswd",
-        "mdhere-asset://other/images/vector.svg",
-        "mdhere-asset://local/images/vector.svg",
-        "mdhere-asset://local/images/mismatch.png",
-        "mdhere-asset://local/images/large.png",
-        "mdhere-asset://local/images/missing.png",
+        "/../outside.png",
+        "/%2e%2e/outside.png",
+        "/%2Fetc%2Fpasswd",
+        "/images/vector.svg",
+        "/images/vector.svg",
+        "/images/mismatch.png",
+        "/images/large.png",
+        "/images/missing.png",
     ] {
         assert_ne!(asset(&registry, url), 200, "{url}");
     }
@@ -89,5 +88,5 @@ fn rejects_a_symlink_that_escapes_the_registered_root() {
         .register_root("window", root.path().into())
         .unwrap();
 
-    assert_ne!(asset(&registry, "mdhere-asset://local/escaped.png"), 200);
+    assert_ne!(asset(&registry, "/escaped.png"), 200);
 }

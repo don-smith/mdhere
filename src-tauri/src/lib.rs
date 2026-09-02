@@ -50,7 +50,7 @@ pub fn run() {
             let response = AssetProtocol::serve(
                 &context.app_handle().state::<LibraryRegistry>(),
                 context.webview_label(),
-                &request.uri().to_string(),
+                request.uri().path(),
             );
             let mut builder = Response::builder().status(response.status);
             for (name, value) in response.headers {
@@ -75,7 +75,7 @@ pub fn run() {
             open_external_link
         ])
         .run(tauri::generate_context!())
-        .expect("error while running MD Here");
+        .expect("error while running mdhere");
 }
 
 fn startup_root() -> Option<PathBuf> {

@@ -82,7 +82,7 @@
   function messageFor(reason: unknown): string {
     if (reason instanceof Error) return reason.message;
     if (typeof reason === 'object' && reason && 'message' in reason) return String(reason.message);
-    return 'MD Here could not complete that request.';
+    return 'mdhere could not complete that request.';
   }
 
   function flattenedDocuments(nodes: TreeNode[]): TreeNode[] {
@@ -92,11 +92,11 @@
   }
 </script>
 
-<svelte:head><title>MD Here</title></svelte:head>
+<svelte:head><title>mdhere</title></svelte:head>
 
 <main>
-  <header aria-label="MD Here header">
-    <strong>MD Here</strong>
+  <header aria-label="mdhere header">
+    <strong>mdhere</strong>
     {#if snapshot}<span class="root">{snapshot.rootName}</span>{/if}
     <button onclick={loadSnapshot} disabled={loading}>Refresh</button>
   </header>

@@ -22,6 +22,20 @@ describe('ReaderPane', () => {
     expect(reader.shadowRoot?.querySelector('style, link')).not.toBeNull();
   });
 
+  it('replaces a missing local image with an accessible placeholder', async () => {
+    const { container } = render(ReaderPane, {
+      document: { path: 'guide.md', title: 'Guide', content: '![cover](images/missing.png)' }
+    });
+    const reader = await readerElement(container);
+    const image = reader.shadowRoot?.querySelector('img');
+    if (!image) throw new Error('Expected the local image element');
+
+    await fireEvent.error(image);
+
+    expect(reader.shadowRoot?.querySelector('img')).toBeNull();
+    expect(reader.shadowRoot?.textContent).toContain('Image unavailable: cover');
+  });
+
   it('delegates validated local and external links without navigating the webview', async () => {
     const onDocumentLink = vi.fn();
     const onExternalLink = vi.fn();

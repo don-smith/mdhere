@@ -1,21 +1,21 @@
 [package]
-name = "md-here"
+name = "mdhere"
 version = "0.1.0"
 description = "A confined local Markdown reader"
-authors = ["MD Here contributors"]
+authors = ["mdhere contributors"]
 edition = "2024"
 rust-version = "1.98.0"
 
 [lib]
-name = "md_here_lib"
+name = "mdhere_lib"
 crate-type = ["lib", "cdylib", "staticlib"]
 
 [[bin]]
-name = "md-here"
+name = "mdhere"
 path = "src/main.rs"
 
 [build-dependencies]
-tauri-build = "=2.6.3"
+tauri-build = { version = "=2.6.3", features = [] }
 
 [dependencies]
 infer = "=0.22.0"
@@ -23,7 +23,7 @@ ignore = "=0.4.33"
 percent-encoding = "=2.3.2"
 serde = { version = "=1.0.229", features = ["derive"] }
 serde_json = "=1.0.151"
-tauri = "=2.11.5"
+tauri = { version = "=2.11.5", features = [] }
 tauri-plugin-dialog = "=2.7.3"
 tauri-plugin-opener = "=2.5.5"
 tauri-plugin-single-instance = "=2.4.4"

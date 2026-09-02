@@ -76,11 +76,11 @@ export class MarkdownRenderer {
       if (destination.kind === 'asset') {
         token.attrSet(
           'src',
-          `mdhere-asset://local/${destination.path.split('/').map(encodeURIComponent).join('/')}`
+          `mdhere-asset://localhost/${destination.path.split('/').map(encodeURIComponent).join('/')}`
         );
       } else {
-        token.attrSet('src', '');
-        token.attrSet('data-mdhere-image-unavailable', 'true');
+        const alternative = parser.utils.escapeHtml(token.content || 'Image');
+        return `<span class="mdhere-image-unavailable" data-mdhere-image-unavailable="true" role="img" aria-label="Image unavailable: ${alternative}">Image unavailable: ${alternative}</span>`;
       }
       return defaultImage
         ? defaultImage(tokens, index, options, environment, self)

@@ -1,7 +1,6 @@
 use std::{collections::BTreeMap, fs};
 
 use percent_encoding::percent_decode_str;
-use url::Url;
 
 use crate::library::LibraryRegistry;
 
@@ -81,17 +80,13 @@ impl AssetResponse {
     }
 }
 
-fn asset_path(request_url: &str) -> Option<String> {
-    let url = Url::parse(request_url).ok()?;
-    if url.scheme() != "mdhere-asset"
-        || url.host_str() != Some("local")
-        || url.query().is_some()
-        || url.fragment().is_some()
-    {
+fn asset_path(request_path: &str) -> Option<String> {
+    let path = request_path.strip_prefix('/')?;
+    if path.is_empty() || path.contains(['?', '#']) {
         return None;
     }
     let mut parts = Vec::new();
-    for encoded in url.path_segments()? {
+    for encoded in path.split('/') {
         let part = percent_decode_str(encoded).decode_utf8().ok()?;
         if part.is_empty() || part == "." || part == ".." || part.contains(['/', '\\']) {
             return None;

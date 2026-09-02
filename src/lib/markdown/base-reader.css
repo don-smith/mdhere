@@ -37,6 +37,18 @@ img {
   margin: 1.25rem 0;
   border-radius: 0.35rem;
 }
+.mdhere-image-unavailable {
+  display: block;
+  margin: 1.25rem 0;
+  padding: 0.7rem 0.9rem;
+  border: 1px dashed #a7afbd;
+  border-radius: 0.35rem;
+  color: #5a6475;
+  font:
+    0.9rem/1.4 ui-sans-serif,
+    system-ui,
+    sans-serif;
+}
 pre {
   overflow: auto;
   padding: 1rem;

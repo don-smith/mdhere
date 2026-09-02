@@ -23,7 +23,7 @@ describe('MarkdownRenderer', () => {
 
     expect(rendered.html).toContain('data-mdhere-path="next.md"');
     expect(rendered.html).toContain('data-mdhere-fragment="Part"');
-    expect(rendered.html).toContain('src="mdhere-asset://local/images/cover.png"');
+    expect(rendered.html).toContain('src="mdhere-asset://localhost/images/cover.png"');
   });
 
   it('assigns deterministic, focusable IDs to headings', async () => {
@@ -46,6 +46,8 @@ describe('MarkdownRenderer', () => {
     );
 
     expect(rendered.html).toContain('data-mdhere-image-unavailable="true"');
+    expect(rendered.html).toContain('Image unavailable: remote');
+    expect(rendered.html).not.toContain('src=""');
     expect(rendered.html).toContain('data-mdhere-external="https://example.com/"');
     expect(rendered.html).not.toContain('href="ftp:');
   });

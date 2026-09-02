@@ -24,8 +24,12 @@
     content.dataset.readerContent = 'true';
     shadow.append(content);
     shadow.addEventListener('click', onClick);
+    shadow.addEventListener('error', onAssetError, true);
     void loadRenderer();
-    return () => shadow?.removeEventListener('click', onClick);
+    return () => {
+      shadow?.removeEventListener('click', onClick);
+      shadow?.removeEventListener('error', onAssetError, true);
+    };
   });
 
   $effect(() => {
@@ -65,6 +69,20 @@
     const style = window.document.createElement('style');
     style.textContent = baseReaderCss;
     root.append(style);
+  }
+
+  function onAssetError(event: Event) {
+    const image = event.target;
+    if (!(image instanceof HTMLImageElement)) return;
+
+    const alternative = image.alt || 'Image';
+    const placeholder = window.document.createElement('span');
+    placeholder.className = 'mdhere-image-unavailable';
+    placeholder.dataset.mdhereImageUnavailable = 'true';
+    placeholder.setAttribute('role', 'img');
+    placeholder.setAttribute('aria-label', `Image unavailable: ${alternative}`);
+    placeholder.textContent = `Image unavailable: ${alternative}`;
+    image.replaceWith(placeholder);
   }
 
   function onClick(event: Event) {
