@@ -30,7 +30,7 @@ for (const theme of ['mdhere light', 'mdhere dark']) {
     await installBuiltinThemeCss(reader, theme);
 
     if (theme === 'mdhere light') {
-      await expect(reader.locator('pre.shiki')).toHaveCSS('background-color', 'rgb(255, 255, 255)');
+      await expect(reader.locator('pre.shiki')).toHaveCSS('background-color', 'rgb(238, 242, 248)');
       await expect(reader.locator('pre.shiki')).toHaveCSS('color', 'rgb(36, 41, 46)');
     } else {
       await expect(reader.locator('pre.shiki')).toHaveCSS('background-color', 'rgb(36, 41, 46)');
