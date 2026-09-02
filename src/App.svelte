@@ -130,6 +130,39 @@
     }
   }
 
+  async function refreshLibrary() {
+    loading = true;
+    error = undefined;
+    try {
+      snapshot = await client.refresh();
+      if (selectedDocument) {
+        try {
+          selectedDocument = await client.readDocument(selectedDocument.path);
+        } catch {
+          selectedDocument = undefined;
+        }
+      }
+    } catch (reason) {
+      error = messageFor(reason);
+    } finally {
+      loading = false;
+    }
+  }
+
+  async function openFolder() {
+    error = undefined;
+    try {
+      const nextSnapshot = await client.openFolder();
+      if (nextSnapshot) {
+        snapshot = nextSnapshot;
+        selectedDocument = undefined;
+        fragment = undefined;
+      }
+    } catch (reason) {
+      error = messageFor(reason);
+    }
+  }
+
   async function selectDocument(path: string, nextFragment?: string) {
     error = undefined;
     fragment = nextFragment;
@@ -224,7 +257,8 @@
         onOpenFolder={openThemesFolder}
       />
     {/if}
-    <button onclick={loadSnapshot} disabled={loading}>Refresh</button>
+    <button onclick={openFolder}>Open Folder</button>
+    <button onclick={refreshLibrary} disabled={loading}>Refresh</button>
   </header>
   {#if themeSnapshot}<ThemeNotice diagnostics={themeSnapshot.diagnostics} />{/if}
 
@@ -234,6 +268,7 @@
     <section class="status error" role="alert">
       <h1>Unable to open the library</h1>
       <p>{error}</p>
+      <button onclick={openFolder}>Open Folder</button>
       <button onclick={loadSnapshot}>Try again</button>
     </section>
   {:else if snapshot && flattenedDocuments(snapshot.tree).length === 0}

@@ -16,6 +16,10 @@ export class TauriLibraryClient implements LibraryClient {
     return invoke('refresh_library');
   }
 
+  openFolder(): Promise<LibrarySnapshot | undefined> {
+    return invoke('open_folder');
+  }
+
   openExternalLink(url: string): Promise<void> {
     return invoke('open_external_link', { url });
   }

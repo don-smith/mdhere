@@ -16,8 +16,9 @@
     "test:unit": "vitest run",
     "test:native": "cargo test --manifest-path src-tauri/Cargo.toml",
     "test:browser": "playwright test",
+    "test:launcher": "bash tests/scripts/mdhere.test.sh",
     "check:native": "cargo fmt --manifest-path src-tauri/Cargo.toml --all -- --check && cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets --all-features -- -D warnings",
-    "test": "pnpm test:unit && pnpm test:native && pnpm test:browser",
+    "test": "pnpm test:unit && pnpm test:native && pnpm test:browser && pnpm test:launcher",
     "verify": "pnpm format:check && pnpm lint && pnpm check && pnpm check:native && pnpm test",
     "build": "vite build",
     "tauri": "tauri"

@@ -1,14 +1,21 @@
 pub mod assets;
 pub mod external_links;
+pub mod launch;
 pub mod library;
 pub mod themes;
 
-use std::path::PathBuf;
+use std::{
+    ffi::OsString,
+    path::{Path, PathBuf},
+    sync::atomic::{AtomicU64, Ordering},
+};
 
 use assets::AssetProtocol;
 use external_links::validate_external_url;
+use launch::LaunchRequest;
 use library::{Document, LibraryError, LibraryRegistry, LibrarySnapshot};
-use tauri::{Emitter, Manager, http::Response};
+use tauri::{AppHandle, Emitter, Manager, WebviewUrl, WebviewWindowBuilder, http::Response};
+use tauri_plugin_dialog::DialogExt;
 use themes::{Theme, ThemeCatalog, ThemeSnapshot};
 
 #[tauri::command]
@@ -81,9 +88,80 @@ fn open_themes_folder(catalog: tauri::State<'_, ThemeCatalog>) -> Result<(), Str
         .map_err(|error| error.to_string())
 }
 
+static NEXT_WINDOW_LABEL: AtomicU64 = AtomicU64::new(1);
+
+fn create_window(app: &AppHandle, root: Option<PathBuf>) -> Result<(), String> {
+    let label = format!(
+        "mdhere-{}",
+        NEXT_WINDOW_LABEL.fetch_add(1, Ordering::Relaxed)
+    );
+    let needs_folder = root.is_none();
+    if let Some(root) = root {
+        app.state::<LibraryRegistry>()
+            .register_root(&label, root)
+            .map_err(|error| error.to_string())?;
+    }
+    let window = WebviewWindowBuilder::new(app, &label, WebviewUrl::App("index.html".into()))
+        .title("mdhere")
+        .inner_size(1180.0, 760.0)
+        .min_inner_size(800.0, 500.0)
+        .visible(!needs_folder)
+        .build()
+        .map_err(|error| {
+            app.state::<LibraryRegistry>().unregister(&label);
+            error.to_string()
+        })?;
+    if needs_folder {
+        if let Some(folder) = app.dialog().file().blocking_pick_folder() {
+            let path = folder.into_path().map_err(|error| error.to_string())?;
+            app.state::<LibraryRegistry>()
+                .register_root(&label, path)
+                .map_err(|error| error.to_string())?;
+        }
+        window.show().map_err(|error| error.to_string())?;
+    }
+    Ok(())
+}
+
+#[tauri::command]
+fn open_folder(
+    window: tauri::Window,
+    app: tauri::AppHandle,
+    registry: tauri::State<'_, LibraryRegistry>,
+) -> Result<Option<LibrarySnapshot>, String> {
+    let Some(folder) = app.dialog().file().blocking_pick_folder() else {
+        return Ok(None);
+    };
+    let path = folder.into_path().map_err(|error| error.to_string())?;
+    registry
+        .register_root(window.label(), path)
+        .map_err(|error| error.to_string())?;
+    registry
+        .snapshot(window.label())
+        .map(Some)
+        .map_err(|error| error.to_string())
+}
+
+#[tauri::command]
+fn new_window(app: tauri::AppHandle) -> Result<(), String> {
+    create_window(&app, None)
+}
+
 pub fn run() {
-    let startup_root = startup_root();
+    let startup = LaunchRequest::parse(
+        std::env::args_os().skip(1),
+        &std::env::current_dir().unwrap_or_else(|_| PathBuf::from(".")),
+    );
     tauri::Builder::default()
+        .plugin(tauri_plugin_single_instance::init(|app, arguments, cwd| {
+            if let Ok(request) = LaunchRequest::parse(
+                arguments.into_iter().skip(1).map(OsString::from),
+                Path::new(&cwd),
+            ) {
+                let _ = create_window(app, request.root);
+            }
+        }))
+        .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_opener::init())
         .manage(LibraryRegistry::new())
         .register_uri_scheme_protocol("mdhere-asset", |context, request| {
@@ -109,17 +187,18 @@ pub fn run() {
                 ThemeCatalog::bundled(app_data.join("themes"), app_data.join("preferences.json"))
                     .map_err(|error| std::io::Error::other(error.to_string()))?,
             );
-            if let Some(root) = startup_root.as_ref() {
-                app.state::<LibraryRegistry>()
-                    .register_root("main", root.clone())
-                    .map_err(|error| std::io::Error::other(error.to_string()))?;
-            }
+            let request = startup
+                .as_ref()
+                .map_err(|error| std::io::Error::other(error.to_string()))?;
+            create_window(app.handle(), request.root.clone()).map_err(std::io::Error::other)?;
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
             library_snapshot,
             read_document,
             refresh_library,
+            open_folder,
+            new_window,
             open_external_link,
             theme_catalog,
             select_theme,
@@ -128,14 +207,4 @@ pub fn run() {
         ])
         .run(tauri::generate_context!())
         .expect("error while running mdhere");
-}
-
-fn startup_root() -> Option<PathBuf> {
-    let mut arguments = std::env::args_os().skip(1);
-    while let Some(argument) = arguments.next() {
-        if argument == "--root" {
-            return arguments.next().map(PathBuf::from);
-        }
-    }
-    None
 }

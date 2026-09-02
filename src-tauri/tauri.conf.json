@@ -10,16 +10,7 @@
     "frontendDist": "../dist"
   },
   "app": {
-    "windows": [
-      {
-        "label": "main",
-        "title": "mdhere",
-        "width": 1180,
-        "height": 760,
-        "minWidth": 800,
-        "minHeight": 500
-      }
-    ],
+    "windows": [],
     "security": {
       "csp": "default-src 'self'; connect-src 'self' ipc: http://ipc.localhost; img-src 'self' asset: data: mdhere-asset:; style-src 'self' 'unsafe-inline'; script-src 'self'; object-src 'none'; base-uri 'none'; frame-src 'none'; font-src 'self'"
     }
@@ -28,6 +19,8 @@
     "active": true,
     "targets": ["app"],
     "resources": ["themes"],
-    "macOS": { "minimumSystemVersion": "13.0" }
+    "macOS": {
+      "minimumSystemVersion": "13.0"
+    }
   }
 }
