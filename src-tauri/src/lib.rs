@@ -1,13 +1,15 @@
 pub mod assets;
 pub mod external_links;
 pub mod library;
+pub mod themes;
 
 use std::path::PathBuf;
 
 use assets::AssetProtocol;
 use external_links::validate_external_url;
 use library::{Document, LibraryError, LibraryRegistry, LibrarySnapshot};
-use tauri::{Manager, http::Response};
+use tauri::{Emitter, Manager, http::Response};
+use themes::{Theme, ThemeCatalog, ThemeSnapshot};
 
 #[tauri::command]
 fn library_snapshot(
@@ -41,6 +43,44 @@ fn open_external_link(url: String) -> Result<(), String> {
     tauri_plugin_opener::open_url(url, None::<&str>).map_err(|error| error.to_string())
 }
 
+#[tauri::command]
+fn theme_catalog(catalog: tauri::State<'_, ThemeCatalog>) -> ThemeSnapshot {
+    catalog.snapshot()
+}
+
+#[tauri::command]
+fn select_theme(
+    app: tauri::AppHandle,
+    catalog: tauri::State<'_, ThemeCatalog>,
+    theme_id: String,
+) -> Result<Theme, String> {
+    let theme = catalog
+        .select(&theme_id)
+        .map_err(|error| error.to_string())?;
+    app.emit("theme-changed", &theme)
+        .map_err(|error| error.to_string())?;
+    Ok(theme)
+}
+
+#[tauri::command]
+fn reload_themes(
+    app: tauri::AppHandle,
+    catalog: tauri::State<'_, ThemeCatalog>,
+) -> Result<ThemeSnapshot, String> {
+    catalog.reload().map_err(|error| error.to_string())?;
+    let snapshot = catalog.snapshot();
+    app.emit("theme-changed", &snapshot.selected)
+        .map_err(|error| error.to_string())?;
+    Ok(snapshot)
+}
+
+#[tauri::command]
+fn open_themes_folder(catalog: tauri::State<'_, ThemeCatalog>) -> Result<(), String> {
+    std::fs::create_dir_all(catalog.user_dir()).map_err(|error| error.to_string())?;
+    tauri_plugin_opener::open_path(catalog.user_dir(), None::<&str>)
+        .map_err(|error| error.to_string())
+}
+
 pub fn run() {
     let startup_root = startup_root();
     tauri::Builder::default()
@@ -61,6 +101,14 @@ pub fn run() {
                 .expect("asset response is valid")
         })
         .setup(move |app| {
+            let app_data = app
+                .path()
+                .app_data_dir()
+                .map_err(|error| std::io::Error::other(error.to_string()))?;
+            app.manage(
+                ThemeCatalog::bundled(app_data.join("themes"), app_data.join("preferences.json"))
+                    .map_err(|error| std::io::Error::other(error.to_string()))?,
+            );
             if let Some(root) = startup_root.as_ref() {
                 app.state::<LibraryRegistry>()
                     .register_root("main", root.clone())
@@ -72,7 +120,11 @@ pub fn run() {
             library_snapshot,
             read_document,
             refresh_library,
-            open_external_link
+            open_external_link,
+            theme_catalog,
+            select_theme,
+            reload_themes,
+            open_themes_folder
         ])
         .run(tauri::generate_context!())
         .expect("error while running mdhere");

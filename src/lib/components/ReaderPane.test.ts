@@ -22,6 +22,16 @@ describe('ReaderPane', () => {
     expect(reader.shadowRoot?.querySelector('style, link')).not.toBeNull();
   });
 
+  it('keeps theme CSS inside the reader Shadow DOM', async () => {
+    const { container } = render(ReaderPane, {
+      document: { path: 'guide.md', title: 'Guide', content: '# Guide' },
+      themeCss: ':host { background: rebeccapurple; }'
+    });
+    const reader = await readerElement(container);
+    expect(reader.shadowRoot?.textContent).toContain('rebeccapurple');
+    expect(document.head.textContent).not.toContain('rebeccapurple');
+  });
+
   it('replaces a missing local image with an accessible placeholder', async () => {
     const { container } = render(ReaderPane, {
       document: { path: 'guide.md', title: 'Guide', content: '![cover](images/missing.png)' }

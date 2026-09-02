@@ -1,0 +1,16 @@
+:host {
+  color: #172033;
+  background: #ffffff;
+}
+
+.reader-content {
+  max-width: 48rem;
+  margin: 0 auto;
+  font:
+    1.05rem/1.75 Georgia,
+    serif;
+}
+
+.reader-content a {
+  color: #195bbd;
+}

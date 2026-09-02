@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "id": "mdhere-dark",
+  "name": "Mdhere Dark",
+  "appearance": "dark",
+  "shell": {
+    "background": "#18202d",
+    "foreground": "#edf2fa",
+    "muted": "#aab7ca",
+    "border": "#364257",
+    "accent": "#86b5ff"
+  }
+}

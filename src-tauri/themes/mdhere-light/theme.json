@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "id": "mdhere-light",
+  "name": "Mdhere Light",
+  "appearance": "light",
+  "shell": {
+    "background": "#f7f8fb",
+    "foreground": "#172033",
+    "muted": "#5a6475",
+    "border": "#d9dfea",
+    "accent": "#195bbd"
+  }
+}

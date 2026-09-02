@@ -1,0 +1,47 @@
+:host {
+  color: #edf2fa;
+  background: #18202d;
+}
+.reader-content {
+  max-width: 48rem;
+  margin: 0 auto;
+  font:
+    1.05rem/1.75 Georgia,
+    'Times New Roman',
+    serif;
+}
+.reader-content h1,
+.reader-content h2,
+.reader-content h3 {
+  color: #ffffff;
+  font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+  line-height: 1.2;
+}
+.reader-content a {
+  color: #86b5ff;
+}
+.reader-content code {
+  background: #273247;
+  border-radius: 0.25rem;
+  padding: 0.1em 0.25em;
+}
+.reader-content pre {
+  background: #101722;
+  color: #edf2fa;
+  padding: 1rem;
+  border-radius: 0.5rem;
+  overflow: auto;
+}
+.reader-content table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.reader-content th,
+.reader-content td {
+  border: 1px solid #364257;
+  padding: 0.5rem;
+  text-align: left;
+}
+.mdhere-image-unavailable {
+  color: #ffb4ab;
+}

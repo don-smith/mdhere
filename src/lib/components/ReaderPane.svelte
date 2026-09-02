@@ -12,17 +12,20 @@
     fragment?: string;
     onDocumentLink?: Function;
     onExternalLink?: Function;
+    themeCss?: string;
   }
 
-  let { document, fragment, onDocumentLink, onExternalLink }: Props = $props();
+  let { document, fragment, onDocumentLink, onExternalLink, themeCss = '' }: Props = $props();
   let host: HTMLDivElement;
   let shadow: ShadowRoot | undefined;
   let renderer: MarkdownRenderer | undefined;
+  let themeSheet: CSSStyleSheet | undefined;
+  let themeStyle: HTMLStyleElement | undefined;
   const scrollPositions = new SvelteMap<string, number>();
 
   onMount(() => {
     shadow = host.attachShadow({ mode: 'open' });
-    installStyles(shadow);
+    void installStyles(shadow);
     const content = window.document.createElement('div');
     content.dataset.readerContent = 'true';
     shadow.append(content);
@@ -39,6 +42,11 @@
     document;
     fragment;
     void renderDocument();
+  });
+
+  $effect(() => {
+    themeCss;
+    void applyTheme();
   });
 
   async function loadRenderer() {
@@ -85,16 +93,26 @@
     if (document) scrollPositions.set(document.path, host.scrollTop);
   }
 
-  function installStyles(root: ShadowRoot) {
-    if ('adoptedStyleSheets' in root && 'replaceSync' in CSSStyleSheet.prototype) {
-      const sheet = new CSSStyleSheet();
-      sheet.replaceSync(baseReaderCss);
-      root.adoptedStyleSheets = [sheet];
+  async function installStyles(root: ShadowRoot) {
+    if ('adoptedStyleSheets' in root && 'replace' in CSSStyleSheet.prototype) {
+      const baseSheet = new CSSStyleSheet();
+      themeSheet = new CSSStyleSheet();
+      await Promise.all([baseSheet.replace(baseReaderCss), themeSheet.replace(themeCss)]);
+      root.adoptedStyleSheets = [baseSheet, themeSheet];
       return;
     }
     const style = window.document.createElement('style');
     style.textContent = baseReaderCss;
     root.append(style);
+    themeStyle = window.document.createElement('style');
+    themeStyle.dataset.mdhereTheme = 'true';
+    themeStyle.textContent = themeCss;
+    root.append(themeStyle);
+  }
+
+  async function applyTheme() {
+    if (themeSheet) await themeSheet.replace(themeCss);
+    if (themeStyle) themeStyle.textContent = themeCss;
   }
 
   function onAssetError(event: Event) {

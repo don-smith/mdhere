@@ -5,6 +5,10 @@
   import DocumentTree from './lib/components/DocumentTree.svelte';
   import KeyboardHelp from './lib/components/KeyboardHelp.svelte';
   import ReaderPane from './lib/components/ReaderPane.svelte';
+  import ThemeChooser from './lib/components/ThemeChooser.svelte';
+  import ThemeNotice from './lib/components/ThemeNotice.svelte';
+  import { ThemeStore, tauriThemeApi } from './lib/themes/theme-store';
+  import type { ThemeSnapshot } from './lib/themes/types';
   import { KeyboardController } from './lib/keyboard/controller';
   import type { Pane } from './lib/keyboard/types';
   import { InMemoryLibraryClient } from './lib/in-memory-library-client';
@@ -56,6 +60,47 @@
   let error = $state<string | undefined>();
   let fragment = $state<string | undefined>();
   let loading = $state(true);
+  const demoThemes: ThemeSnapshot = {
+    themes: [
+      {
+        schemaVersion: 1,
+        id: 'mdhere-light',
+        name: 'Mdhere Light',
+        appearance: 'light',
+        shell: {
+          background: '#f7f8fb',
+          foreground: '#172033',
+          muted: '#5a6475',
+          border: '#d9dfea',
+          accent: '#195bbd'
+        },
+        css: ':host { color: #172033; background: #ffffff; }',
+        builtin: true
+      },
+      {
+        schemaVersion: 1,
+        id: 'mdhere-dark',
+        name: 'Mdhere Dark',
+        appearance: 'dark',
+        shell: {
+          background: '#18202d',
+          foreground: '#edf2fa',
+          muted: '#aab7ca',
+          border: '#364257',
+          accent: '#86b5ff'
+        },
+        css: ':host { color: #edf2fa; background: #18202d; }',
+        builtin: true
+      }
+    ],
+    selected: undefined as never,
+    diagnostics: []
+  };
+  demoThemes.selected = demoThemes.themes[0]!;
+  let themeSnapshot = $state<ThemeSnapshot | undefined>(
+    import.meta.env.MODE === 'test' ? demoThemes : undefined
+  );
+  const themeStore = new ThemeStore(tauriThemeApi, (value) => (themeSnapshot = value));
   interface KeyboardTarget {
     focus(): void;
     run: Function;
@@ -69,6 +114,8 @@
 
   onMount(() => {
     void loadSnapshot();
+    if (import.meta.env.MODE !== 'test') void themeStore.load();
+    return () => themeStore.dispose();
   });
 
   async function loadSnapshot() {
@@ -131,6 +178,23 @@
     }
   }
 
+  async function selectTheme(themeId: string) {
+    if (import.meta.env.MODE === 'test' && themeSnapshot) {
+      const selected = themeSnapshot.themes.find((theme) => theme.id === themeId);
+      if (selected) themeSnapshot = { ...themeSnapshot, selected };
+      return;
+    }
+    await themeStore.select(themeId);
+  }
+
+  async function reloadThemes() {
+    if (import.meta.env.MODE !== 'test') await themeStore.reload();
+  }
+
+  async function openThemesFolder() {
+    if (import.meta.env.MODE !== 'test') await themeStore.openFolder();
+  }
+
   function flattenedDocuments(nodes: TreeNode[]): TreeNode[] {
     return nodes.flatMap((node) =>
       node.kind === 'folder' ? [node, ...flattenedDocuments(node.children)] : [node]
@@ -141,12 +205,28 @@
 <svelte:head><title>mdhere</title></svelte:head>
 <svelte:window onkeydown={handleKeydown} />
 
-<main>
+<main
+  style:--shell-background={themeSnapshot?.selected.shell.background}
+  style:--shell-foreground={themeSnapshot?.selected.shell.foreground}
+  style:--shell-muted={themeSnapshot?.selected.shell.muted}
+  style:--shell-border={themeSnapshot?.selected.shell.border}
+  style:--shell-accent={themeSnapshot?.selected.shell.accent}
+>
   <header aria-label="mdhere header">
     <strong>mdhere</strong>
     {#if snapshot}<span class="root">{snapshot.rootName}</span>{/if}
+    {#if themeSnapshot}
+      <ThemeChooser
+        themes={themeSnapshot.themes}
+        selectedId={themeSnapshot.selected.id}
+        onSelect={selectTheme}
+        onReload={reloadThemes}
+        onOpenFolder={openThemesFolder}
+      />
+    {/if}
     <button onclick={loadSnapshot} disabled={loading}>Refresh</button>
   </header>
+  {#if themeSnapshot}<ThemeNotice diagnostics={themeSnapshot.diagnostics} />{/if}
 
   {#if loading}
     <p class="status">Loading library…</p>
@@ -178,6 +258,7 @@
           {fragment}
           onDocumentLink={selectDocument}
           onExternalLink={(url: string) => client.openExternalLink(url)}
+          themeCss={themeSnapshot?.selected.css}
         />
       </article>
       <KeyboardHelp open={helpOpen} onClose={() => (helpOpen = false)} />
