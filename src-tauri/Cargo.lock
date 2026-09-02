@@ -2103,6 +2103,7 @@ version = "0.1.0"
 dependencies = [
  "ignore",
  "infer 0.22.0",
+ "percent-encoding",
  "serde",
  "serde_json",
  "tauri",

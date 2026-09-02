@@ -1,0 +1,71 @@
+:host {
+  color: #172033;
+  font:
+    1.05rem/1.7 ui-serif,
+    Georgia,
+    Cambria,
+    'Times New Roman',
+    serif;
+}
+.reader-content {
+  max-width: 75ch;
+  margin: 0 auto;
+  overflow-wrap: break-word;
+}
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  line-height: 1.22;
+  margin: 2.2rem 0 0.8rem;
+  scroll-margin-top: 1rem;
+}
+p,
+li {
+  max-width: 75ch;
+}
+a {
+  color: #195bbd;
+  text-decoration-thickness: 0.08em;
+}
+img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  margin: 1.25rem 0;
+  border-radius: 0.35rem;
+}
+pre {
+  overflow: auto;
+  padding: 1rem;
+  border-radius: 0.45rem;
+  background: #f2f4f8;
+  font:
+    0.9rem/1.55 ui-monospace,
+    SFMono-Regular,
+    Menlo,
+    monospace;
+}
+code {
+  font:
+    0.9em ui-monospace,
+    SFMono-Regular,
+    Menlo,
+    monospace;
+}
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1.25rem 0;
+}
+th,
+td {
+  padding: 0.5rem 0.7rem;
+  border: 1px solid #d9dfea;
+  text-align: left;
+}
+input[type='checkbox'] {
+  accent-color: #195bbd;
+}

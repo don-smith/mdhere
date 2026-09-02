@@ -78,6 +78,14 @@ impl LibraryRegistry {
         })
     }
 
+    pub fn resolve_path(
+        &self,
+        window_label: &str,
+        relative_path: &str,
+    ) -> Result<PathBuf, LibraryError> {
+        PathGuard::new(self.root_for(window_label)?).resolve(relative_path)
+    }
+
     pub fn unregister(&self, window_label: &str) {
         if let Ok(mut roots) = self.roots.lock() {
             roots.remove(window_label);

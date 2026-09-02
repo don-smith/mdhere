@@ -15,4 +15,8 @@ export class TauriLibraryClient implements LibraryClient {
   refresh(): Promise<LibrarySnapshot> {
     return invoke('refresh_library');
   }
+
+  openExternalLink(url: string): Promise<void> {
+    return invoke('open_external_link', { url });
+  }
 }

@@ -2,6 +2,7 @@
   import { onMount } from 'svelte';
 
   import type { Document, LibrarySnapshot, TreeNode } from './lib/contracts';
+  import ReaderPane from './lib/components/ReaderPane.svelte';
   import { InMemoryLibraryClient } from './lib/in-memory-library-client';
   import type { LibraryClient } from './lib/library-client';
   import { TauriLibraryClient } from './lib/tauri-library-client';
@@ -18,7 +19,10 @@
         kind: 'folder',
         name: 'guides',
         path: 'guides',
-        children: [{ kind: 'document', name: 'Welcome.md', path: 'guides/Welcome.md' }]
+        children: [
+          { kind: 'document', name: 'Welcome.md', path: 'guides/Welcome.md' },
+          { kind: 'document', name: 'Second.md', path: 'guides/Second.md' }
+        ]
       }
     ]
   };
@@ -26,7 +30,15 @@
     'guides/Welcome.md': {
       path: 'guides/Welcome.md',
       title: 'Welcome',
-      content: '# Welcome\n\nSelect a Markdown document to read it here.'
+      content:
+        '# Welcome\n\n~~Rendered safely~~. [Read next](Second.md#second-section) [Web](https://example.com) ![remote](https://example.com/image.png) <scr' +
+        'ipt>alert(1)</scr' +
+        'ipt>'
+    },
+    'guides/Second.md': {
+      path: 'guides/Second.md',
+      title: 'Second',
+      content: '# Second section\n\nThis document was selected by a confined local link.'
     }
   };
 
@@ -38,6 +50,7 @@
   let snapshot = $state<LibrarySnapshot | undefined>();
   let selectedDocument = $state<Document | undefined>();
   let error = $state<string | undefined>();
+  let fragment = $state<string | undefined>();
   let loading = $state(true);
 
   onMount(() => {
@@ -56,8 +69,9 @@
     }
   }
 
-  async function selectDocument(path: string) {
+  async function selectDocument(path: string, nextFragment?: string) {
     error = undefined;
+    fragment = nextFragment;
     try {
       selectedDocument = await client.readDocument(path);
     } catch (reason) {
@@ -118,13 +132,13 @@
           {/each}
         </ul>
       </nav>
-      <article aria-live="polite">
-        {#if selectedDocument}
-          <h1>{selectedDocument.title}</h1>
-          <pre>{selectedDocument.content}</pre>
-        {:else}
-          <p class="status">Select a document from the tree.</p>
-        {/if}
+      <article aria-label="Reader">
+        <ReaderPane
+          document={selectedDocument}
+          {fragment}
+          onDocumentLink={selectDocument}
+          onExternalLink={(url: string) => client.openExternalLink(url)}
+        />
       </article>
     </div>
   {/if}

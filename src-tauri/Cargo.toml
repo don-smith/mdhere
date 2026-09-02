@@ -20,6 +20,7 @@ tauri-build = "=2.6.3"
 [dependencies]
 infer = "=0.22.0"
 ignore = "=0.4.33"
+percent-encoding = "=2.3.2"
 serde = { version = "=1.0.229", features = ["derive"] }
 serde_json = "=1.0.151"
 tauri = "=2.11.5"
