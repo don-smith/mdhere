@@ -13,9 +13,17 @@
     onDocumentLink?: Function;
     onExternalLink?: Function;
     themeCss?: string;
+    themeAppearance?: 'light' | 'dark';
   }
 
-  let { document, fragment, onDocumentLink, onExternalLink, themeCss = '' }: Props = $props();
+  let {
+    document,
+    fragment,
+    onDocumentLink,
+    onExternalLink,
+    themeCss = '',
+    themeAppearance = 'light'
+  }: Props = $props();
   let host: HTMLDivElement;
   let shadow: ShadowRoot | undefined;
   let renderer: MarkdownRenderer | undefined;
@@ -149,6 +157,7 @@
   data-testid="reader"
   aria-label="Reader content"
   aria-live="polite"
+  data-theme-appearance={themeAppearance}
   tabindex="0"
   onscroll={rememberScroll}
 ></div>

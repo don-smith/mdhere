@@ -1,6 +1,6 @@
 # Themes
 
-mdhere ships with **Mdhere Light** and **Mdhere Dark**. Theme selection applies to every open window and is stored in the application's macOS Application Support directory:
+mdhere ships with **mdhere light** and **mdhere dark**. Theme selection applies to every open window and is stored in the application's macOS Application Support directory:
 
 ```text
 ~/Library/Application Support/dev.mdhere.app/themes

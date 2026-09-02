@@ -39,7 +39,7 @@
       path: 'guides/Welcome.md',
       title: 'Welcome',
       content:
-        '# Welcome\n\n~~Rendered safely~~. [Read next](Second.md#second-section) [Web](https://example.com) ![remote](https://example.com/image.png) <scr' +
+        "# Welcome\n\n~~Rendered safely~~. [Read next](Second.md#second-section) [Web](https://example.com) ![remote](https://example.com/image.png)\n\n```typescript\nconst theme = 'dark';\n```\n\n<scr" +
         'ipt>alert(1)</scr' +
         'ipt>'
     },
@@ -65,7 +65,7 @@
       {
         schemaVersion: 1,
         id: 'mdhere-light',
-        name: 'Mdhere Light',
+        name: 'mdhere light',
         appearance: 'light',
         shell: {
           background: '#f7f8fb',
@@ -80,7 +80,7 @@
       {
         schemaVersion: 1,
         id: 'mdhere-dark',
-        name: 'Mdhere Dark',
+        name: 'mdhere dark',
         appearance: 'dark',
         shell: {
           background: '#18202d',
@@ -259,6 +259,7 @@
           onDocumentLink={selectDocument}
           onExternalLink={(url: string) => client.openExternalLink(url)}
           themeCss={themeSnapshot?.selected.css}
+          themeAppearance={themeSnapshot?.selected.appearance}
         />
       </article>
       <KeyboardHelp open={helpOpen} onClose={() => (helpOpen = false)} />

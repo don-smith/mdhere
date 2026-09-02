@@ -6,7 +6,7 @@ import type { Theme } from './types';
 const light: Theme = {
   schemaVersion: 1,
   id: 'mdhere-light',
-  name: 'Mdhere Light',
+  name: 'mdhere light',
   appearance: 'light',
   shell: {
     background: '#ffffff',

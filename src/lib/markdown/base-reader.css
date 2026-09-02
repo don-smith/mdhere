@@ -67,6 +67,20 @@ code {
     Menlo,
     monospace;
 }
+.shiki {
+  background-color: var(--shiki-light-bg);
+  color: var(--shiki-light);
+}
+.shiki span {
+  color: var(--shiki-light);
+}
+:host([data-theme-appearance='dark']) .shiki {
+  background-color: var(--shiki-dark-bg);
+  color: var(--shiki-dark);
+}
+:host([data-theme-appearance='dark']) .shiki span {
+  color: var(--shiki-dark);
+}
 table {
   width: 100%;
   border-collapse: collapse;

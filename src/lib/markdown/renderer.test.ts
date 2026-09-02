@@ -38,6 +38,16 @@ describe('MarkdownRenderer', () => {
     expect(rendered.html).toContain('<h1 id="a-heading" tabindex="-1">');
   });
 
+  it('emits light and dark Shiki tokens for language-aware code fences', async () => {
+    const renderer = await MarkdownRenderer.create();
+    const rendered = renderer.render('```typescript\nconst answer: number = 42;\n```', 'guide.md');
+
+    expect(rendered.html).toContain('class="shiki');
+    expect(rendered.html).toContain('--shiki-light:');
+    expect(rendered.html).toContain('--shiki-dark:');
+    expect(rendered.html).toContain('--shiki-dark-bg:');
+  });
+
   it('marks unavailable images and exposes only validated external links', async () => {
     const renderer = await MarkdownRenderer.create();
     const rendered = renderer.render(

@@ -7,7 +7,7 @@ import { sanitizeHtml } from './sanitize';
 import type { RenderedDocument } from './types';
 
 const highlighter = createHighlighter({
-  themes: ['github-light'],
+  themes: ['github-light', 'github-dark'],
   langs: ['text', 'bash', 'css', 'html', 'javascript', 'json', 'markdown', 'rust', 'typescript']
 });
 
@@ -93,7 +93,8 @@ export class MarkdownRenderer {
       try {
         return syntaxHighlighter.codeToHtml(token.content, {
           lang: language,
-          theme: 'github-light'
+          themes: { light: 'github-light', dark: 'github-dark' },
+          defaultColor: false
         });
       } catch {
         return defaultFence
