@@ -62,7 +62,7 @@ li {
   margin: 0.15rem 0;
 }
 .folder {
-  color: #4b5567;
+  color: var(--shell-muted);
   font-weight: 650;
   margin-top: 0.75rem;
 }

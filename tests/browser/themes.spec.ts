@@ -35,6 +35,10 @@ for (const theme of ['mdhere light', 'mdhere dark']) {
     } else {
       await expect(reader.locator('pre.shiki')).toHaveCSS('background-color', 'rgb(36, 41, 46)');
       await expect(reader.locator('pre.shiki')).toHaveCSS('color', 'rgb(225, 228, 232)');
+      await expect(page.getByRole('treeitem', { name: 'guides' })).toHaveCSS(
+        'color',
+        'rgb(170, 183, 202)'
+      );
     }
     await expect(reader.locator('pre.shiki > code')).toHaveCSS(
       'background-color',
