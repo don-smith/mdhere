@@ -16,7 +16,7 @@ export default [
     languageOptions: { parserOptions: { parser: tseslint.parser } }
   },
   {
-    files: ['**/*.{js,ts,svelte}'],
+    files: ['**/*.{js,mjs,ts,svelte}'],
     languageOptions: { globals: { ...globals.browser, ...globals.node } }
   }
 ];

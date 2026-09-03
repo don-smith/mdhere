@@ -17,4 +17,7 @@ bundle="$root/mdhere.app"
 mkdir -p "$bundle/Contents/MacOS" "$root/home"
 cp "$app" "$bundle/Contents/MacOS/mdhere"
 HOME="$root/home" scripts/install-local.sh "$bundle" >/dev/null
-[ -x "$root/home/.local/bin/mdhere" ]
+installed="$root/home/.local/bin/mdhere"
+[ -x "$installed" ]
+"$installed" "$root/space folder" | grep -- "--root"
+"$installed" "$root/space folder" | grep "space folder"
