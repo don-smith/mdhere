@@ -5,7 +5,7 @@ use std::{
 
 use serde::Serialize;
 
-use crate::themes::{Theme, ThemeCatalog, ThemeError, ThemePreferences, ThemeSnapshot};
+use crate::themes::{Theme, ThemeCatalog, ThemeError, ThemePreferences};
 
 #[derive(Clone, Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -15,16 +15,6 @@ pub struct PresentationSnapshot {
     pub selected: Theme,
     pub diagnostics: Vec<String>,
     pub front_matter_expanded: bool,
-}
-
-impl PresentationSnapshot {
-    pub fn theme_snapshot(&self) -> ThemeSnapshot {
-        ThemeSnapshot {
-            themes: self.themes.clone(),
-            selected: self.selected.clone(),
-            diagnostics: self.diagnostics.clone(),
-        }
-    }
 }
 
 struct PresentationData {
@@ -113,12 +103,11 @@ impl PresentationManager {
     }
 
     fn snapshot_locked(&self, data: &PresentationData) -> PresentationSnapshot {
-        let snapshot = self.catalog.snapshot();
         PresentationSnapshot {
             revision: data.revision,
-            themes: snapshot.themes,
-            selected: snapshot.selected,
-            diagnostics: snapshot.diagnostics,
+            themes: self.catalog.themes(),
+            selected: self.catalog.selected(),
+            diagnostics: self.catalog.diagnostics(),
             front_matter_expanded: data.preferences.front_matter_expanded,
         }
     }

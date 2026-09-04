@@ -18,7 +18,6 @@ use library::{Document, LibraryError, LibraryRegistry, LibrarySnapshot};
 use presentation::PresentationManager;
 use tauri::{AppHandle, Emitter, Manager, WebviewUrl, WebviewWindowBuilder, http::Response};
 use tauri_plugin_dialog::DialogExt;
-use themes::{Theme, ThemeSnapshot};
 
 #[tauri::command]
 fn library_snapshot(
@@ -53,8 +52,10 @@ fn open_external_link(url: String) -> Result<(), String> {
 }
 
 #[tauri::command]
-fn theme_catalog(presentation: tauri::State<'_, PresentationManager>) -> ThemeSnapshot {
-    presentation.snapshot().theme_snapshot()
+fn presentation_snapshot(
+    presentation: tauri::State<'_, PresentationManager>,
+) -> presentation::PresentationSnapshot {
+    presentation.snapshot()
 }
 
 #[tauri::command]
@@ -62,24 +63,49 @@ fn select_theme(
     app: tauri::AppHandle,
     presentation: tauri::State<'_, PresentationManager>,
     theme_id: String,
-) -> Result<Theme, String> {
-    let snapshot = presentation
-        .select_theme(&theme_id)
-        .map_err(|error| error.to_string())?;
-    app.emit("theme-changed", &snapshot.selected)
-        .map_err(|error| error.to_string())?;
-    Ok(snapshot.selected)
+) -> Result<presentation::PresentationSnapshot, String> {
+    complete_presentation_mutation(presentation.select_theme(&theme_id), |snapshot| {
+        emit_presentation_changed(&app, snapshot)
+    })
 }
 
 #[tauri::command]
 fn reload_themes(
     app: tauri::AppHandle,
     presentation: tauri::State<'_, PresentationManager>,
-) -> Result<ThemeSnapshot, String> {
-    let snapshot = presentation.reload().map_err(|error| error.to_string())?;
-    app.emit("theme-changed", &snapshot.selected)
-        .map_err(|error| error.to_string())?;
-    Ok(snapshot.theme_snapshot())
+) -> Result<presentation::PresentationSnapshot, String> {
+    complete_presentation_mutation(presentation.reload(), |snapshot| {
+        emit_presentation_changed(&app, snapshot)
+    })
+}
+
+#[tauri::command]
+fn set_front_matter_expanded(
+    app: tauri::AppHandle,
+    presentation: tauri::State<'_, PresentationManager>,
+    expanded: bool,
+) -> Result<presentation::PresentationSnapshot, String> {
+    complete_presentation_mutation(
+        presentation.set_front_matter_expanded(expanded),
+        |snapshot| emit_presentation_changed(&app, snapshot),
+    )
+}
+
+fn complete_presentation_mutation(
+    mutation: Result<presentation::PresentationSnapshot, themes::ThemeError>,
+    emit: impl FnOnce(&presentation::PresentationSnapshot) -> Result<(), String>,
+) -> Result<presentation::PresentationSnapshot, String> {
+    let snapshot = mutation.map_err(|error| error.to_string())?;
+    emit(&snapshot)?;
+    Ok(snapshot)
+}
+
+fn emit_presentation_changed(
+    app: &AppHandle,
+    snapshot: &presentation::PresentationSnapshot,
+) -> Result<(), String> {
+    app.emit("presentation-changed", snapshot)
+        .map_err(|error| error.to_string())
 }
 
 #[tauri::command]
@@ -226,11 +252,74 @@ pub fn run() {
             open_folder,
             new_window,
             open_external_link,
-            theme_catalog,
+            presentation_snapshot,
             select_theme,
             reload_themes,
+            set_front_matter_expanded,
             open_themes_folder
         ])
         .run(tauri::generate_context!())
         .expect("error while running mdhere");
+}
+
+#[cfg(test)]
+mod tests {
+    use std::cell::RefCell;
+
+    use super::*;
+    use tempfile::TempDir;
+
+    fn manager() -> (TempDir, PresentationManager) {
+        let root = TempDir::new().unwrap();
+        let manager = PresentationManager::bundled(
+            root.path().join("themes"),
+            root.path().join("preferences.json"),
+        )
+        .unwrap();
+        (root, manager)
+    }
+
+    #[test]
+    fn presentation_mutations_return_the_exact_full_snapshot_that_is_emitted() {
+        let (_root, manager) = manager();
+        for mutation in [
+            manager.select_theme("mdhere-dark"),
+            manager.reload(),
+            manager.set_front_matter_expanded(true),
+        ] {
+            let emitted = RefCell::new(None);
+            let returned = complete_presentation_mutation(mutation, |snapshot| {
+                *emitted.borrow_mut() = Some(snapshot.clone());
+                Ok(())
+            })
+            .unwrap();
+            let published = emitted.into_inner().expect("snapshot was emitted");
+
+            assert_eq!(returned.revision, published.revision);
+            assert_eq!(
+                returned.selected.manifest.id,
+                published.selected.manifest.id
+            );
+            assert_eq!(
+                returned.front_matter_expanded,
+                published.front_matter_expanded
+            );
+            assert_eq!(returned.diagnostics, published.diagnostics);
+            assert_eq!(returned.themes.len(), 3);
+            assert_eq!(returned.themes.len(), published.themes.len());
+        }
+    }
+
+    #[test]
+    fn failed_presentation_mutations_are_not_emitted() {
+        let (_root, manager) = manager();
+        let emitted = RefCell::new(false);
+        let result = complete_presentation_mutation(manager.select_theme("missing"), |_| {
+            *emitted.borrow_mut() = true;
+            Ok(())
+        });
+
+        assert!(result.is_err());
+        assert!(!emitted.into_inner());
+    }
 }

@@ -216,14 +216,6 @@ pub struct Theme {
     pub builtin: bool,
 }
 
-#[derive(Clone, Debug, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct ThemeSnapshot {
-    pub themes: Vec<Theme>,
-    pub selected: Theme,
-    pub diagnostics: Vec<String>,
-}
-
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub struct ThemePreferences {
@@ -342,14 +334,6 @@ impl ThemeCatalog {
     pub fn selected(&self) -> Theme {
         let data = self.data.lock().expect("theme catalog lock");
         data.themes[data.selected].clone()
-    }
-
-    pub fn snapshot(&self) -> ThemeSnapshot {
-        ThemeSnapshot {
-            themes: self.themes(),
-            selected: self.selected(),
-            diagnostics: self.diagnostics(),
-        }
     }
 
     pub fn user_dir(&self) -> &Path {

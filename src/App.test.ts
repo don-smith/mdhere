@@ -2,6 +2,7 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/svelte';
 import { describe, expect, it, vi } from 'vitest';
 
 import type { LibraryClient } from './lib/library-client';
+import { presentationFixture } from './lib/presentation/presentation-fixture';
 import App from './App.svelte';
 
 describe('App', () => {
@@ -25,6 +26,67 @@ describe('App', () => {
     const heading = await screen.findByRole('heading', { name: 'Choose a folder' });
     const choice = heading.closest('section');
     expect(choice?.querySelector('button')).toHaveTextContent('Open Folder');
+  });
+
+  it('applies every shell token and color scheme from the presentation fixture', async () => {
+    const client: LibraryClient = {
+      snapshot: () =>
+        Promise.resolve({
+          rootName: 'Library',
+          diagnostics: [],
+          tree: [{ kind: 'document', name: 'Guide.md', path: 'Guide.md' }]
+        }),
+      readDocument: () => Promise.resolve({ path: 'Guide.md', title: 'Guide', content: '# Guide' }),
+      refresh: () => Promise.reject(new Error('not used')),
+      openFolder: () => Promise.resolve(undefined),
+      newWindow: () => Promise.resolve(),
+      openExternalLink: () => Promise.resolve()
+    };
+    const { container } = render(App, { client });
+    const shellProperties = {
+      background: '--shell-background',
+      panel: '--shell-panel',
+      surface: '--shell-surface',
+      raisedSurface: '--shell-raised-surface',
+      foreground: '--shell-foreground',
+      foregroundStrong: '--shell-foreground-strong',
+      muted: '--shell-muted',
+      faint: '--shell-faint',
+      border: '--shell-border',
+      borderStrong: '--shell-border-strong',
+      accent: '--shell-accent',
+      accentForeground: '--shell-accent-foreground',
+      accentSoft: '--shell-accent-soft',
+      hover: '--shell-hover',
+      selected: '--shell-selected',
+      focus: '--shell-focus',
+      danger: '--shell-danger',
+      warning: '--shell-warning',
+      overlay: '--shell-overlay'
+    } as const;
+    const main = container.querySelector('main');
+    if (!main) throw new Error('Expected the application root');
+
+    await waitFor(() => {
+      for (const [token, property] of Object.entries(shellProperties)) {
+        expect(main.style.getPropertyValue(property)).toBe(
+          presentationFixture.selected.shell[token as keyof typeof shellProperties]
+        );
+      }
+      expect(main.style.colorScheme).toBe('light');
+    });
+
+    await fireEvent.click(await screen.findByRole('treeitem', { name: 'Guide.md' }));
+    const reader = container.querySelector<HTMLElement>('[data-testid="reader"]');
+    expect(reader?.style.colorScheme).toBe('light');
+
+    const chooser = container.querySelector<HTMLSelectElement>('[aria-label="Theme"]');
+    if (!chooser) throw new Error('Expected the theme chooser');
+    await fireEvent.change(chooser, { target: { value: 'mdhere-dark' } });
+    await waitFor(() => {
+      expect(main.style.colorScheme).toBe('dark');
+      expect(reader?.style.colorScheme).toBe('dark');
+    });
   });
 
   it('opens a native window with Command-N', async () => {

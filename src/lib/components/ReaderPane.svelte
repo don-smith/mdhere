@@ -63,7 +63,7 @@
   }
 
   async function renderDocument() {
-    if (!shadow || !renderer) return;
+    if (!host || !shadow || !renderer) return;
     const content = shadow.querySelector<HTMLElement>('[data-reader-content]');
     if (!content) return;
     if (!document) {
@@ -158,6 +158,7 @@
   aria-label="Reader content"
   aria-live="polite"
   data-theme-appearance={themeAppearance}
+  style:color-scheme={themeAppearance}
   tabindex="0"
   onscroll={rememberScroll}
 ></div>
