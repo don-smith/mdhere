@@ -1,13 +1,27 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "id": "mdhere-dark",
-  "name": "mdhere dark",
+  "name": "Midnight",
   "appearance": "dark",
   "shell": {
     "background": "#18202d",
+    "panel": "#202a3a",
+    "surface": "#202a3a",
+    "raisedSurface": "#273247",
     "foreground": "#edf2fa",
+    "foregroundStrong": "#ffffff",
     "muted": "#aab7ca",
+    "faint": "#8290a5",
     "border": "#364257",
-    "accent": "#86b5ff"
+    "borderStrong": "#53627a",
+    "accent": "#86b5ff",
+    "accentForeground": "#10213d",
+    "accentSoft": "#243d67",
+    "hover": "#2d3a50",
+    "selected": "#32476a",
+    "focus": "#a9c7ff",
+    "danger": "#ffb4ab",
+    "warning": "#f0c979",
+    "overlay": "#00000088"
   }
 }

@@ -6,13 +6,15 @@ use mdhere_lib::{
 };
 use tempfile::TempDir;
 
+const SHELL: &str = r##"{"background":"#ffffff","panel":"#ffffff","surface":"#ffffff","raisedSurface":"#ffffff","foreground":"#172033","foregroundStrong":"#101827","muted":"#5a6475","faint":"#7b8494","border":"#d9dfea","borderStrong":"#b8c3d6","accent":"#195bbd","accentForeground":"#ffffff","accentSoft":"#e5efff","hover":"#f0f4fa","selected":"#dbeafe","focus":"#195bbd","danger":"#a63838","warning":"#966614","overlay":"#17203366"}"##;
+
 fn write_theme(root: &Path, id: &str, appearance: &str) {
     let package = root.join(id);
     fs::create_dir_all(&package).unwrap();
     fs::write(
         package.join("theme.json"),
         format!(
-            r##"{{"schemaVersion":1,"id":"{id}","name":"{id}","appearance":"{appearance}","shell":{{"background":"#ffffff","foreground":"#172033","muted":"#5a6475","border":"#d9dfea","accent":"#195bbd"}}}}"##
+            r##"{{"schemaVersion":2,"id":"{id}","name":"{id}","appearance":"{appearance}","shell":{SHELL}}}"##
         ),
     )
     .unwrap();

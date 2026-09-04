@@ -8,12 +8,14 @@ use std::{
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
-const THEME_SCHEMA_VERSION: u8 = 1;
+const THEME_SCHEMA_VERSION: u8 = 2;
 pub const PREFERENCES_SCHEMA_VERSION: u8 = 1;
 const BUILTIN_LIGHT_MANIFEST: &str = include_str!("../../themes/mdhere-light/theme.json");
 const BUILTIN_LIGHT_CSS: &str = include_str!("../../themes/mdhere-light/reader.css");
 const BUILTIN_DARK_MANIFEST: &str = include_str!("../../themes/mdhere-dark/theme.json");
 const BUILTIN_DARK_CSS: &str = include_str!("../../themes/mdhere-dark/reader.css");
+const BUILTIN_FIELD_NOTES_MANIFEST: &str = include_str!("../../themes/field-notes/theme.json");
+const BUILTIN_FIELD_NOTES_CSS: &str = include_str!("../../themes/field-notes/reader.css");
 
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "lowercase")]
@@ -22,13 +24,116 @@ pub enum Appearance {
     Dark,
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
+#[derive(Clone, Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct ShellColorsFile {
+    background: String,
+    panel: String,
+    surface: String,
+    raised_surface: String,
+    foreground: String,
+    foreground_strong: String,
+    muted: String,
+    faint: String,
+    border: String,
+    border_strong: String,
+    accent: String,
+    accent_foreground: String,
+    accent_soft: String,
+    hover: String,
+    selected: String,
+    focus: String,
+    danger: String,
+    warning: String,
+    overlay: String,
+}
+
+#[derive(Clone, Debug, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
 pub struct ShellColors {
     pub background: String,
+    pub panel: String,
+    pub surface: String,
+    pub raised_surface: String,
     pub foreground: String,
+    pub foreground_strong: String,
     pub muted: String,
+    pub faint: String,
     pub border: String,
+    pub border_strong: String,
     pub accent: String,
+    pub accent_foreground: String,
+    pub accent_soft: String,
+    pub hover: String,
+    pub selected: String,
+    pub focus: String,
+    pub danger: String,
+    pub warning: String,
+    pub overlay: String,
+}
+
+impl ShellColors {
+    fn from_file(value: ShellColorsFile) -> Result<Self, ThemeError> {
+        let shell = Self {
+            background: value.background,
+            panel: value.panel,
+            surface: value.surface,
+            raised_surface: value.raised_surface,
+            foreground: value.foreground,
+            foreground_strong: value.foreground_strong,
+            muted: value.muted,
+            faint: value.faint,
+            border: value.border,
+            border_strong: value.border_strong,
+            accent: value.accent,
+            accent_foreground: value.accent_foreground,
+            accent_soft: value.accent_soft,
+            hover: value.hover,
+            selected: value.selected,
+            focus: value.focus,
+            danger: value.danger,
+            warning: value.warning,
+            overlay: value.overlay,
+        };
+        shell.validate()?;
+        Ok(shell)
+    }
+
+    fn validate(&self) -> Result<(), ThemeError> {
+        for (name, value, has_alpha) in [
+            ("background", &self.background, false),
+            ("panel", &self.panel, false),
+            ("surface", &self.surface, false),
+            ("raisedSurface", &self.raised_surface, false),
+            ("foreground", &self.foreground, false),
+            ("foregroundStrong", &self.foreground_strong, false),
+            ("muted", &self.muted, false),
+            ("faint", &self.faint, false),
+            ("border", &self.border, false),
+            ("borderStrong", &self.border_strong, false),
+            ("accent", &self.accent, false),
+            ("accentForeground", &self.accent_foreground, false),
+            ("accentSoft", &self.accent_soft, false),
+            ("hover", &self.hover, false),
+            ("selected", &self.selected, false),
+            ("focus", &self.focus, false),
+            ("danger", &self.danger, false),
+            ("warning", &self.warning, false),
+            ("overlay", &self.overlay, true),
+        ] {
+            let expected_length = if has_alpha { 9 } else { 7 };
+            if value.len() != expected_length
+                || !value.starts_with('#')
+                || !value[1..].bytes().all(|byte| byte.is_ascii_hexdigit())
+            {
+                let format = if has_alpha { "#RRGGBBAA" } else { "#RRGGBB" };
+                return Err(ThemeError::Manifest(format!(
+                    "shell.{name} must be a {format} color"
+                )));
+            }
+        }
+        Ok(())
+    }
 }
 
 #[derive(Clone, Debug, Deserialize)]
@@ -38,7 +143,7 @@ struct ManifestFile {
     id: String,
     name: String,
     appearance: Appearance,
-    shell: ShellColors,
+    shell: ShellColorsFile,
 }
 
 #[derive(Clone, Debug, Serialize)]
@@ -53,22 +158,34 @@ pub struct ThemeManifest {
 
 impl ThemeManifest {
     pub fn from_json(value: &str) -> Result<Self, ThemeError> {
-        let parsed: ManifestFile =
+        let raw: serde_json::Value =
             serde_json::from_str(value).map_err(|error| ThemeError::Manifest(error.to_string()))?;
+        if raw.get("schemaVersion").and_then(serde_json::Value::as_u64) == Some(1) {
+            return Err(ThemeError::Manifest(
+                "schemaVersion 1 is unsupported; migrate this package as described in docs/themes.md#v1-to-v2-migration".into(),
+            ));
+        }
+        let parsed: ManifestFile =
+            serde_json::from_value(raw).map_err(|error| ThemeError::Manifest(error.to_string()))?;
         let manifest = Self {
             schema_version: parsed.schema_version,
             id: parsed.id,
             name: parsed.name,
             appearance: parsed.appearance,
-            shell: parsed.shell,
+            shell: ShellColors::from_file(parsed.shell)?,
         };
         manifest.validate()?;
         Ok(manifest)
     }
 
     fn validate(&self) -> Result<(), ThemeError> {
+        if self.schema_version == 1 {
+            return Err(ThemeError::Manifest(
+                "schemaVersion 1 is unsupported; migrate this package as described in docs/themes.md#v1-to-v2-migration".into(),
+            ));
+        }
         if self.schema_version != THEME_SCHEMA_VERSION {
-            return Err(ThemeError::Manifest("schemaVersion must be 1".into()));
+            return Err(ThemeError::Manifest("schemaVersion must be 2".into()));
         }
         if self.name.trim().is_empty() {
             return Err(ThemeError::Manifest("name is required".into()));
@@ -85,22 +202,6 @@ impl ThemeManifest {
             return Err(ThemeError::Manifest(
                 "id must use lower-case ASCII letters, digits, and single hyphens".into(),
             ));
-        }
-        for (name, value) in [
-            ("background", &self.shell.background),
-            ("foreground", &self.shell.foreground),
-            ("muted", &self.shell.muted),
-            ("border", &self.shell.border),
-            ("accent", &self.shell.accent),
-        ] {
-            if value.len() != 7
-                || !value.starts_with('#')
-                || !value[1..].bytes().all(|byte| byte.is_ascii_hexdigit())
-            {
-                return Err(ThemeError::Manifest(format!(
-                    "shell.{name} must be a #RRGGBB color"
-                )));
-            }
         }
         Ok(())
     }
@@ -291,16 +392,17 @@ impl ThemeCatalog {
             .map_err(|_| ThemeError::Io("theme catalog lock was poisoned".into()))?;
         let (mut themes, mut diagnostics) = self.load_builtins()?;
         if self.user_dir.exists() {
+            let mut entries = Vec::new();
             for entry in
                 fs::read_dir(&self.user_dir).map_err(|error| ThemeError::Io(error.to_string()))?
             {
-                let entry = match entry {
-                    Ok(value) => value,
-                    Err(error) => {
-                        diagnostics.push(error.to_string());
-                        continue;
-                    }
-                };
+                match entry {
+                    Ok(value) => entries.push(value),
+                    Err(error) => diagnostics.push(error.to_string()),
+                }
+            }
+            entries.sort_by_key(|entry| entry.file_name());
+            for entry in entries {
                 if !entry.path().is_dir() {
                     continue;
                 }
@@ -354,11 +456,18 @@ impl ThemeCatalog {
 
     fn load_builtins(&self) -> Result<(Vec<Theme>, Vec<String>), ThemeError> {
         if let Some(directory) = &self.builtin_dir {
+            let mut entries = fs::read_dir(directory)
+                .map_err(|error| ThemeError::Io(error.to_string()))?
+                .collect::<Result<Vec<_>, _>>()
+                .map_err(|error| ThemeError::Io(error.to_string()))?;
+            entries.sort_by_key(|entry| match entry.file_name().to_str() {
+                Some("mdhere-light") => 0,
+                Some("mdhere-dark") => 1,
+                Some("field-notes") => 2,
+                _ => 3,
+            });
             let mut themes = Vec::new();
-            for entry in
-                fs::read_dir(directory).map_err(|error| ThemeError::Io(error.to_string()))?
-            {
-                let entry = entry.map_err(|error| ThemeError::Io(error.to_string()))?;
+            for entry in entries {
                 if entry.path().is_dir() {
                     themes.push(read_package(&entry.path(), true)?);
                 }
@@ -375,6 +484,11 @@ impl ThemeCatalog {
                 Theme {
                     manifest: ThemeManifest::from_json(BUILTIN_DARK_MANIFEST)?,
                     css: BUILTIN_DARK_CSS.into(),
+                    builtin: true,
+                },
+                Theme {
+                    manifest: ThemeManifest::from_json(BUILTIN_FIELD_NOTES_MANIFEST)?,
+                    css: BUILTIN_FIELD_NOTES_CSS.into(),
                     builtin: true,
                 },
             ],

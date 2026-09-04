@@ -1,13 +1,27 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "id": "mdhere-light",
-  "name": "mdhere light",
+  "name": "Paper",
   "appearance": "light",
   "shell": {
     "background": "#f7f8fb",
+    "panel": "#ffffff",
+    "surface": "#ffffff",
+    "raisedSurface": "#ffffff",
     "foreground": "#172033",
+    "foregroundStrong": "#101827",
     "muted": "#5a6475",
+    "faint": "#7b8494",
     "border": "#d9dfea",
-    "accent": "#195bbd"
+    "borderStrong": "#b8c3d6",
+    "accent": "#195bbd",
+    "accentForeground": "#ffffff",
+    "accentSoft": "#e5efff",
+    "hover": "#f0f4fa",
+    "selected": "#dbeafe",
+    "focus": "#195bbd",
+    "danger": "#a63838",
+    "warning": "#966614",
+    "overlay": "#17203366"
   }
 }

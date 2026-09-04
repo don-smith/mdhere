@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 2,
+  "id": "field-notes",
+  "name": "Field Notes",
+  "appearance": "light",
+  "shell": {
+    "background": "#f1eee3",
+    "panel": "#e6e0ce",
+    "surface": "#f8f5eb",
+    "raisedSurface": "#fffdf7",
+    "foreground": "#2d342c",
+    "foregroundStrong": "#1d241d",
+    "muted": "#65705e",
+    "faint": "#88907c",
+    "border": "#c9c3ae",
+    "borderStrong": "#9c9e83",
+    "accent": "#4e6c45",
+    "accentForeground": "#ffffff",
+    "accentSoft": "#dce8d3",
+    "hover": "#e5ebdd",
+    "selected": "#d3e2c8",
+    "focus": "#4e6c45",
+    "danger": "#9a3f34",
+    "warning": "#896b1f",
+    "overlay": "#2d342c66"
+  }
+}

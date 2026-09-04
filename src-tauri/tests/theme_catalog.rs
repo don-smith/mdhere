@@ -10,9 +10,11 @@ fn write_theme(root: &Path, id: &str, manifest: &str, css: &str) {
     fs::write(package.join("reader.css"), css).unwrap();
 }
 
+const SHELL: &str = r##"{"background":"#ffffff","panel":"#ffffff","surface":"#ffffff","raisedSurface":"#ffffff","foreground":"#172033","foregroundStrong":"#101827","muted":"#5a6475","faint":"#7b8494","border":"#d9dfea","borderStrong":"#b8c3d6","accent":"#195bbd","accentForeground":"#ffffff","accentSoft":"#e5efff","hover":"#f0f4fa","selected":"#dbeafe","focus":"#195bbd","danger":"#a63838","warning":"#966614","overlay":"#17203366"}"##;
+
 fn manifest(id: &str, appearance: &str) -> String {
     format!(
-        r##"{{"schemaVersion":1,"id":"{id}","name":"{id}","appearance":"{appearance}","shell":{{"background":"#ffffff","foreground":"#172033","muted":"#5a6475","border":"#d9dfea","accent":"#195bbd"}}}}"##
+        r##"{{"schemaVersion":2,"id":"{id}","name":"{id}","appearance":"{appearance}","shell":{SHELL}}}"##
     )
 }
 
@@ -27,6 +29,13 @@ fn retains_valid_packages_and_reports_invalid_or_duplicate_user_packages() {
         "body {}",
     );
     write_theme(users.path(), "sea", &manifest("sea", "dark"), "article {}");
+    write_theme(
+        users.path(),
+        "v1",
+        r#"{"schemaVersion":1,"id":"v1","name":"V1","appearance":"light","shell":{}}"#,
+        "body {}",
+    );
+    write_theme(users.path(), "empty", &manifest("empty", "light"), "");
     write_theme(users.path(), "broken", "{", "body {}");
     write_theme(
         users.path(),
@@ -43,7 +52,13 @@ fn retains_valid_packages_and_reports_invalid_or_duplicate_user_packages() {
     .unwrap();
     assert_eq!(catalog.themes().len(), 2);
     assert_eq!(catalog.selected().manifest.id, "mdhere-light");
-    assert_eq!(catalog.diagnostics().len(), 2);
+    assert_eq!(catalog.diagnostics().len(), 4);
+    assert!(
+        catalog
+            .diagnostics()
+            .iter()
+            .any(|diagnostic| diagnostic.contains("v1-to-v2-migration"))
+    );
 }
 
 #[test]
@@ -57,6 +72,49 @@ fn validates_manifest_shape_and_replaces_preferences_atomically() {
     ] {
         assert!(ThemeManifest::from_json(&invalid).is_err(), "{invalid}");
     }
+
+    for field in [
+        "background",
+        "panel",
+        "surface",
+        "raisedSurface",
+        "foreground",
+        "foregroundStrong",
+        "muted",
+        "faint",
+        "border",
+        "borderStrong",
+        "accent",
+        "accentForeground",
+        "accentSoft",
+        "hover",
+        "selected",
+        "focus",
+        "danger",
+        "warning",
+        "overlay",
+    ] {
+        let mut package: serde_json::Value =
+            serde_json::from_str(&manifest("good", "light")).unwrap();
+        package["shell"].as_object_mut().unwrap().remove(field);
+        let error = ThemeManifest::from_json(&package.to_string()).unwrap_err();
+        assert!(error.to_string().contains(field), "{field}: {error}");
+    }
+    for (field, value) in [("background", "#ffffff00"), ("overlay", "#ffffff")] {
+        let mut package: serde_json::Value =
+            serde_json::from_str(&manifest("good", "light")).unwrap();
+        package["shell"][field] = value.into();
+        let error = ThemeManifest::from_json(&package.to_string()).unwrap_err();
+        assert!(error.to_string().contains(field), "{field}: {error}");
+    }
+    let error = ThemeManifest::from_json(
+        r#"{"schemaVersion":1,"id":"old","name":"Old","appearance":"light","shell":{}}"#,
+    )
+    .unwrap_err();
+    assert!(error.to_string().contains("v1-to-v2-migration"));
+    let mut package: serde_json::Value = serde_json::from_str(&manifest("good", "light")).unwrap();
+    package["ignored"] = true.into();
+    assert!(ThemeManifest::from_json(&package.to_string()).is_ok());
 
     let directory = TempDir::new().unwrap();
     let path = directory.path().join("preferences.json");
@@ -89,6 +147,57 @@ fn reports_malformed_preferences_without_discarding_builtin_themes() {
     let catalog = ThemeCatalog::load(builtins.path(), users.path(), preferences).unwrap();
     assert_eq!(catalog.themes().len(), 1);
     assert!(catalog.diagnostics()[0].contains("preferences"));
+}
+
+#[test]
+fn sorts_user_packages_and_keeps_the_first_duplicate() {
+    let builtins = TempDir::new().unwrap();
+    let users = TempDir::new().unwrap();
+    write_theme(
+        builtins.path(),
+        "mdhere-light",
+        &manifest("mdhere-light", "light"),
+        "body {}",
+    );
+    write_theme(
+        users.path(),
+        "zebra",
+        &manifest("shared", "dark").replace("\"name\":\"shared\"", "\"name\":\"Zebra\""),
+        "body {}",
+    );
+    write_theme(
+        users.path(),
+        "alpha",
+        &manifest("shared", "dark").replace("\"name\":\"shared\"", "\"name\":\"Alpha\""),
+        "body {}",
+    );
+
+    let catalog = ThemeCatalog::load(
+        builtins.path(),
+        users.path(),
+        users.path().join("preferences.json"),
+    )
+    .unwrap();
+    assert_eq!(catalog.themes()[1].manifest.name, "Alpha");
+    assert_eq!(catalog.diagnostics().len(), 1);
+}
+
+#[test]
+fn bundled_themes_have_the_expected_order() {
+    let directory = TempDir::new().unwrap();
+    let catalog = ThemeCatalog::bundled(
+        directory.path().join("themes"),
+        directory.path().join("preferences.json"),
+    )
+    .unwrap();
+    assert_eq!(
+        catalog
+            .themes()
+            .iter()
+            .map(|theme| theme.manifest.name.as_str())
+            .collect::<Vec<_>>(),
+        ["Paper", "Midnight", "Field Notes"]
+    );
 }
 
 #[test]

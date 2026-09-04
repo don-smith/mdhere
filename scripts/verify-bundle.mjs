@@ -3,6 +3,28 @@ import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 
 const root = resolve(import.meta.dirname, '..');
+const bundledThemes = ['mdhere-light', 'mdhere-dark', 'field-notes'];
+const shellTokens = [
+  'background',
+  'panel',
+  'surface',
+  'raisedSurface',
+  'foreground',
+  'foregroundStrong',
+  'muted',
+  'faint',
+  'border',
+  'borderStrong',
+  'accent',
+  'accentForeground',
+  'accentSoft',
+  'hover',
+  'selected',
+  'focus',
+  'danger',
+  'warning',
+  'overlay'
+];
 
 function requiredFile(path) {
   if (!existsSync(path) || !statSync(path).isFile()) throw new Error(`Missing file: ${path}`);
@@ -37,6 +59,39 @@ function verifyCapabilities() {
   }
 }
 
+function verifyThemePackage(directory, expectedId) {
+  const manifestPath = join(directory, 'theme.json');
+  const cssPath = join(directory, 'reader.css');
+  requiredFile(manifestPath);
+  requiredFile(cssPath);
+
+  let manifest;
+  try {
+    manifest = JSON.parse(readFileSync(manifestPath, 'utf8'));
+  } catch (error) {
+    throw new Error(`${manifestPath} is not valid JSON: ${error.message}`, { cause: error });
+  }
+  if (manifest.schemaVersion !== 2) {
+    throw new Error(`${manifestPath} must use schemaVersion 2`);
+  }
+  if (manifest.id !== expectedId) {
+    throw new Error(`${manifestPath} must have id ${expectedId}`);
+  }
+  if (!['light', 'dark'].includes(manifest.appearance) || !manifest.name?.trim()) {
+    throw new Error(`${manifestPath} must have a name and light or dark appearance`);
+  }
+  for (const token of shellTokens) {
+    const value = manifest.shell?.[token];
+    const format = token === 'overlay' ? /^#[0-9a-f]{8}$/i : /^#[0-9a-f]{6}$/i;
+    if (typeof value !== 'string' || !format.test(value)) {
+      throw new Error(`${manifestPath} has an invalid shell.${token}`);
+    }
+  }
+  if (!readFileSync(cssPath, 'utf8').trim()) {
+    throw new Error(`${cssPath} must not be empty`);
+  }
+}
+
 function verifyBundle(path) {
   if (!path.endsWith('.app') || !existsSync(path) || !statSync(path).isDirectory()) {
     throw new Error(`Expected a macOS .app bundle: ${path}`);
@@ -52,9 +107,8 @@ function verifyBundle(path) {
     throw new Error('Bundle executable must be mdhere');
   }
   requiredFile(join(path, 'Contents', 'MacOS', 'mdhere'));
-  for (const theme of ['mdhere-light', 'mdhere-dark']) {
-    requiredFile(join(path, 'Contents', 'Resources', 'themes', theme, 'theme.json'));
-    requiredFile(join(path, 'Contents', 'Resources', 'themes', theme, 'reader.css'));
+  for (const theme of bundledThemes) {
+    verifyThemePackage(join(path, 'Contents', 'Resources', 'themes', theme), theme);
   }
 }
 
