@@ -6,7 +6,7 @@
 
 .reader-page {
   box-sizing: border-box;
-  max-inline-size: 75ch;
+  max-inline-size: 96ch;
   min-block-size: 100%;
   margin-inline: auto;
   padding: clamp(0.75rem, 2vw, 2rem);
@@ -34,6 +34,12 @@ table {
   display: block;
   max-inline-size: 100%;
   overflow-x: auto;
+}
+
+table th,
+table td {
+  overflow-wrap: normal;
+  word-break: normal;
 }
 
 :focus-visible {

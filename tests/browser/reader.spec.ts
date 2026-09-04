@@ -42,6 +42,59 @@ test('renders sanitized GFM inside the reader Shadow DOM', async ({ page }) => {
   ).toBe(true);
 });
 
+test('keeps a 1440px reader bounded while its tables use available width or scroll', async ({
+  page
+}) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto('/');
+  await page.getByRole('treeitem', { name: 'Welcome.md' }).click();
+
+  const reader = page.getByTestId('reader');
+  await expect(reader.locator('h1')).toHaveText('Welcome');
+  const metrics = await reader.evaluate((element) => {
+    const shadow = element.shadowRoot;
+    const article = shadow?.querySelector<HTMLElement>('article.reader-content');
+    const readerPage = shadow?.querySelector<HTMLElement>('.reader-page');
+    if (!shadow || !article || !readerPage) throw new Error('Expected reader Shadow DOM content');
+
+    article.insertAdjacentHTML(
+      'beforeend',
+      `<table data-layout="unequal"><thead><tr><th>ID</th><th>State</th><th>Narrative</th></tr></thead><tbody><tr><td>42</td><td>Ready</td><td>A longer description that should receive the available reader width.</td></tr></tbody></table><table data-layout="unbreakable"><tbody><tr><td>${'x'.repeat(120)}</td></tr></tbody></table>`
+    );
+
+    const unequal = shadow.querySelector<HTMLTableElement>('table[data-layout="unequal"]');
+    const unbreakable = shadow.querySelector<HTMLTableElement>('table[data-layout="unbreakable"]');
+    if (!unequal || !unbreakable) throw new Error('Expected injected tables');
+
+    const readerRect = element.getBoundingClientRect();
+    const pageRect = readerPage.getBoundingClientRect();
+    const articleRect = article.getBoundingClientRect();
+    const columnWidths = [...unequal.querySelectorAll('th')].map(
+      (cell) => cell.getBoundingClientRect().width
+    );
+    return {
+      readerWidth: readerRect.width,
+      pageWidth: pageRect.width,
+      articleWidth: articleRect.width,
+      leftContentMargin: articleRect.left - readerRect.left,
+      rightContentMargin: readerRect.right - articleRect.right,
+      unequalWidth: unequal.getBoundingClientRect().width,
+      columnWidths,
+      unbreakableClientWidth: unbreakable.clientWidth,
+      unbreakableScrollWidth: unbreakable.scrollWidth
+    };
+  });
+
+  expect(metrics.articleWidth).toBeGreaterThanOrEqual(915);
+  expect(metrics.pageWidth).toBeLessThan(metrics.readerWidth);
+  expect(Math.abs(metrics.leftContentMargin - metrics.rightContentMargin)).toBeLessThanOrEqual(2);
+  expect(metrics.leftContentMargin).toBeGreaterThanOrEqual(96);
+  expect(metrics.leftContentMargin).toBeLessThanOrEqual(108);
+  expect(metrics.unequalWidth).toBeGreaterThanOrEqual(metrics.articleWidth - 1);
+  expect(metrics.columnWidths[2]).toBeGreaterThan((metrics.columnWidths[0] ?? 0) * 2);
+  expect(metrics.unbreakableScrollWidth).toBeGreaterThan(metrics.unbreakableClientWidth);
+});
+
 test('installs structural CSS before the package stylesheet inside the reader Shadow DOM', async ({
   page
 }) => {

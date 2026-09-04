@@ -23,10 +23,12 @@ describe('reader theme contract', () => {
 
     expect(css).not.toMatch(/#[0-9a-f]{3,8}\b|\brgba?\(|\bhsla?\(/i);
     expect(css).not.toMatch(/(?:^|\n)\s*(?:color|background|border(?:-color)?|font)\s*:/m);
-    expect(css).toMatch(/\.reader-page\s*\{[\s\S]*?max-inline-size:\s*75ch/);
+    expect(css).toMatch(/\.reader-page\s*\{[\s\S]*?max-inline-size:\s*96ch/);
     expect(css).toMatch(/\.reader-page\s*\{[\s\S]*?padding:\s*clamp\(0\.75rem, 2vw, 2rem\)/);
     expect(css).toContain(':focus-visible');
     expect(css).toContain('.contains-task-list');
+    expect(css).toMatch(/table th,[\s\S]*?table td\s*\{[\s\S]*?overflow-wrap:\s*normal/);
+    expect(css).toMatch(/table th,[\s\S]*?table td\s*\{[\s\S]*?word-break:\s*normal/);
   });
 
   it('keeps packages, starter, and guide synchronized on reader hooks and Shiki variables', async () => {
