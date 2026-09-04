@@ -8,7 +8,8 @@ use std::{
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
-const SCHEMA_VERSION: u8 = 1;
+const THEME_SCHEMA_VERSION: u8 = 1;
+pub const PREFERENCES_SCHEMA_VERSION: u8 = 1;
 const BUILTIN_LIGHT_MANIFEST: &str = include_str!("../../themes/mdhere-light/theme.json");
 const BUILTIN_LIGHT_CSS: &str = include_str!("../../themes/mdhere-light/reader.css");
 const BUILTIN_DARK_MANIFEST: &str = include_str!("../../themes/mdhere-dark/theme.json");
@@ -66,7 +67,7 @@ impl ThemeManifest {
     }
 
     fn validate(&self) -> Result<(), ThemeError> {
-        if self.schema_version != SCHEMA_VERSION {
+        if self.schema_version != THEME_SCHEMA_VERSION {
             return Err(ThemeError::Manifest("schemaVersion must be 1".into()));
         }
         if self.name.trim().is_empty() {
@@ -122,11 +123,23 @@ pub struct ThemeSnapshot {
     pub diagnostics: Vec<String>,
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub struct ThemePreferences {
     pub schema_version: u8,
     pub theme_id: String,
+    #[serde(default)]
+    pub front_matter_expanded: bool,
+}
+
+impl Default for ThemePreferences {
+    fn default() -> Self {
+        Self {
+            schema_version: PREFERENCES_SCHEMA_VERSION,
+            theme_id: String::new(),
+            front_matter_expanded: false,
+        }
+    }
 }
 
 impl ThemePreferences {
@@ -134,30 +147,41 @@ impl ThemePreferences {
         let source = fs::read_to_string(path).map_err(|error| ThemeError::Io(error.to_string()))?;
         let preferences: Self = serde_json::from_str(&source)
             .map_err(|error| ThemeError::Preferences(error.to_string()))?;
-        if preferences.schema_version != SCHEMA_VERSION {
+        if preferences.schema_version != PREFERENCES_SCHEMA_VERSION {
             return Err(ThemeError::Preferences("schemaVersion must be 1".into()));
         }
         Ok(preferences)
     }
 
-    pub fn replace(path: &Path, theme_id: &str) -> Result<(), ThemeError> {
+    pub fn read_or_default(path: &Path) -> Self {
+        Self::read(path).unwrap_or_default()
+    }
+
+    pub fn replace(&self, path: &Path) -> Result<(), ThemeError> {
         let directory = path
             .parent()
             .ok_or_else(|| ThemeError::Io("preferences path has no parent directory".into()))?;
         fs::create_dir_all(directory).map_err(|error| ThemeError::Io(error.to_string()))?;
         let temporary = directory.join("preferences.tmp");
-        let serialized = serde_json::to_vec_pretty(&Self {
-            schema_version: SCHEMA_VERSION,
-            theme_id: theme_id.into(),
-        })
-        .map_err(|error| ThemeError::Preferences(error.to_string()))?;
-        let mut file =
-            fs::File::create(&temporary).map_err(|error| ThemeError::Io(error.to_string()))?;
-        file.write_all(&serialized)
-            .and_then(|_| file.write_all(b"\n"))
-            .and_then(|_| file.sync_all())
-            .map_err(|error| ThemeError::Io(error.to_string()))?;
-        fs::rename(temporary, path).map_err(|error| ThemeError::Io(error.to_string()))
+        let serialized = serde_json::to_vec_pretty(self)
+            .map_err(|error| ThemeError::Preferences(error.to_string()))?;
+
+        let result = (|| -> Result<(), ThemeError> {
+            let mut file =
+                fs::File::create(&temporary).map_err(|error| ThemeError::Io(error.to_string()))?;
+            file.write_all(&serialized)
+                .and_then(|_| file.write_all(b"\n"))
+                .and_then(|_| file.sync_all())
+                .map_err(|error| ThemeError::Io(error.to_string()))?;
+            fs::rename(&temporary, path).map_err(|error| ThemeError::Io(error.to_string()))?;
+            let _ = fs::File::open(directory).and_then(|file| file.sync_all());
+            Ok(())
+        })();
+
+        if result.is_err() {
+            let _ = fs::remove_file(&temporary);
+        }
+        result
     }
 }
 
@@ -205,6 +229,7 @@ impl ThemeCatalog {
     pub fn themes(&self) -> Vec<Theme> {
         self.data.lock().expect("theme catalog lock").themes.clone()
     }
+
     pub fn diagnostics(&self) -> Vec<String> {
         self.data
             .lock()
@@ -212,10 +237,12 @@ impl ThemeCatalog {
             .diagnostics
             .clone()
     }
+
     pub fn selected(&self) -> Theme {
         let data = self.data.lock().expect("theme catalog lock");
         data.themes[data.selected].clone()
     }
+
     pub fn snapshot(&self) -> ThemeSnapshot {
         ThemeSnapshot {
             themes: self.themes(),
@@ -223,11 +250,26 @@ impl ThemeCatalog {
             diagnostics: self.diagnostics(),
         }
     }
+
     pub fn user_dir(&self) -> &Path {
         &self.user_dir
     }
 
+    pub fn preference_path(&self) -> &Path {
+        &self.preferences
+    }
+
     pub fn select(&self, id: &str) -> Result<Theme, ThemeError> {
+        let mut preferences = ThemePreferences::read_or_default(&self.preferences);
+        preferences.theme_id = id.into();
+        self.select_with_preferences(id, &preferences)
+    }
+
+    pub fn select_with_preferences(
+        &self,
+        id: &str,
+        preferences: &ThemePreferences,
+    ) -> Result<Theme, ThemeError> {
         let mut data = self
             .data
             .lock()
@@ -237,7 +279,7 @@ impl ThemeCatalog {
             .iter()
             .position(|theme| theme.manifest.id == id)
             .ok_or_else(|| ThemeError::Missing(id.into()))?;
-        ThemePreferences::replace(&self.preferences, id)?;
+        preferences.replace(&self.preferences)?;
         data.selected = index;
         Ok(data.themes[index].clone())
     }
@@ -263,7 +305,17 @@ impl ThemeCatalog {
                     continue;
                 }
                 match read_package(&entry.path(), false) {
-                    Ok(theme) if themes.iter().any(|existing| existing.manifest.id == theme.manifest.id) => diagnostics.push(format!("{}: theme id '{}' is already provided by a built-in or earlier package", entry.path().display(), theme.manifest.id)),
+                    Ok(theme)
+                        if themes
+                            .iter()
+                            .any(|existing| existing.manifest.id == theme.manifest.id) =>
+                    {
+                        diagnostics.push(format!(
+                            "{}: theme id '{}' is already provided by a built-in or earlier package",
+                            entry.path().display(),
+                            theme.manifest.id
+                        ));
+                    }
                     Ok(theme) => themes.push(theme),
                     Err(error) => diagnostics.push(format!("{}: {error}", entry.path().display())),
                 }

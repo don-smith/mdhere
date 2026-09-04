@@ -2,6 +2,7 @@ pub mod assets;
 pub mod external_links;
 pub mod launch;
 pub mod library;
+pub mod presentation;
 pub mod themes;
 
 use std::{
@@ -14,9 +15,10 @@ use assets::AssetProtocol;
 use external_links::validate_external_url;
 use launch::LaunchRequest;
 use library::{Document, LibraryError, LibraryRegistry, LibrarySnapshot};
+use presentation::PresentationManager;
 use tauri::{AppHandle, Emitter, Manager, WebviewUrl, WebviewWindowBuilder, http::Response};
 use tauri_plugin_dialog::DialogExt;
-use themes::{Theme, ThemeCatalog, ThemeSnapshot};
+use themes::{Theme, ThemeSnapshot};
 
 #[tauri::command]
 fn library_snapshot(
@@ -51,40 +53,39 @@ fn open_external_link(url: String) -> Result<(), String> {
 }
 
 #[tauri::command]
-fn theme_catalog(catalog: tauri::State<'_, ThemeCatalog>) -> ThemeSnapshot {
-    catalog.snapshot()
+fn theme_catalog(presentation: tauri::State<'_, PresentationManager>) -> ThemeSnapshot {
+    presentation.snapshot().theme_snapshot()
 }
 
 #[tauri::command]
 fn select_theme(
     app: tauri::AppHandle,
-    catalog: tauri::State<'_, ThemeCatalog>,
+    presentation: tauri::State<'_, PresentationManager>,
     theme_id: String,
 ) -> Result<Theme, String> {
-    let theme = catalog
-        .select(&theme_id)
+    let snapshot = presentation
+        .select_theme(&theme_id)
         .map_err(|error| error.to_string())?;
-    app.emit("theme-changed", &theme)
+    app.emit("theme-changed", &snapshot.selected)
         .map_err(|error| error.to_string())?;
-    Ok(theme)
+    Ok(snapshot.selected)
 }
 
 #[tauri::command]
 fn reload_themes(
     app: tauri::AppHandle,
-    catalog: tauri::State<'_, ThemeCatalog>,
+    presentation: tauri::State<'_, PresentationManager>,
 ) -> Result<ThemeSnapshot, String> {
-    catalog.reload().map_err(|error| error.to_string())?;
-    let snapshot = catalog.snapshot();
+    let snapshot = presentation.reload().map_err(|error| error.to_string())?;
     app.emit("theme-changed", &snapshot.selected)
         .map_err(|error| error.to_string())?;
-    Ok(snapshot)
+    Ok(snapshot.theme_snapshot())
 }
 
 #[tauri::command]
-fn open_themes_folder(catalog: tauri::State<'_, ThemeCatalog>) -> Result<(), String> {
-    std::fs::create_dir_all(catalog.user_dir()).map_err(|error| error.to_string())?;
-    tauri_plugin_opener::open_path(catalog.user_dir(), None::<&str>)
+fn open_themes_folder(presentation: tauri::State<'_, PresentationManager>) -> Result<(), String> {
+    std::fs::create_dir_all(presentation.user_dir()).map_err(|error| error.to_string())?;
+    tauri_plugin_opener::open_path(presentation.user_dir(), None::<&str>)
         .map_err(|error| error.to_string())
 }
 
@@ -206,8 +207,11 @@ pub fn run() {
                 .app_data_dir()
                 .map_err(|error| std::io::Error::other(error.to_string()))?;
             app.manage(
-                ThemeCatalog::bundled(app_data.join("themes"), app_data.join("preferences.json"))
-                    .map_err(|error| std::io::Error::other(error.to_string()))?,
+                PresentationManager::bundled(
+                    app_data.join("themes"),
+                    app_data.join("preferences.json"),
+                )
+                .map_err(|error| std::io::Error::other(error.to_string()))?,
             );
             let request = startup
                 .as_ref()

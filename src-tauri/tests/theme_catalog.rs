@@ -60,7 +60,12 @@ fn validates_manifest_shape_and_replaces_preferences_atomically() {
 
     let directory = TempDir::new().unwrap();
     let path = directory.path().join("preferences.json");
-    ThemePreferences::replace(&path, "mdhere-dark").unwrap();
+    ThemePreferences {
+        theme_id: "mdhere-dark".into(),
+        ..ThemePreferences::default()
+    }
+    .replace(&path)
+    .unwrap();
     assert_eq!(
         ThemePreferences::read(&path).unwrap().theme_id,
         "mdhere-dark"
@@ -103,7 +108,12 @@ fn falls_back_to_matching_builtin_when_saved_theme_is_missing() {
         "body {}",
     );
     let preferences = users.path().join("preferences.json");
-    ThemePreferences::replace(&preferences, "gone").unwrap();
+    ThemePreferences {
+        theme_id: "gone".into(),
+        ..ThemePreferences::default()
+    }
+    .replace(&preferences)
+    .unwrap();
     let catalog = ThemeCatalog::load(builtins.path(), users.path(), preferences).unwrap();
     assert_eq!(catalog.selected().manifest.id, "mdhere-light");
     assert_eq!(catalog.selected().manifest.appearance, Appearance::Light);
