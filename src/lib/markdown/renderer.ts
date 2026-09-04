@@ -93,6 +93,9 @@ export class MarkdownRenderer {
       const token = tokens[index];
       const language = token.info.trim().split(/\s+/, 1)[0] || 'text';
       const content = token.content.replace(/\r?\n$/, '');
+      if (language === 'mermaid' || language === 'mmd') {
+        return `<pre data-mdhere-mermaid="true"><code class="language-${language}">${parser.utils.escapeHtml(content)}</code></pre>`;
+      }
       try {
         return syntaxHighlighter.codeToHtml(content, { lang: language, theme: 'mdhere' });
       } catch {

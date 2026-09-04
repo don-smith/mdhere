@@ -17,6 +17,8 @@ const ALLOWED_LICENSES = new Set([
   'Zlib'
 ]);
 const OUTPUT = resolve(import.meta.dirname, '..', 'THIRD_PARTY_LICENSES.md');
+// khroma 2.1.0 publishes an MIT LICENSE file but omits license metadata from package.json.
+const NPM_LICENSE_OVERRIDES = new Map([['khroma@2.1.0', 'MIT']]);
 
 function command(command, arguments_) {
   return execFileSync(command, arguments_, { encoding: 'utf8', maxBuffer: 50 * 1024 * 1024 });
@@ -92,7 +94,7 @@ function javascriptPackages() {
         ecosystem: 'npm',
         name: entry.name,
         version,
-        license: entry.license
+        license: NPM_LICENSE_OVERRIDES.get(`${entry.name}@${version}`) ?? entry.license
       }))
     );
 }

@@ -33,6 +33,27 @@ context:
 const rendered = true;
 ```
 
+```mermaid
+flowchart LR
+  A[Refresh source] --> B[Diagram]
+```
+
+```mmd
+sequenceDiagram
+  Reader->>Mermaid: Render diagram
+  Mermaid-->>Reader: SVG
+```
+
+```mermaid
+This is not a Mermaid diagram.
+```
+
+```mermaid
+%%{init: {"theme": "dark", "themeVariables": {"lineColor": "#ff0000"}} }%%
+flowchart LR
+  App palette --> Still active
+```
+
 ![Local image](images/cover.png)
 ![Missing image](images/missing.png)
 
@@ -90,7 +111,11 @@ Launching mdhere with a temporary manual-check library.
 
 Check that valid metadata starts collapsed and renders tags and nested values. Confirm Malformed.md
 shows an escaped warning, Over-limit.md reports truncated source, and Unclosed.md remains ordinary Markdown.
-Also check that tables, tasks, strikethrough, typography, code, and the local image render.
+Also check that tables, tasks, strikethrough, typography, code, the valid Mermaid diagrams, and the local image render.
+Confirm the invalid Mermaid source remains visible with a clear reason. In Readme.md, edit `A[Refresh source]`
+to `A[Changed source]`, then use Refresh library and confirm the updated diagram appears. Repeat the diagram
+legibility check in Paper, Midnight, and Field Notes without reopening the document or library. In Midnight, check
+that the diagram with the `%%{init: ...}%%` directive keeps readable app-controlled connectors instead of red ones.
 Confirm the missing image and traversal link fail safely; the HTTPS link opens externally;
 and the local link opens Second.md with its heading focused. No alert should appear.
 

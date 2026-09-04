@@ -39,6 +39,22 @@ describe('MarkdownRenderer', () => {
     expect(rendered.html).toContain('<h1 id="a-heading" tabindex="-1">');
   });
 
+  it('marks Mermaid fences for browser rendering while preserving ordinary Shiki fences', async () => {
+    const renderer = await MarkdownRenderer.create();
+    const rendered = renderer.render(
+      '```mermaid\nflowchart LR\n  A --> B\n```\n\n```mmd\nflowchart LR\n  C --> D\n```\n\n```typescript\nconst answer: number = 42;\n```',
+      'guide.md'
+    );
+
+    const placeholders = rendered.html.match(/data-mdhere-mermaid="true"/g) ?? [];
+    expect(placeholders).toHaveLength(2);
+    expect(rendered.html).toContain(
+      '<code class="language-mermaid">flowchart LR\n  A --&gt; B</code>'
+    );
+    expect(rendered.html).toContain('<code class="language-mmd">flowchart LR\n  C --&gt; D</code>');
+    expect(rendered.html).toContain('class="shiki mdhere"');
+  });
+
   it('emits only package-owned CSS-variable Shiki colors for language-aware code fences', async () => {
     const renderer = await MarkdownRenderer.create();
     const rendered = renderer.render('```typescript\nconst answer: number = 42;\n```', 'guide.md');

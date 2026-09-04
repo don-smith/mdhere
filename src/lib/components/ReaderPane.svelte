@@ -4,7 +4,9 @@
 
   import type { Document } from '../contracts';
   import type { KeyboardCommand } from '../keyboard/types';
+  import type { Theme } from '../themes/types';
   import baseReaderCss from '../markdown/base-reader.css?inline';
+  import { mermaidRenderer } from '../markdown/mermaid';
   import { MarkdownRenderer } from '../markdown/renderer';
   import type {
     FrontMatter,
@@ -21,6 +23,7 @@
     frontMatterExpanded?: boolean;
     onFrontMatterToggle?: Function;
     themeCss?: string;
+    theme?: Theme;
     themeAppearance?: 'light' | 'dark';
   }
 
@@ -32,6 +35,7 @@
     frontMatterExpanded = false,
     onFrontMatterToggle,
     themeCss = '',
+    theme,
     themeAppearance = 'light'
   }: Props = $props();
   let host: HTMLDivElement;
@@ -39,6 +43,9 @@
   let renderer: MarkdownRenderer | undefined;
   let themeSheet: CSSStyleSheet | undefined;
   let themeStyle: HTMLStyleElement | undefined;
+  let appliedThemeCss: string | undefined;
+  let appliedThemeSignature: string | undefined;
+  let renderGeneration = 0;
   const scrollPositions = new SvelteMap<string, number>();
 
   onMount(() => {
@@ -68,8 +75,14 @@
   });
 
   $effect(() => {
-    themeCss;
-    void applyTheme();
+    const nextThemeCss = themeCss;
+    const nextThemeSignature = themeSignature(theme);
+    const changed =
+      appliedThemeCss !== undefined &&
+      (appliedThemeCss !== nextThemeCss || appliedThemeSignature !== nextThemeSignature);
+    appliedThemeCss = nextThemeCss;
+    appliedThemeSignature = nextThemeSignature;
+    void applyThemeAndRender(changed);
   });
 
   async function loadRenderer() {
@@ -81,7 +94,11 @@
     if (!host || !shadow || !renderer) return;
     const content = shadow.querySelector<HTMLElement>('[data-reader-content]');
     if (!content) return;
-    if (!document) {
+    const currentDocument = document;
+    const currentFragment = fragment;
+    const currentTheme = theme;
+    const generation = ++renderGeneration;
+    if (!currentDocument) {
       const empty = window.document.createElement('p');
       empty.className = 'reader-content reader-empty';
       empty.textContent = 'Select a document from the tree.';
@@ -89,7 +106,7 @@
       return;
     }
 
-    const rendered = renderer.render(document.content, document.path);
+    const rendered = renderer.render(currentDocument.content, currentDocument.path);
     const page = window.document.createElement('div');
     page.className = 'reader-page';
     const article = window.document.createElement('article');
@@ -100,10 +117,12 @@
       ...(rendered.frontMatter ? [frontMatterElement(rendered.frontMatter), article] : [article])
     );
     content.replaceChildren(page);
+    await mermaidRenderer.render(article, currentTheme);
+    if (generation !== renderGeneration) return;
 
-    host.scrollTop = scrollPositions.get(document.path) ?? 0;
-    if (fragment) {
-      const target = shadow.querySelector<HTMLElement>(`[id="${CSS.escape(fragment)}"]`);
+    host.scrollTop = scrollPositions.get(currentDocument.path) ?? 0;
+    if (currentFragment) {
+      const target = shadow.querySelector<HTMLElement>(`[id="${CSS.escape(currentFragment)}"]`);
       target?.focus();
     }
   }
@@ -270,9 +289,15 @@
     root.append(themeStyle);
   }
 
-  async function applyTheme() {
+  async function applyThemeAndRender(rebuildArticle: boolean) {
     if (themeSheet) await themeSheet.replace(themeCss);
     if (themeStyle) themeStyle.textContent = themeCss;
+    if (rebuildArticle) await renderDocument();
+  }
+
+  function themeSignature(value: Theme | undefined): string {
+    if (!value) return '';
+    return `${value.id}\u0000${value.appearance}\u0000${Object.values(value.shell).join('\u0000')}`;
   }
 
   function onAssetError(event: Event) {

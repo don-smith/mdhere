@@ -1,6 +1,7 @@
 import { cleanup, fireEvent, render, waitFor } from '@testing-library/svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
+import { presentationFixture } from '../presentation/presentation-fixture';
 import ReaderPane from './ReaderPane.svelte';
 
 async function readerElement(container: HTMLElement): Promise<HTMLElement> {
@@ -178,6 +179,79 @@ nested:
     await waitFor(() =>
       expect(reader.shadowRoot?.querySelector('details.front-matter')).toBeNull()
     );
+  });
+
+  it('reruns Mermaid parsing after a document refresh replaces its source', async () => {
+    const { container, rerender } = render(ReaderPane, {
+      document: {
+        path: 'diagram.md',
+        title: 'Diagram',
+        content: '```mermaid\nnot a diagram\n```'
+      }
+    });
+    const reader = await readerElement(container);
+
+    await waitFor(() =>
+      expect(reader.shadowRoot?.querySelector('[role="alert"]')).toHaveTextContent(
+        /No diagram type detected/
+      )
+    );
+
+    await rerender({
+      document: {
+        path: 'diagram.md',
+        title: 'Diagram',
+        content: '```mmd\nthis is different invalid source\n```'
+      }
+    });
+
+    await waitFor(() => {
+      const article = reader.shadowRoot?.querySelector('article');
+      expect(article?.querySelector('pre')).toHaveTextContent('this is different invalid source');
+      expect(article?.querySelector('[role="alert"]')).toHaveTextContent(
+        /No diagram type detected/
+      );
+    });
+  });
+
+  it('rebuilds the current article when the selected theme changes', async () => {
+    const document = {
+      path: 'diagram.md',
+      title: 'Diagram',
+      content: '```mermaid\nnot a diagram\n```'
+    };
+    const paper = presentationFixture.selected;
+    const midnight = presentationFixture.themes.find((theme) => theme.id === 'mdhere-dark');
+    if (!midnight) throw new Error('Expected Midnight fixture theme');
+    const { container, rerender } = render(ReaderPane, {
+      document,
+      theme: paper,
+      themeCss: paper.css,
+      themeAppearance: paper.appearance
+    });
+    const reader = await readerElement(container);
+
+    await waitFor(() =>
+      expect(reader.shadowRoot?.querySelector('[role="alert"]')).toHaveTextContent(
+        /No diagram type detected/
+      )
+    );
+    const firstArticle = reader.shadowRoot?.querySelector('article');
+
+    await rerender({
+      document,
+      theme: midnight,
+      themeCss: midnight.css,
+      themeAppearance: midnight.appearance
+    });
+
+    await waitFor(() => {
+      expect(reader.shadowRoot?.querySelector('article')).not.toBe(firstArticle);
+      expect(reader.shadowRoot?.querySelector('[role="alert"]')).toHaveTextContent(
+        /No diagram type detected/
+      );
+      expect(reader.dataset.themeAppearance).toBe('dark');
+    });
   });
 
   it('delegates validated local and external links without navigating the webview', async () => {

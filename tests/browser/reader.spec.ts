@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test';
 
 test('renders sanitized GFM inside the reader Shadow DOM', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('/?scenario=mermaid');
   await page.getByRole('treeitem', { name: 'Welcome.md' }).click();
 
   const reader = page.getByTestId('reader');
@@ -19,6 +19,7 @@ test('renders sanitized GFM inside the reader Shadow DOM', async ({ page }) => {
     'Image unavailable: remote'
   );
   await expect(reader.locator('script')).toHaveCount(0);
+  await expect(reader.locator('.mdhere-mermaid-diagram svg')).toHaveCount(3);
 
   const initialUrl = page.url();
   await reader.locator('a[data-mdhere-external="https://example.com/"]').click();
@@ -40,6 +41,71 @@ test('renders sanitized GFM inside the reader Shadow DOM', async ({ page }) => {
       );
     })
   ).toBe(true);
+});
+
+test('rerenders visible Mermaid diagrams with the selected reader theme', async ({ page }) => {
+  await page.goto('/?scenario=mermaid');
+  await page.getByRole('treeitem', { name: 'Welcome.md' }).click();
+
+  const reader = page.getByTestId('reader');
+  await expect(reader.locator('.mdhere-mermaid-diagram svg')).toHaveCount(3);
+  const paperSvg = await reader
+    .locator('.mdhere-mermaid-diagram svg')
+    .first()
+    .evaluate((svg) => svg.outerHTML);
+
+  await page.getByRole('button', { name: 'Theme: Paper' }).click();
+  await page.getByRole('option', { name: 'Midnight' }).click();
+  await expect(page.getByRole('button', { name: 'Theme: Midnight' })).toBeVisible();
+  await expect
+    .poll(() =>
+      reader
+        .locator('.mdhere-mermaid-diagram svg')
+        .first()
+        .evaluate((svg) => svg.outerHTML)
+    )
+    .not.toBe(paperSvg);
+
+  const midnightPalette = await reader.evaluate((element) => {
+    const svg = element.shadowRoot?.querySelector<SVGElement>('.mdhere-mermaid-diagram svg');
+    const node = svg?.querySelector<SVGGraphicsElement>('.node rect');
+    const edge = svg?.querySelector<SVGGraphicsElement>('.flowchart-link');
+    if (!svg || !node || !edge) throw new Error('Expected flowchart SVG elements');
+    return {
+      nodeFill: getComputedStyle(node).fill,
+      nodeStroke: getComputedStyle(node).stroke,
+      edgeStroke: getComputedStyle(edge).stroke,
+      styles: [...element.shadowRoot!.querySelectorAll('.mdhere-mermaid-diagram svg style')].map(
+        (style) => style.textContent ?? ''
+      )
+    };
+  });
+  expect(midnightPalette.nodeFill).toBe('rgb(39, 50, 71)');
+  expect(midnightPalette.nodeStroke).toBe('rgb(83, 98, 122)');
+  expect(midnightPalette.edgeStroke).toBe('rgb(170, 183, 202)');
+  expect(midnightPalette.styles.join('\n')).not.toContain('#ff0000');
+
+  const midnightSvg = await reader
+    .locator('.mdhere-mermaid-diagram svg')
+    .first()
+    .evaluate((svg) => svg.outerHTML);
+  await page.getByRole('button', { name: 'Theme: Midnight' }).click();
+  await page.getByRole('option', { name: 'Field Notes' }).click();
+  await expect(page.getByRole('button', { name: 'Theme: Field Notes' })).toBeVisible();
+  await expect
+    .poll(() =>
+      reader
+        .locator('.mdhere-mermaid-diagram svg')
+        .first()
+        .evaluate((svg) => svg.outerHTML)
+    )
+    .not.toBe(midnightSvg);
+  const fieldNotesStyle = await reader
+    .locator('.mdhere-mermaid-diagram svg style')
+    .first()
+    .textContent();
+  expect(fieldNotesStyle).toContain('#fffdf7');
+  expect(fieldNotesStyle).toContain('#65705e');
 });
 
 test('keeps a 1440px reader bounded while its tables use available width or scroll', async ({

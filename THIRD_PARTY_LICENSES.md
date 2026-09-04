@@ -6,11 +6,17 @@ This inventory contains production npm packages and normal (non-dev) Cargo depen
 
 | Ecosystem | Package                       | Version          | SPDX license                        |
 | --------- | ----------------------------- | ---------------- | ----------------------------------- |
+| npm       | @antfu/install-pkg            | 2.0.1            | MIT                                 |
+| npm       | @braintree/sanitize-url       | 7.1.2            | MIT                                 |
+| npm       | @chevrotain/types             | 11.1.2           | Apache-2.0                          |
+| npm       | @iconify/types                | 2.0.0            | MIT                                 |
+| npm       | @iconify/utils                | 3.1.5            | MIT                                 |
 | npm       | @jridgewell/gen-mapping       | 0.3.13           | MIT                                 |
 | npm       | @jridgewell/remapping         | 2.3.5            | MIT                                 |
 | npm       | @jridgewell/resolve-uri       | 3.1.2            | MIT                                 |
 | npm       | @jridgewell/sourcemap-codec   | 1.6.0            | MIT                                 |
 | npm       | @jridgewell/trace-mapping     | 0.3.31           | MIT                                 |
+| npm       | @mermaid-js/parser            | 1.2.1            | MIT                                 |
 | npm       | @shikijs/core                 | 4.4.3            | MIT                                 |
 | npm       | @shikijs/engine-javascript    | 4.4.3            | MIT                                 |
 | npm       | @shikijs/engine-oniguruma     | 4.4.3            | MIT                                 |
@@ -21,13 +27,46 @@ This inventory contains production npm packages and normal (non-dev) Cargo depen
 | npm       | @shikijs/vscode-textmate      | 10.0.2           | MIT                                 |
 | npm       | @sveltejs/acorn-typescript    | 1.0.13           | MIT                                 |
 | npm       | @tauri-apps/api               | 2.11.1           | Apache-2.0 OR MIT                   |
+| npm       | @types/d3-array               | 3.2.2            | MIT                                 |
+| npm       | @types/d3-axis                | 3.0.6            | MIT                                 |
+| npm       | @types/d3-brush               | 3.0.6            | MIT                                 |
+| npm       | @types/d3-chord               | 3.0.6            | MIT                                 |
+| npm       | @types/d3-color               | 3.1.3            | MIT                                 |
+| npm       | @types/d3-contour             | 3.0.6            | MIT                                 |
+| npm       | @types/d3-delaunay            | 6.0.4            | MIT                                 |
+| npm       | @types/d3-dispatch            | 3.0.7            | MIT                                 |
+| npm       | @types/d3-drag                | 3.0.7            | MIT                                 |
+| npm       | @types/d3-dsv                 | 3.0.7            | MIT                                 |
+| npm       | @types/d3-ease                | 3.0.2            | MIT                                 |
+| npm       | @types/d3-fetch               | 3.0.7            | MIT                                 |
+| npm       | @types/d3-force               | 3.0.10           | MIT                                 |
+| npm       | @types/d3-format              | 3.0.4            | MIT                                 |
+| npm       | @types/d3-geo                 | 3.1.1            | MIT                                 |
+| npm       | @types/d3-hierarchy           | 3.1.7            | MIT                                 |
+| npm       | @types/d3-interpolate         | 3.0.4            | MIT                                 |
+| npm       | @types/d3-path                | 3.1.1            | MIT                                 |
+| npm       | @types/d3-polygon             | 3.0.2            | MIT                                 |
+| npm       | @types/d3-quadtree            | 3.0.6            | MIT                                 |
+| npm       | @types/d3-random              | 3.0.4            | MIT                                 |
+| npm       | @types/d3-scale-chromatic     | 3.1.0            | MIT                                 |
+| npm       | @types/d3-scale               | 4.0.9            | MIT                                 |
+| npm       | @types/d3-selection           | 3.0.11           | MIT                                 |
+| npm       | @types/d3-shape               | 3.2.0            | MIT                                 |
+| npm       | @types/d3-time-format         | 4.0.3            | MIT                                 |
+| npm       | @types/d3-time                | 3.0.4            | MIT                                 |
+| npm       | @types/d3-timer               | 3.0.2            | MIT                                 |
+| npm       | @types/d3-transition          | 3.0.9            | MIT                                 |
+| npm       | @types/d3-zoom                | 3.0.8            | MIT                                 |
+| npm       | @types/d3                     | 7.4.3            | MIT                                 |
 | npm       | @types/estree                 | 1.0.9            | MIT                                 |
+| npm       | @types/geojson                | 7946.0.16        | MIT                                 |
 | npm       | @types/hast                   | 3.0.5            | MIT                                 |
 | npm       | @types/mdast                  | 4.0.4            | MIT                                 |
 | npm       | @types/trusted-types          | 2.0.7            | MIT                                 |
 | npm       | @types/unist                  | 3.0.3            | MIT                                 |
 | npm       | @typescript-eslint/types      | 8.69.0           | MIT                                 |
 | npm       | @ungap/structured-clone       | 1.4.0            | ISC                                 |
+| npm       | @upsetjs/venn.js              | 2.0.0            | MIT                                 |
 | npm       | acorn                         | 8.18.0           | MIT                                 |
 | Cargo     | adler2                        | 2.0.1            | 0BSD OR MIT OR Apache-2.0           |
 | Cargo     | aho-corasick                  | 1.1.5            | Unlicense OR MIT                    |
@@ -63,11 +102,15 @@ This inventory contains production npm packages and normal (non-dev) Cargo depen
 | Cargo     | chrono                        | 0.4.45           | MIT OR Apache-2.0                   |
 | npm       | clsx                          | 2.1.1            | MIT                                 |
 | npm       | comma-separated-tokens        | 2.0.3            | MIT                                 |
+| npm       | commander                     | 7.2.0            | MIT                                 |
+| npm       | commander                     | 8.3.0            | MIT                                 |
 | Cargo     | cookie                        | 0.18.2           | MIT OR Apache-2.0                   |
 | Cargo     | core-foundation-sys           | 0.8.7            | MIT OR Apache-2.0                   |
 | Cargo     | core-foundation               | 0.10.1           | MIT OR Apache-2.0                   |
 | Cargo     | core-graphics-types           | 0.2.0            | MIT OR Apache-2.0                   |
 | Cargo     | core-graphics                 | 0.25.0           | MIT OR Apache-2.0                   |
+| npm       | cose-base                     | 1.0.3            | MIT                                 |
+| npm       | cose-base                     | 2.2.0            | MIT                                 |
 | Cargo     | cpufeatures                   | 0.2.17           | MIT OR Apache-2.0                   |
 | Cargo     | crc32fast                     | 1.5.1            | MIT OR Apache-2.0                   |
 | Cargo     | crossbeam-channel             | 0.5.16           | MIT OR Apache-2.0                   |
@@ -79,12 +122,53 @@ This inventory contains production npm packages and normal (non-dev) Cargo depen
 | Cargo     | cssparser                     | 0.36.0           | MPL-2.0                             |
 | Cargo     | ctor-proc-macro               | 0.0.7            | Apache-2.0 OR MIT                   |
 | Cargo     | ctor                          | 0.8.0            | Apache-2.0 OR MIT                   |
+| npm       | cytoscape-cose-bilkent        | 4.1.0            | MIT                                 |
+| npm       | cytoscape-fcose               | 2.2.0            | MIT                                 |
+| npm       | cytoscape                     | 3.34.2           | MIT                                 |
+| npm       | d3-array                      | 2.12.1           | BSD-3-Clause                        |
+| npm       | d3-array                      | 3.2.4            | ISC                                 |
+| npm       | d3-axis                       | 3.0.0            | ISC                                 |
+| npm       | d3-brush                      | 3.0.0            | ISC                                 |
+| npm       | d3-chord                      | 3.0.1            | ISC                                 |
+| npm       | d3-color                      | 3.1.0            | ISC                                 |
+| npm       | d3-contour                    | 4.0.2            | ISC                                 |
+| npm       | d3-delaunay                   | 6.0.4            | ISC                                 |
+| npm       | d3-dispatch                   | 3.0.1            | ISC                                 |
+| npm       | d3-drag                       | 3.0.0            | ISC                                 |
+| npm       | d3-dsv                        | 3.0.1            | ISC                                 |
+| npm       | d3-ease                       | 3.0.1            | BSD-3-Clause                        |
+| npm       | d3-fetch                      | 3.0.1            | ISC                                 |
+| npm       | d3-force                      | 3.0.0            | ISC                                 |
+| npm       | d3-format                     | 3.1.2            | ISC                                 |
+| npm       | d3-geo                        | 3.1.1            | ISC                                 |
+| npm       | d3-hierarchy                  | 3.1.2            | ISC                                 |
+| npm       | d3-interpolate                | 3.0.1            | ISC                                 |
+| npm       | d3-path                       | 1.0.9            | BSD-3-Clause                        |
+| npm       | d3-path                       | 3.1.0            | ISC                                 |
+| npm       | d3-polygon                    | 3.0.1            | ISC                                 |
+| npm       | d3-quadtree                   | 3.0.1            | ISC                                 |
+| npm       | d3-random                     | 3.0.1            | ISC                                 |
+| npm       | d3-sankey                     | 0.12.3           | BSD-3-Clause                        |
+| npm       | d3-scale-chromatic            | 3.1.0            | ISC                                 |
+| npm       | d3-scale                      | 4.0.2            | ISC                                 |
+| npm       | d3-selection                  | 3.0.0            | ISC                                 |
+| npm       | d3-shape                      | 1.3.7            | BSD-3-Clause                        |
+| npm       | d3-shape                      | 3.2.0            | ISC                                 |
+| npm       | d3-time-format                | 4.1.0            | ISC                                 |
+| npm       | d3-time                       | 3.1.0            | ISC                                 |
+| npm       | d3-timer                      | 3.0.1            | ISC                                 |
+| npm       | d3-transition                 | 3.0.1            | ISC                                 |
+| npm       | d3-zoom                       | 3.0.0            | ISC                                 |
+| npm       | d3                            | 7.9.0            | ISC                                 |
+| npm       | dagre-d3-es                   | 7.0.14           | MIT                                 |
 | Cargo     | darling_core                  | 0.23.0           | MIT                                 |
 | Cargo     | darling_macro                 | 0.23.0           | MIT                                 |
 | Cargo     | darling                       | 0.23.0           | MIT                                 |
+| npm       | dayjs                         | 1.11.23          | MIT                                 |
 | Cargo     | defmt-macros                  | 1.1.1            | MIT OR Apache-2.0                   |
 | Cargo     | defmt-parser                  | 1.0.0            | MIT OR Apache-2.0                   |
 | Cargo     | defmt                         | 1.1.1            | MIT OR Apache-2.0                   |
+| npm       | delaunator                    | 5.1.0            | ISC                                 |
 | npm       | dequal                        | 2.0.3            | MIT                                 |
 | Cargo     | deranged                      | 0.5.8            | MIT OR Apache-2.0                   |
 | Cargo     | derive_more-impl              | 2.1.1            | MIT                                 |
@@ -109,8 +193,10 @@ This inventory contains production npm packages and normal (non-dev) Cargo depen
 | npm       | entities                      | 8.0.0            | BSD-2-Clause                        |
 | Cargo     | equivalent                    | 1.0.2            | Apache-2.0 OR MIT                   |
 | Cargo     | erased-serde                  | 0.4.10           | MIT OR Apache-2.0                   |
+| npm       | es-toolkit                    | 1.52.0           | MIT                                 |
 | npm       | esm-env                       | 1.2.2            | MIT                                 |
 | npm       | esrap                         | 2.3.6            | MIT                                 |
+| npm       | fastdom                       | 1.0.12           | MIT                                 |
 | Cargo     | fastrand                      | 2.5.0            | Apache-2.0 OR MIT                   |
 | Cargo     | fdeflate                      | 0.3.7            | MIT OR Apache-2.0                   |
 | Cargo     | flate2                        | 1.1.10           | MIT OR Apache-2.0                   |
@@ -125,6 +211,7 @@ This inventory contains production npm packages and normal (non-dev) Cargo depen
 | Cargo     | getrandom                     | 0.4.3            | MIT OR Apache-2.0                   |
 | Cargo     | glob                          | 0.3.4            | MIT OR Apache-2.0                   |
 | Cargo     | globset                       | 0.4.20           | Unlicense OR MIT                    |
+| npm       | hachure-fill                  | 0.5.2            | MIT                                 |
 | Cargo     | hashbrown                     | 0.12.3           | MIT OR Apache-2.0                   |
 | Cargo     | hashbrown                     | 0.17.1           | MIT OR Apache-2.0                   |
 | npm       | hast-util-to-html             | 9.0.5            | MIT                                 |
@@ -136,6 +223,7 @@ This inventory contains production npm packages and normal (non-dev) Cargo depen
 | Cargo     | http                          | 1.5.0            | MIT OR Apache-2.0                   |
 | Cargo     | iana-time-zone                | 0.1.65           | MIT OR Apache-2.0                   |
 | Cargo     | ico                           | 0.5.0            | MIT                                 |
+| npm       | iconv-lite                    | 0.6.3            | MIT                                 |
 | Cargo     | icu_collections               | 2.3.0            | Unicode-3.0                         |
 | Cargo     | icu_locale_core               | 2.3.0            | Unicode-3.0                         |
 | Cargo     | icu_normalizer_data           | 2.3.0            | Unicode-3.0                         |
@@ -147,30 +235,40 @@ This inventory contains production npm packages and normal (non-dev) Cargo depen
 | Cargo     | idna_adapter                  | 1.2.2            | Apache-2.0 OR MIT                   |
 | Cargo     | idna                          | 1.1.0            | MIT OR Apache-2.0                   |
 | Cargo     | ignore                        | 0.4.33           | Unlicense OR MIT                    |
+| npm       | import-meta-resolve           | 4.2.0            | MIT                                 |
 | Cargo     | indexmap                      | 1.9.3            | Apache-2.0 OR MIT                   |
 | Cargo     | indexmap                      | 2.14.1           | Apache-2.0 OR MIT                   |
 | Cargo     | infer                         | 0.19.0           | MIT                                 |
 | Cargo     | infer                         | 0.22.0           | MIT                                 |
+| npm       | internmap                     | 1.0.1            | ISC                                 |
+| npm       | internmap                     | 2.0.3            | ISC                                 |
 | npm       | is-reference                  | 3.0.3            | MIT                                 |
 | Cargo     | itoa                          | 1.0.18           | MIT OR Apache-2.0                   |
 | Cargo     | jiff-core                     | 0.1.0            | Unlicense OR MIT                    |
 | Cargo     | jiff                          | 0.2.35           | Unlicense OR MIT                    |
 | Cargo     | json-patch                    | 3.0.1            | MIT/Apache-2.0                      |
 | Cargo     | jsonptr                       | 0.6.3            | MIT OR Apache-2.0                   |
+| npm       | katex                         | 0.16.47          | MIT                                 |
 | Cargo     | keyboard-types                | 0.7.0            | MIT OR Apache-2.0                   |
+| npm       | khroma                        | 2.1.0            | MIT                                 |
+| npm       | layout-base                   | 1.0.2            | MIT                                 |
+| npm       | layout-base                   | 2.0.1            | MIT                                 |
 | Cargo     | libc                          | 0.2.189          | MIT OR Apache-2.0                   |
 | npm       | linkify-it                    | 6.1.0            | MIT                                 |
 | Cargo     | litemap                       | 0.8.3            | Unicode-3.0                         |
 | npm       | locate-character              | 3.0.0            | MIT                                 |
 | Cargo     | lock_api                      | 0.4.14           | MIT OR Apache-2.0                   |
+| npm       | lodash-es                     | 4.18.1           | MIT                                 |
 | Cargo     | log                           | 0.4.34           | MIT OR Apache-2.0                   |
 | npm       | magic-string                  | 0.30.21          | MIT                                 |
 | npm       | markdown-it-task-lists        | 2.1.1            | ISC                                 |
 | npm       | markdown-it                   | 15.0.1           | MIT                                 |
+| npm       | marked                        | 16.4.2           | MIT                                 |
 | Cargo     | markup5ever                   | 0.38.0           | MIT OR Apache-2.0                   |
 | npm       | mdast-util-to-hast            | 13.2.1           | MIT                                 |
 | npm       | mdurl                         | 2.1.0            | MIT                                 |
 | Cargo     | memchr                        | 2.8.3            | Unlicense OR MIT                    |
+| npm       | mermaid                       | 11.17.2          | MIT                                 |
 | npm       | micromark-util-character      | 2.1.1            | MIT                                 |
 | npm       | micromark-util-encode         | 2.0.1            | MIT                                 |
 | npm       | micromark-util-sanitize-uri   | 2.0.1            | MIT                                 |
@@ -204,8 +302,10 @@ This inventory contains production npm packages and normal (non-dev) Cargo depen
 | npm       | oniguruma-to-es               | 4.3.6            | MIT                                 |
 | Cargo     | open                          | 5.4.3            | MIT                                 |
 | Cargo     | option-ext                    | 0.2.0            | MPL-2.0                             |
+| npm       | package-manager-detector      | 1.8.0            | MIT                                 |
 | Cargo     | parking_lot_core              | 0.9.12           | MIT OR Apache-2.0                   |
 | Cargo     | parking_lot                   | 0.12.5           | MIT OR Apache-2.0                   |
+| npm       | path-data-parser              | 0.1.0            | MIT                                 |
 | Cargo     | percent-encoding              | 2.3.2            | MIT OR Apache-2.0                   |
 | Cargo     | phf_generator                 | 0.13.1           | MIT                                 |
 | Cargo     | phf_macros                    | 0.13.1           | MIT                                 |
@@ -215,6 +315,8 @@ This inventory contains production npm packages and normal (non-dev) Cargo depen
 | Cargo     | plist                         | 1.10.0           | MIT                                 |
 | Cargo     | png                           | 0.17.16          | MIT OR Apache-2.0                   |
 | Cargo     | png                           | 0.18.1           | MIT OR Apache-2.0                   |
+| npm       | points-on-curve               | 0.2.0            | MIT                                 |
+| npm       | points-on-path                | 0.2.1            | MIT                                 |
 | Cargo     | potential_utf                 | 0.1.6            | Unicode-3.0                         |
 | Cargo     | powerfmt                      | 0.2.0            | MIT OR Apache-2.0                   |
 | Cargo     | precomputed-hash              | 0.1.1            | MIT                                 |
@@ -233,7 +335,11 @@ This inventory contains production npm packages and normal (non-dev) Cargo depen
 | Cargo     | regex                         | 1.13.1           | MIT OR Apache-2.0                   |
 | npm       | regex                         | 6.1.0            | MIT                                 |
 | Cargo     | rfd                           | 0.16.0           | MIT                                 |
+| npm       | robust-predicates             | 3.0.3            | Unlicense                           |
+| npm       | roughjs                       | 4.6.6            | MIT                                 |
 | Cargo     | rustc-hash                    | 2.1.3            | Apache-2.0 OR MIT                   |
+| npm       | rw                            | 1.3.3            | BSD-3-Clause                        |
+| npm       | safer-buffer                  | 2.1.2            | MIT                                 |
 | Cargo     | same-file                     | 1.0.6            | Unlicense/MIT                       |
 | Cargo     | schemars_derive               | 0.8.22           | MIT                                 |
 | Cargo     | schemars                      | 0.8.22           | MIT                                 |
@@ -263,9 +369,11 @@ This inventory contains production npm packages and normal (non-dev) Cargo depen
 | Cargo     | socket2                       | 0.6.5            | MIT OR Apache-2.0                   |
 | npm       | space-separated-tokens        | 2.0.2            | MIT                                 |
 | Cargo     | stable_deref_trait            | 1.2.1            | MIT OR Apache-2.0                   |
+| npm       | strictdom                     | 1.0.1            | MIT                                 |
 | Cargo     | string_cache                  | 0.9.0            | MIT OR Apache-2.0                   |
 | npm       | stringify-entities            | 4.0.4            | MIT                                 |
 | Cargo     | strsim                        | 0.11.1           | MIT                                 |
+| npm       | stylis                        | 4.4.0            | MIT                                 |
 | npm       | svelte                        | 5.57.0           | MIT                                 |
 | Cargo     | swift-rs                      | 1.0.8            | MIT OR Apache-2.0                   |
 | Cargo     | syn                           | 2.0.119          | MIT OR Apache-2.0                   |
@@ -290,6 +398,7 @@ This inventory contains production npm packages and normal (non-dev) Cargo depen
 | Cargo     | time-core                     | 0.1.9            | MIT OR Apache-2.0                   |
 | Cargo     | time-macros                   | 0.2.32           | MIT OR Apache-2.0                   |
 | Cargo     | time                          | 0.3.55           | MIT OR Apache-2.0                   |
+| npm       | tinyexec                      | 1.3.0            | MIT                                 |
 | Cargo     | tinystr                       | 0.8.4            | Unicode-3.0                         |
 | Cargo     | tinyvec_macros                | 0.1.1            | MIT OR Apache-2.0 OR Zlib           |
 | Cargo     | tinyvec                       | 1.12.0           | Zlib OR Apache-2.0 OR MIT           |
@@ -303,6 +412,7 @@ This inventory contains production npm packages and normal (non-dev) Cargo depen
 | Cargo     | tracing                       | 0.1.44           | MIT                                 |
 | Cargo     | tray-icon                     | 0.24.2           | MIT OR Apache-2.0                   |
 | npm       | trim-lines                    | 3.0.1            | MIT                                 |
+| npm       | ts-dedent                     | 2.3.0            | MIT                                 |
 | Cargo     | typeid                        | 1.0.3            | MIT OR Apache-2.0                   |
 | Cargo     | typenum                       | 1.20.1           | MIT OR Apache-2.0                   |
 | npm       | uc.micro                      | 3.0.0            | MIT                                 |
@@ -322,6 +432,7 @@ This inventory contains production npm packages and normal (non-dev) Cargo depen
 | Cargo     | urlpattern                    | 0.3.0            | MIT                                 |
 | Cargo     | utf8_iter                     | 1.0.4            | Apache-2.0 OR MIT                   |
 | Cargo     | uuid                          | 1.26.0           | Apache-2.0 OR MIT                   |
+| npm       | uuid                          | 14.0.2           | MIT                                 |
 | npm       | vfile-message                 | 4.0.3            | MIT                                 |
 | npm       | vfile                         | 6.0.3            | MIT                                 |
 | Cargo     | walkdir                       | 2.5.0            | Unlicense/MIT                       |

@@ -59,6 +59,15 @@
       content: '# Second section\n\nThis document was selected by a confined local link.'
     }
   };
+  const mermaidDocuments: Record<string, Document> = {
+    ...demoDocuments,
+    'guides/Welcome.md': {
+      ...demoDocuments['guides/Welcome.md'],
+      content:
+        demoDocuments['guides/Welcome.md'].content +
+        '\n\n```mermaid\nflowchart LR\n  A --> B\n```\n\n```mmd\nflowchart LR\n  C --> D\n```\n\n```mermaid\n%%{init: {"theme": "dark", "themeVariables": {"lineColor": "#ff0000"}} }%%\nflowchart LR\n  E --> F\n```'
+    }
+  };
 
   function delay(milliseconds: number): Promise<void> {
     return new Promise((resolve) => window.setTimeout(resolve, milliseconds));
@@ -76,6 +85,9 @@
     const scenario = testScenario();
     if (scenario === 'empty') {
       return new InMemoryLibraryClient({ ...demoSnapshot, tree: [] }, demoDocuments);
+    }
+    if (scenario === 'mermaid') {
+      return new InMemoryLibraryClient(demoSnapshot, mermaidDocuments);
     }
     if (scenario === 'error') {
       return {
@@ -585,6 +597,7 @@
             frontMatterExpanded={presentation?.frontMatterExpanded ?? false}
             onFrontMatterToggle={setFrontMatterExpanded}
             themeCss={presentation?.selected.css}
+            theme={presentation?.selected}
             themeAppearance={presentation?.selected.appearance}
           />
         </div>
