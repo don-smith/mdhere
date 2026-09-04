@@ -325,6 +325,7 @@ This inventory contains production npm packages and normal (non-dev) Cargo depen
 | Cargo     | winnow                        | 1.0.4            | MIT                                 |
 | Cargo     | writeable                     | 0.6.4            | Unicode-3.0                         |
 | Cargo     | wry                           | 0.55.1           | Apache-2.0 OR MIT                   |
+| npm       | yaml                          | 2.9.0            | ISC                                 |
 | Cargo     | yoke-derive                   | 0.8.2            | Unicode-3.0                         |
 | Cargo     | yoke                          | 0.8.3            | Unicode-3.0                         |
 | Cargo     | zerofrom-derive               | 0.1.7            | Unicode-3.0                         |

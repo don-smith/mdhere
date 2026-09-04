@@ -2,6 +2,7 @@ import MarkdownIt from 'markdown-it';
 import taskLists from 'markdown-it-task-lists';
 import { createHighlighter } from 'shiki';
 
+import { extractFrontMatter } from './front-matter';
 import { resolveDocumentLink, resolveImage } from './link-resolver';
 import { sanitizeHtml } from './sanitize';
 import type { RenderedDocument } from './types';
@@ -114,10 +115,11 @@ export class MarkdownRenderer {
   }
 
   render(markdown: string, documentPath: string): RenderedDocument {
+    const { body, frontMatter } = extractFrontMatter(markdown);
     // Heading IDs are scoped to one rendered document, never an earlier document.
     const ids = new Map<string, number>();
-    const html = this.parser.render(markdown, { documentPath, headingIds: ids });
-    return { html: sanitizeHtml(html), diagnostics: [] };
+    const html = this.parser.render(body, { documentPath, headingIds: ids });
+    return { html: sanitizeHtml(html), diagnostics: [], frontMatter };
   }
 }
 

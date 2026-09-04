@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import { MarkdownRenderer } from './renderer';
 
@@ -61,5 +61,34 @@ describe('MarkdownRenderer', () => {
     expect(rendered.html).not.toContain('src=""');
     expect(rendered.html).toContain('data-mdhere-external="https://example.com/"');
     expect(rendered.html).not.toContain('href="ftp:');
+  });
+
+  it('renders only the body for recognized front matter, but passes unclosed source through', async () => {
+    const renderer = await MarkdownRenderer.create();
+    const parser = Reflect.get(renderer, 'parser') as { render: (source: string) => string };
+    const render = vi.spyOn(parser, 'render');
+
+    const recognized = renderer.render('---\ntitle: Safe\n---\n# Body', 'guide.md');
+    expect(render).toHaveBeenLastCalledWith('# Body', expect.anything());
+    expect(recognized.frontMatter).toMatchObject({ kind: 'metadata' });
+    expect(recognized.html).not.toContain('title: Safe');
+
+    renderer.render('---\ntitle: Unclosed', 'guide.md');
+    expect(render).toHaveBeenLastCalledWith('---\ntitle: Unclosed', expect.anything());
+  });
+
+  it('removes malformed closed front matter from HTML while retaining a warning model', async () => {
+    const renderer = await MarkdownRenderer.create();
+    const rendered = renderer.render(
+      '---\ntitle: <script>alert(1)</script>\nitems: [\n---\n# Body',
+      'guide.md'
+    );
+
+    expect(rendered.html).toContain('<h1 tabindex="-1">Body</h1>');
+    expect(rendered.html).not.toContain('<script>');
+    expect(rendered.frontMatter).toEqual({
+      kind: 'warning',
+      source: 'title: <script>alert(1)</script>\nitems: [\n'
+    });
   });
 });
