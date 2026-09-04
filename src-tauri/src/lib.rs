@@ -20,7 +20,7 @@ use tauri::{AppHandle, Emitter, Manager, WebviewUrl, WebviewWindowBuilder, http:
 #[cfg(target_os = "macos")]
 use tauri::{
     TitleBarStyle,
-    window::{Effect, EffectsBuilder},
+    window::{Effect, EffectState, EffectsBuilder},
 };
 use tauri_plugin_dialog::DialogExt;
 
@@ -188,7 +188,12 @@ fn create_window(app: &AppHandle, root: Option<PathBuf>) -> Result<(), String> {
     let window = window
         .transparent(true)
         .title_bar_style(TitleBarStyle::Transparent)
-        .effects(EffectsBuilder::new().effect(Effect::Titlebar).build());
+        .effects(
+            EffectsBuilder::new()
+                .effect(Effect::HeaderView)
+                .state(EffectState::Active)
+                .build(),
+        );
     let _window = window.build().map_err(|error| {
         app.state::<LibraryRegistry>().unregister(&label);
         error.to_string()

@@ -470,10 +470,20 @@
             type="button"
             aria-label={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
             aria-expanded={!sidebarCollapsed}
-            onclick={() => (sidebarCollapsed = !sidebarCollapsed)}>☰</button
+            onclick={() => (sidebarCollapsed = !sidebarCollapsed)}
           >
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <rect x="3" y="4" width="18" height="16" rx="2" />
+              <path class="sidebar-toggle-pane" d="M4 5h5v14H4z" />
+              <path d="M9 4v16" />
+            </svg>
+          </button>
         </div>
-        {#if !sidebarCollapsed}
+        <div
+          class="sidebar-expanded-content"
+          aria-hidden={sidebarCollapsed}
+          inert={sidebarCollapsed}
+        >
           <label class="library-search">
             <span class="visually-hidden">Filter documents</span>
             <input
@@ -501,7 +511,8 @@
           <button class="sidebar-action" data-state="resting" onclick={openFolder}
             >Open Folder</button
           >
-        {:else}
+        </div>
+        {#if sidebarCollapsed}
           <button
             class="sidebar-action sidebar-action-icon"
             data-state="resting"

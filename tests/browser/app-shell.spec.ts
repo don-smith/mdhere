@@ -63,11 +63,30 @@ test('collapses the sidebar while retaining its expanded width and keyboard resi
 
   await page.getByRole('button', { name: 'Collapse sidebar' }).click();
   await expect(sidebar).toHaveAttribute('data-state', 'collapsed');
-  await expect(page.getByRole('button', { name: 'Open Folder' })).toBeVisible();
+  const collapsedFolderAction = page.getByRole('button', { name: 'Open Folder' });
+  await expect(collapsedFolderAction).toBeVisible();
+  const horizontalOffsets = await collapsedFolderAction.evaluate((element) => {
+    const action = element.getBoundingClientRect();
+    const sidebar = element.closest<HTMLElement>('.desk-sidebar')?.getBoundingClientRect();
+    if (!sidebar) throw new Error('Expected the library sidebar');
+    return [action.left - sidebar.left, sidebar.right - action.right];
+  });
+  expect(Math.abs(horizontalOffsets[0] - horizontalOffsets[1])).toBeLessThanOrEqual(1);
 
   await page.getByRole('button', { name: 'Expand sidebar' }).click();
   await expect(sidebar).toHaveAttribute('data-state', 'expanded');
   await expect(separator).toHaveAttribute('aria-valuenow', '320');
+});
+
+test('keeps folder expansion state while the sidebar is collapsed', async ({ page }) => {
+  await page.goto('/');
+
+  const folder = page.getByRole('treeitem', { name: 'guides' });
+  await folder.click();
+  await expect(folder).toHaveAttribute('aria-expanded', 'false');
+  await page.getByRole('button', { name: 'Collapse sidebar' }).click();
+  await page.getByRole('button', { name: 'Expand sidebar' }).click();
+  await expect(folder).toHaveAttribute('aria-expanded', 'false');
 });
 
 test('renders named loading, empty, error, warning, overlay, and dialog states', async ({

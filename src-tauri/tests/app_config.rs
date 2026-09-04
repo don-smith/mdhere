@@ -31,7 +31,8 @@ fn production_windows_are_created_by_the_coordinator_not_static_config() {
     assert!(app_source.contains("#[cfg(target_os = \"macos\")]"));
     assert!(app_source.contains(".transparent(true)"));
     assert!(app_source.contains("TitleBarStyle::Transparent"));
-    assert!(app_source.contains("Effect::Titlebar"));
+    assert!(app_source.contains("Effect::HeaderView"));
+    assert!(app_source.contains("EffectState::Active"));
     assert_eq!(
         app_source.matches("request_folder(").count(),
         2,
