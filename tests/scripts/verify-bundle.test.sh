@@ -37,6 +37,12 @@ if pnpm verify:bundle -- "$app"; then
   exit 1
 fi
 printf '%b\n' "$contract_css" > "$app/Contents/Resources/themes/field-notes/reader.css"
+printf '/* %s %s */\n:host { content: "%s"; }\n.reader-page { content: ".reader-content"; }\n' "$reader_selectors" "$shiki_variables" "$shiki_variables" > "$app/Contents/Resources/themes/field-notes/reader.css"
+if pnpm verify:bundle -- "$app"; then
+  echo 'verify:bundle accepted reader contract entries in comments or string values' >&2
+  exit 1
+fi
+printf '%b\n' "$contract_css" > "$app/Contents/Resources/themes/field-notes/reader.css"
 printf '{"schemaVersion":2,"id":"field-notes","name":"Field Notes","appearance":"light","shell":{}}\n' > "$app/Contents/Resources/themes/field-notes/theme.json"
 if pnpm verify:bundle -- "$app"; then
   echo 'verify:bundle accepted an incomplete manifest' >&2

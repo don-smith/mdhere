@@ -5,6 +5,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
   missingReaderContract,
+  missingReaderDocumentation,
   readerSelectors,
   shikiVariables
 } from '../../../scripts/reader-theme-contract.mjs';
@@ -32,7 +33,7 @@ describe('reader theme contract', () => {
       ['docs/themes.md', ...packageCss].map((path) => readFile(resolve(path), 'utf8'))
     );
 
-    expect(missingReaderContract(guide!)).toEqual([]);
+    expect(missingReaderDocumentation(guide!)).toEqual([]);
     for (const [index, css] of stylesheets.entries()) {
       expect(missingReaderContract(css)).toEqual([]);
       expect(css).not.toMatch(/(?:^|[,\s])(?:html|body|\.app-shell)\b|:global\(/m);
@@ -46,5 +47,23 @@ describe('reader theme contract', () => {
 
     expect(readerSelectors).toHaveLength(18);
     expect(shikiVariables).toHaveLength(14);
+  });
+
+  it('requires CSS selectors and declarations rather than comments or string values', () => {
+    const falseContract = `
+      /* ${[...readerSelectors, ...shikiVariables].join(' ')} */
+      :host { content: '${shikiVariables.join(':; ')}'; }
+      .reader-page { content: '.reader-content .front-matter'; }
+    `;
+
+    expect(missingReaderContract(falseContract)).toEqual([
+      ...readerSelectors.filter((selector) => ![':host', '.reader-page'].includes(selector)),
+      ...shikiVariables
+    ]);
+
+    expect(missingReaderContract(`:host { ${shikiVariables.join(': #000; ')}: #000;`)).toEqual([
+      ...readerSelectors,
+      ...shikiVariables
+    ]);
   });
 });
