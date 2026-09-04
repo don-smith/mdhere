@@ -1,11 +1,15 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/svelte';
-import { describe, expect, it, vi } from 'vitest';
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/svelte';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import type { LibraryClient } from './lib/library-client';
 import { presentationFixture } from './lib/presentation/presentation-fixture';
+import type { PresentationApi } from './lib/presentation/presentation-store';
+import type { PresentationSnapshot } from './lib/themes/types';
 import App from './App.svelte';
 
 describe('App', () => {
+  afterEach(cleanup);
+
   it('shows a loading state while the library snapshot is requested', () => {
     render(App);
 
@@ -86,6 +90,68 @@ describe('App', () => {
     await waitFor(() => {
       expect(main.style.colorScheme).toBe('dark');
       expect(reader?.style.colorScheme).toBe('dark');
+    });
+  });
+
+  it('persists only user disclosure toggles and reapplies later presentation snapshots', async () => {
+    let changed: ((snapshot: PresentationSnapshot) => void) | undefined;
+    const initial = structuredClone(presentationFixture);
+    const expanded = {
+      ...structuredClone(presentationFixture),
+      revision: 1,
+      frontMatterExpanded: true
+    };
+    const setFrontMatterExpanded = vi.fn().mockResolvedValue(expanded);
+    const presentationApi: PresentationApi = {
+      snapshot: vi.fn().mockResolvedValue(initial),
+      select: vi.fn(),
+      reload: vi.fn(),
+      setFrontMatterExpanded,
+      openFolder: vi.fn(),
+      onChanged: vi.fn().mockImplementation(async (handler) => {
+        changed = handler;
+        return () => undefined;
+      })
+    };
+    const client: LibraryClient = {
+      snapshot: () =>
+        Promise.resolve({
+          rootName: 'Library',
+          diagnostics: [],
+          tree: [{ kind: 'document', name: 'Guide.md', path: 'Guide.md' }]
+        }),
+      readDocument: () =>
+        Promise.resolve({
+          path: 'Guide.md',
+          title: 'Guide',
+          content: '---\ntitle: Guide\n---\n# Guide'
+        }),
+      refresh: () => Promise.reject(new Error('not used')),
+      openFolder: () => Promise.resolve(undefined),
+      newWindow: () => Promise.resolve(),
+      openExternalLink: () => Promise.resolve()
+    };
+    const { container } = render(App, { client, presentationApi });
+    await fireEvent.click(await screen.findByRole('treeitem', { name: 'Guide.md' }));
+    const reader = container.querySelector<HTMLElement>('[data-testid="reader"]');
+    await waitFor(() =>
+      expect(reader?.shadowRoot?.querySelector('details.front-matter')).not.toBeNull()
+    );
+    const details = reader?.shadowRoot?.querySelector<HTMLDetailsElement>('details.front-matter');
+    const summary = details?.querySelector('summary');
+    if (!details || !summary) throw new Error('Expected a front matter disclosure');
+
+    expect(details.open).toBe(false);
+    await fireEvent.click(summary);
+    await waitFor(() => expect(setFrontMatterExpanded).toHaveBeenCalledOnce());
+    expect(setFrontMatterExpanded).toHaveBeenCalledWith(true);
+    expect(presentationApi.select).not.toHaveBeenCalled();
+    expect(presentationApi.reload).not.toHaveBeenCalled();
+
+    changed?.({ ...expanded, revision: 2, frontMatterExpanded: false });
+    await waitFor(() => {
+      const current = reader?.shadowRoot?.querySelector<HTMLDetailsElement>('details.front-matter');
+      expect(current?.open).toBe(false);
     });
   });
 

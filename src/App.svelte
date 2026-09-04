@@ -7,7 +7,11 @@
   import ReaderPane from './lib/components/ReaderPane.svelte';
   import ThemeChooser from './lib/components/ThemeChooser.svelte';
   import ThemeNotice from './lib/components/ThemeNotice.svelte';
-  import { PresentationStore, tauriPresentationApi } from './lib/presentation/presentation-store';
+  import {
+    PresentationStore,
+    tauriPresentationApi,
+    type PresentationApi
+  } from './lib/presentation/presentation-store';
   import { createFixturePresentationApi } from './lib/presentation/presentation-fixture';
   import type { PresentationSnapshot } from './lib/themes/types';
   import { KeyboardController } from './lib/keyboard/controller';
@@ -18,6 +22,7 @@
 
   interface Props {
     client?: LibraryClient;
+    presentationApi?: PresentationApi;
   }
 
   const demoSnapshot: LibrarySnapshot = {
@@ -40,7 +45,7 @@
       path: 'guides/Welcome.md',
       title: 'Welcome',
       content:
-        "# Welcome\n\n~~Rendered safely~~. [Read next](Second.md#second-section) [Web](https://example.com) ![remote](https://example.com/image.png)\n\n```typescript\nconst theme = 'dark';\n```\n\n<scr" +
+        "---\ntitle: Welcome\ntags: [reader, safe, local, ignored]\nsummary: A rendered fixture\n---\n# Welcome\n\n~~Rendered safely~~. [Read next](Second.md#second-section) [Web](https://example.com) ![remote](https://example.com/image.png)\n\n```typescript\nconst theme = 'dark';\n```\n\n<scr" +
         'ipt>alert(1)</scr' +
         'ipt>'
     },
@@ -54,7 +59,10 @@
   let {
     client = import.meta.env.MODE === 'test'
       ? new InMemoryLibraryClient(demoSnapshot, demoDocuments)
-      : new TauriLibraryClient()
+      : new TauriLibraryClient(),
+    presentationApi = import.meta.env.MODE === 'test'
+      ? createFixturePresentationApi()
+      : tauriPresentationApi
   }: Props = $props();
   let snapshot = $state<LibrarySnapshot | undefined>();
   let selectedDocument = $state<Document | undefined>();
@@ -63,10 +71,7 @@
   let fragment = $state<string | undefined>();
   let loading = $state(true);
   let presentation = $state<PresentationSnapshot | undefined>();
-  const presentationStore = new PresentationStore(
-    import.meta.env.MODE === 'test' ? createFixturePresentationApi() : tauriPresentationApi,
-    (value) => (presentation = value)
-  );
+  let presentationStore: PresentationStore | undefined;
   interface KeyboardTarget {
     focus(): void;
     run: Function;
@@ -79,9 +84,10 @@
   let readerPane = $state<KeyboardTarget>();
 
   onMount(() => {
+    presentationStore = new PresentationStore(presentationApi, (value) => (presentation = value));
     void loadSnapshot();
     void presentationStore.load();
-    return () => presentationStore.dispose();
+    return () => presentationStore?.dispose();
   });
 
   async function loadSnapshot() {
@@ -166,9 +172,12 @@
     if (event.altKey || event.ctrlKey || event.metaKey) return;
     const target = event.target as HTMLElement | null;
     const treeTarget = target?.closest('[role="treeitem"], [role="tree"]');
-    const readerTarget = event
-      .composedPath()
-      .some((entry) => entry instanceof HTMLElement && entry.dataset.testid === 'reader');
+    const eventPath = event.composedPath();
+    if (eventPath.some((entry) => entry instanceof HTMLElement && entry.tagName === 'SUMMARY'))
+      return;
+    const readerTarget = eventPath.some(
+      (entry) => entry instanceof HTMLElement && entry.dataset.testid === 'reader'
+    );
     if (
       !treeTarget &&
       !readerTarget &&
@@ -195,15 +204,19 @@
   }
 
   async function selectTheme(themeId: string) {
-    await presentationStore.select(themeId);
+    await presentationStore?.select(themeId);
   }
 
   async function reloadThemes() {
-    await presentationStore.reload();
+    await presentationStore?.reload();
   }
 
   async function openThemesFolder() {
-    await presentationStore.openFolder();
+    await presentationStore?.openFolder();
+  }
+
+  function setFrontMatterExpanded(expanded: boolean) {
+    void presentationStore?.setFrontMatterExpanded(expanded);
   }
 
   function flattenedDocuments(nodes: TreeNode[]): TreeNode[] {
@@ -292,6 +305,8 @@
           {fragment}
           onDocumentLink={selectDocument}
           onExternalLink={(url: string) => client.openExternalLink(url)}
+          frontMatterExpanded={presentation?.frontMatterExpanded ?? false}
+          onFrontMatterToggle={setFrontMatterExpanded}
           themeCss={presentation?.selected.css}
           themeAppearance={presentation?.selected.appearance}
         />

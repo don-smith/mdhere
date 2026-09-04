@@ -7,10 +7,48 @@
     'Times New Roman',
     serif;
 }
-.reader-content {
+.reader-content,
+.front-matter {
   max-width: 75ch;
   margin: 0 auto;
   overflow-wrap: break-word;
+}
+.front-matter {
+  margin-bottom: 1.25rem;
+}
+.front-matter-summary {
+  cursor: pointer;
+}
+.front-matter-fields,
+.front-matter-map {
+  display: grid;
+  gap: 0.5rem;
+}
+.front-matter-field {
+  display: grid;
+  grid-template-columns: minmax(8rem, 1fr) minmax(0, 3fr);
+  gap: 0.75rem;
+}
+.front-matter-key,
+.front-matter-value {
+  margin: 0;
+}
+.front-matter-list {
+  margin: 0;
+  padding-inline-start: 1.25rem;
+}
+.front-matter-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin: 0.75rem 0;
+}
+.front-matter-tag {
+  display: inline-block;
+}
+.front-matter-warning pre {
+  overflow: auto;
+  white-space: pre-wrap;
 }
 h1,
 h2,

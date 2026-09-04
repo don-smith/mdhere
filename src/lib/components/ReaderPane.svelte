@@ -1,17 +1,25 @@
 <script lang="ts">
-  import { onMount } from 'svelte';
+  import { onMount, untrack } from 'svelte';
   import { SvelteMap } from 'svelte/reactivity';
 
   import type { Document } from '../contracts';
   import type { KeyboardCommand } from '../keyboard/types';
   import baseReaderCss from '../markdown/base-reader.css?inline';
   import { MarkdownRenderer } from '../markdown/renderer';
+  import type {
+    FrontMatter,
+    FrontMatterEntry,
+    FrontMatterScalar,
+    FrontMatterValue
+  } from '../markdown/types';
 
   interface Props {
     document?: Document;
     fragment?: string;
     onDocumentLink?: Function;
     onExternalLink?: Function;
+    frontMatterExpanded?: boolean;
+    onFrontMatterToggle?: Function;
     themeCss?: string;
     themeAppearance?: 'light' | 'dark';
   }
@@ -21,6 +29,8 @@
     fragment,
     onDocumentLink,
     onExternalLink,
+    frontMatterExpanded = false,
+    onFrontMatterToggle,
     themeCss = '',
     themeAppearance = 'light'
   }: Props = $props();
@@ -49,7 +59,12 @@
   $effect(() => {
     document;
     fragment;
-    void renderDocument();
+    void untrack(renderDocument);
+  });
+
+  $effect(() => {
+    frontMatterExpanded;
+    applyDisclosureState();
   });
 
   $effect(() => {
@@ -67,16 +82,149 @@
     const content = shadow.querySelector<HTMLElement>('[data-reader-content]');
     if (!content) return;
     if (!document) {
-      content.innerHTML =
-        '<p class="reader-content reader-empty">Select a document from the tree.</p>';
+      const empty = window.document.createElement('p');
+      empty.className = 'reader-content reader-empty';
+      empty.textContent = 'Select a document from the tree.';
+      content.replaceChildren(empty);
       return;
     }
-    content.innerHTML = `<article class="reader-content">${renderer.render(document.content, document.path).html}</article>`;
+
+    const rendered = renderer.render(document.content, document.path);
+    const article = window.document.createElement('article');
+    article.className = 'reader-content';
+    // Sanitized Markdown is the sole HTML string admitted to the reader DOM.
+    article.innerHTML = rendered.html;
+    content.replaceChildren(
+      ...(rendered.frontMatter ? [frontMatterElement(rendered.frontMatter), article] : [article])
+    );
+
     host.scrollTop = scrollPositions.get(document.path) ?? 0;
     if (fragment) {
       const target = shadow.querySelector<HTMLElement>(`[id="${CSS.escape(fragment)}"]`);
       target?.focus();
     }
+  }
+
+  function frontMatterElement(frontMatter: FrontMatter): HTMLDetailsElement {
+    const details = window.document.createElement('details');
+    details.className = 'front-matter';
+    details.dataset.expectedOpen = String(frontMatterExpanded);
+    details.open = frontMatterExpanded;
+
+    const summary = window.document.createElement('summary');
+    summary.className = 'front-matter-summary';
+    summary.textContent =
+      frontMatter.kind === 'metadata' ? 'Document details' : 'Front matter warning';
+    details.append(summary);
+
+    if (frontMatter.kind === 'metadata') {
+      if (frontMatter.tagChips.length > 0) details.append(tagChipsElement(frontMatter.tagChips));
+      details.append(fieldsElement(frontMatter.entries, 'front-matter-fields'));
+    } else {
+      details.append(warningElement(frontMatter.source, frontMatter.omittedCharacters));
+    }
+
+    summary.addEventListener('keydown', (event) => {
+      if (!isDisclosureKey(event) || event.repeat) return;
+      event.preventDefault();
+      window.setTimeout(() => {
+        details.open = !details.open;
+      });
+    });
+    summary.addEventListener('keypress', (event) => {
+      if (isDisclosureKey(event)) event.preventDefault();
+    });
+    summary.addEventListener('keyup', (event) => {
+      if (isDisclosureKey(event)) event.preventDefault();
+    });
+    details.addEventListener('toggle', () => {
+      if (details.open === (details.dataset.expectedOpen === 'true')) return;
+      details.dataset.expectedOpen = String(details.open);
+      onFrontMatterToggle?.(details.open);
+    });
+    return details;
+  }
+
+  function applyDisclosureState() {
+    const details = shadow?.querySelector<HTMLDetailsElement>('details.front-matter');
+    if (!details) return;
+    details.dataset.expectedOpen = String(frontMatterExpanded);
+    details.open = frontMatterExpanded;
+  }
+
+  function tagChipsElement(chips: FrontMatterScalar[]): HTMLDivElement {
+    const tags = window.document.createElement('div');
+    tags.className = 'front-matter-tags';
+    tags.setAttribute('aria-label', 'Tags');
+    for (const chip of chips) {
+      const tag = window.document.createElement('span');
+      tag.className = 'front-matter-tag';
+      tag.textContent = scalarText(chip);
+      tags.append(tag);
+    }
+    return tags;
+  }
+
+  function fieldsElement(entries: FrontMatterEntry[], className: string): HTMLDListElement {
+    const fields = window.document.createElement('dl');
+    fields.className = className;
+    for (const entry of entries) {
+      const field = window.document.createElement('div');
+      field.className = 'front-matter-field';
+      const key = window.document.createElement('dt');
+      key.className = 'front-matter-key';
+      key.textContent = entry.key;
+      const value = window.document.createElement('dd');
+      value.className = 'front-matter-value';
+      value.append(valueElement(entry.value));
+      field.append(key, value);
+      fields.append(field);
+    }
+    return fields;
+  }
+
+  function valueElement(value: FrontMatterValue): HTMLElement {
+    if (value.kind === 'scalar') {
+      const scalar = window.document.createElement('span');
+      scalar.textContent = scalarText(value.value);
+      return scalar;
+    }
+    if (value.kind === 'sequence') {
+      const list = window.document.createElement('ul');
+      list.className = 'front-matter-list';
+      for (const item of value.items) {
+        const listItem = window.document.createElement('li');
+        listItem.append(valueElement(item));
+        list.append(listItem);
+      }
+      return list;
+    }
+    return fieldsElement(value.entries, 'front-matter-map');
+  }
+
+  function warningElement(source: string, omittedCharacters?: number): HTMLDivElement {
+    const warning = window.document.createElement('div');
+    warning.className = 'front-matter-warning';
+    warning.setAttribute('role', 'alert');
+    const message = window.document.createElement('p');
+    message.textContent = 'This document has invalid or unsupported front matter.';
+    const code = window.document.createElement('pre');
+    code.textContent = source;
+    warning.append(message, code);
+    if (omittedCharacters) {
+      const omitted = window.document.createElement('p');
+      omitted.textContent = `${omittedCharacters} characters omitted.`;
+      warning.append(omitted);
+    }
+    return warning;
+  }
+
+  function isDisclosureKey(event: KeyboardEvent): boolean {
+    return event.key === 'Enter' || event.key === ' ' || event.code === 'Space';
+  }
+
+  function scalarText(value: FrontMatterScalar): string {
+    return value === null ? 'null' : String(value);
   }
 
   export function focus() {
@@ -156,7 +304,6 @@
   role="region"
   data-testid="reader"
   aria-label="Reader content"
-  aria-live="polite"
   data-theme-appearance={themeAppearance}
   style:color-scheme={themeAppearance}
   tabindex="0"
