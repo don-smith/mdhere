@@ -11,7 +11,8 @@ test('renders the Reading desk shell with real library hierarchy and document id
   await expect(page.getByRole('treeitem', { name: 'guides' })).toBeVisible();
 
   const document = page.getByRole('treeitem', { name: 'Welcome.md' });
-  await expect(document.locator('.tree-document-path')).toHaveText('guides/Welcome.md');
+  await expect(document).toHaveText('Welcome.md');
+  await expect(document.locator('.tree-document-path')).toHaveCount(0);
   await document.click();
 
   await expect(page.getByTestId('document-toolbar')).toContainText('Welcome');

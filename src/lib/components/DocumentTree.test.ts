@@ -37,13 +37,15 @@ describe('DocumentTree', () => {
     expect(onSelect).toHaveBeenCalledWith('guides/Welcome.md');
   });
 
-  it('renders folder sections and document path subtitles from the library snapshot', () => {
+  it('renders folder sections and filename-only document rows from the library snapshot', () => {
     render(DocumentTree, { tree, onSelect: vi.fn() });
 
     expect(screen.getByRole('treeitem', { name: 'Guides' })).toHaveClass('tree-folder-row');
     const document = screen.getByRole('treeitem', { name: 'Welcome.md' });
     expect(document).toHaveClass('tree-document-row');
-    expect(document.querySelector('.tree-document-path')).toHaveTextContent('guides/Welcome.md');
+    expect(document).toHaveTextContent('Welcome.md');
+    expect(document).not.toHaveTextContent('guides/Welcome.md');
+    expect(document.querySelector('.tree-document-path')).toBeNull();
   });
 
   it('expands matching context without changing normal expansion', async () => {

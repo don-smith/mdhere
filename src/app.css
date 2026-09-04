@@ -205,14 +205,6 @@ select {
   white-space: nowrap;
 }
 
-.tree-document-path {
-  overflow: hidden;
-  color: var(--shell-muted);
-  font-size: 0.7rem;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
 .tree-folder-row:hover,
 .tree-document-row:hover,
 .sidebar-action:hover,

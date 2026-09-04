@@ -201,7 +201,6 @@
         <span class="tree-folder-name">{item.node.name}</span>
       {:else}
         <span class="tree-document-title">{item.node.name}</span>
-        <small class="tree-document-path">{item.node.path}</small>
       {/if}
     </button>
   {/each}
