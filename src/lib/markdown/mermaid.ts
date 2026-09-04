@@ -1,6 +1,6 @@
 import mermaid, { type Mermaid } from 'mermaid';
 
-import type { ShellColors, Theme, ThemeAppearance } from '../themes/types';
+import type { Theme } from '../themes/types';
 
 export interface MermaidThemeVariables {
   darkMode: boolean;
@@ -59,28 +59,6 @@ export interface MermaidApi {
 
 type MermaidTheme = Pick<Theme, 'appearance' | 'shell'>;
 
-const defaultShell: ShellColors = {
-  background: '#f7f8fb',
-  panel: '#ffffff',
-  surface: '#ffffff',
-  raisedSurface: '#ffffff',
-  foreground: '#172033',
-  foregroundStrong: '#101827',
-  muted: '#5a6475',
-  faint: '#7b8494',
-  border: '#d9dfea',
-  borderStrong: '#b8c3d6',
-  accent: '#195bbd',
-  accentForeground: '#ffffff',
-  accentSoft: '#e5efff',
-  hover: '#f0f4fa',
-  selected: '#dbeafe',
-  focus: '#195bbd',
-  danger: '#a63838',
-  warning: '#966614',
-  overlay: '#17203366'
-};
-
 const defaultSecureKeys = [
   'secure',
   'securityLevel',
@@ -92,9 +70,8 @@ const defaultSecureKeys = [
 
 const protectedVisualKeys = ['theme', 'themeVariables', 'themeCSS', 'darkMode', 'fontFamily'];
 
-export function mermaidConfig(theme?: MermaidTheme): MermaidConfiguration {
-  const appearance: ThemeAppearance = theme?.appearance ?? 'light';
-  const shell = theme?.shell ?? defaultShell;
+export function mermaidConfig(theme: MermaidTheme): MermaidConfiguration {
+  const { appearance, shell } = theme;
   const foreground = shell.foreground;
   const border = shell.border;
   const nodeBackground = shell.raisedSurface;
@@ -150,12 +127,13 @@ export class MermaidRenderer {
   constructor(private readonly api: MermaidApi = mermaid as Mermaid) {}
 
   render(article: HTMLElement, theme?: MermaidTheme): Promise<void> {
+    if (!theme) return Promise.resolve();
     const job = this.queue.then(() => this.renderArticle(article, theme));
     this.queue = job.catch(() => undefined);
     return job;
   }
 
-  private async renderArticle(article: HTMLElement, theme?: MermaidTheme): Promise<void> {
+  private async renderArticle(article: HTMLElement, theme: MermaidTheme): Promise<void> {
     const placeholders = article.querySelectorAll<HTMLElement>('pre[data-mdhere-mermaid="true"]');
     if (placeholders.length === 0) return;
     this.api.initialize(mermaidConfig(theme));
@@ -166,6 +144,10 @@ export class MermaidRenderer {
 
   private async renderPlaceholder(article: HTMLElement, placeholder: HTMLElement): Promise<void> {
     const source = placeholder.textContent ?? '';
+    if (hasDocumentStyleOverride(source)) {
+      appendError(article, placeholder, 'Document-controlled Mermaid styles are not supported.');
+      return;
+    }
     try {
       await this.api.parse(source);
       if (!isCurrentPlaceholder(article, placeholder)) return;
@@ -194,14 +176,22 @@ export class MermaidRenderer {
         renderContainer.remove();
       }
     } catch (reason) {
-      if (!isCurrentPlaceholder(article, placeholder)) return;
-      const message = document.createElement('p');
-      message.className = 'mdhere-mermaid-error';
-      message.setAttribute('role', 'alert');
-      message.textContent = errorMessage(reason);
-      placeholder.after(message);
+      appendError(article, placeholder, errorMessage(reason));
     }
   }
+}
+
+function hasDocumentStyleOverride(source: string): boolean {
+  return /^\s*(?:classDef|style|linkStyle|cssClass)\b/imu.test(source);
+}
+
+function appendError(article: HTMLElement, placeholder: HTMLElement, text: string): void {
+  if (!isCurrentPlaceholder(article, placeholder)) return;
+  const message = document.createElement('p');
+  message.className = 'mdhere-mermaid-error';
+  message.setAttribute('role', 'alert');
+  message.textContent = text;
+  placeholder.after(message);
 }
 
 function isCurrentPlaceholder(article: HTMLElement, placeholder: HTMLElement): boolean {

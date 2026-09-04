@@ -182,7 +182,9 @@ nested:
   });
 
   it('reruns Mermaid parsing after a document refresh replaces its source', async () => {
+    const theme = presentationFixture.selected;
     const { container, rerender } = render(ReaderPane, {
+      theme,
       document: {
         path: 'diagram.md',
         title: 'Diagram',

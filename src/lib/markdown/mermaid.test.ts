@@ -188,6 +188,21 @@ describe('MermaidRenderer', () => {
     );
   });
 
+  it('keeps source when a document tries to define Mermaid styles', async () => {
+    const api = mermaidApi();
+    const renderer = new MermaidRenderer(api);
+    const article = articleWith('flowchart LR\n  A --> B\n  classDef danger fill:#ff0000');
+
+    await renderer.render(article, paper);
+
+    expect(article.querySelector('pre')).toHaveTextContent('classDef danger fill:#ff0000');
+    expect(article.querySelector('[role="alert"]')).toHaveTextContent(
+      'Document-controlled Mermaid styles are not supported.'
+    );
+    expect(api.parse).not.toHaveBeenCalled();
+    expect(api.render).not.toHaveBeenCalled();
+  });
+
   it('abandons a placeholder removed while parsing is pending', async () => {
     let resolveParse: (() => void) | undefined;
     const api = mermaidApi({

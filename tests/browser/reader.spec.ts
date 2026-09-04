@@ -20,6 +20,11 @@ test('renders sanitized GFM inside the reader Shadow DOM', async ({ page }) => {
   );
   await expect(reader.locator('script')).toHaveCount(0);
   await expect(reader.locator('.mdhere-mermaid-diagram svg')).toHaveCount(3);
+  await expect(
+    reader
+      .getByRole('alert')
+      .filter({ hasText: 'Document-controlled Mermaid styles are not supported.' })
+  ).toHaveCount(1);
 
   const initialUrl = page.url();
   await reader.locator('a[data-mdhere-external="https://example.com/"]').click();
