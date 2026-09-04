@@ -10,10 +10,13 @@ for (const theme of [
   }) => {
     await page.goto('/');
     await page.getByRole('treeitem', { name: 'Welcome.md' }).click();
-    const themeSelect = page.getByTestId('document-toolbar').getByLabel('Theme');
-    await expect(themeSelect).toHaveCount(1);
-    await expect(themeSelect.locator('option')).toHaveCount(3);
-    await themeSelect.selectOption({ label: theme.name });
+    const themeTrigger = page.getByTestId('document-toolbar').locator('.theme-trigger');
+    await expect(themeTrigger).toHaveCount(1);
+    await expect(themeTrigger).toHaveAccessibleName('Theme: Paper');
+    await themeTrigger.click();
+    const themeListbox = page.getByRole('listbox', { name: 'Theme options' });
+    await expect(themeListbox.getByRole('option')).toHaveCount(3);
+    await themeListbox.getByRole('option', { name: theme.name }).click();
 
     const reader = page.getByTestId('reader');
     await expect(reader.locator('h1')).toHaveText('Welcome');
@@ -26,9 +29,18 @@ for (const theme of [
     await expect(page.getByTestId('reading-desk')).toHaveScreenshot(`${theme.id}.png`, {
       animations: 'disabled'
     });
-    await themeSelect.hover();
-    await themeSelect.focus();
-    await expect(themeSelect).toBeFocused();
+
+    await themeTrigger.hover();
+    await themeTrigger.focus();
+    await expect(themeTrigger).toBeFocused();
+    await themeTrigger.click();
+    await expect(themeListbox).toBeVisible();
+    await expect(page.getByTestId('reading-desk')).toHaveScreenshot(`${theme.id}-open.png`, {
+      animations: 'disabled'
+    });
+    await page.keyboard.press('Escape');
+    await expect(themeListbox).toBeHidden();
+    await expect(themeTrigger).toBeFocused();
   });
 
   test(`captures the ${theme.name} warning, no-match, dialog, and overlay state fixture`, async ({
@@ -53,11 +65,11 @@ for (const theme of [
   }) => {
     await page.goto(`/?scenario=slow-refresh&theme=${theme.id}`);
     const refresh = page.getByRole('button', { name: 'Refresh library' });
-    const themeSelect = page.getByRole('combobox', { name: 'Theme' });
-    await themeSelect.evaluate((element) => {
-      (element as HTMLSelectElement).disabled = true;
+    const themeTrigger = page.getByRole('button', { name: `Theme: ${theme.name}` });
+    await themeTrigger.evaluate((element) => {
+      (element as HTMLButtonElement).disabled = true;
     });
-    await expect(themeSelect).toBeDisabled();
+    await expect(themeTrigger).toBeDisabled();
     await refresh.hover();
     await refresh.focus();
     await refresh.click();
@@ -77,3 +89,37 @@ for (const theme of [
     await expect(page.locator('.shell-status[data-state="empty"]')).toBeVisible();
   });
 }
+
+test('supports theme picker keyboard navigation, selection, and click-away dismissal', async ({
+  page
+}) => {
+  await page.goto('/');
+  const trigger = page.locator('.theme-trigger');
+  await expect(trigger).toHaveAccessibleName('Theme: Paper');
+  await trigger.focus();
+  await page.keyboard.press('Enter');
+  const listbox = page.getByRole('listbox', { name: 'Theme options' });
+  await expect(listbox).toBeVisible();
+  await page.keyboard.press('ArrowDown');
+  await expect(listbox.getByRole('option', { name: 'Midnight' })).toHaveAttribute(
+    'data-active',
+    'true'
+  );
+  await page.keyboard.press(' ');
+  await expect(trigger).toHaveAccessibleName('Theme: Midnight');
+  await expect(listbox).toBeHidden();
+
+  await page.keyboard.press('Home');
+  await expect(listbox.getByRole('option', { name: 'Paper' })).toHaveAttribute(
+    'data-active',
+    'true'
+  );
+  await page.keyboard.press('End');
+  await expect(listbox.getByRole('option', { name: 'Field Notes' })).toHaveAttribute(
+    'data-active',
+    'true'
+  );
+  await page.getByTestId('document-toolbar').getByText('Select a document').click();
+  await expect(listbox).toBeHidden();
+  await expect(trigger).toBeFocused();
+});

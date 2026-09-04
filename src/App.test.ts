@@ -92,21 +92,37 @@ describe('App', () => {
     const reader = container.querySelector<HTMLElement>('[data-testid="reader"]');
     expect(reader?.style.colorScheme).toBe('light');
 
-    const chooser = container.querySelector<HTMLSelectElement>('[aria-label="Theme"]');
-    if (!chooser) throw new Error('Expected the theme chooser');
-    expect(screen.getAllByRole('combobox', { name: 'Theme' })).toHaveLength(1);
-    expect([...chooser.options].map((option) => option.textContent)).toEqual(
+    const trigger = screen.getByRole<HTMLButtonElement>('button', { name: 'Theme: Paper' });
+    expect(trigger).toBeEnabled();
+    expect(screen.queryByRole('listbox', { name: 'Theme options' })).not.toBeInTheDocument();
+
+    await fireEvent.click(trigger);
+    const listbox = screen.getByRole('listbox', { name: 'Theme options' });
+    expect(screen.getAllByRole('option').map((option) => option.textContent)).toEqual(
       presentationFixture.themes.map((theme) => theme.name)
     );
-    expect(chooser).toBeEnabled();
-    await fireEvent.change(chooser, { target: { value: 'mdhere-dark' } });
+    expect(listbox).toBeInTheDocument();
+    await fireEvent.click(screen.getByRole('option', { name: 'Field Notes' }));
+    await waitFor(() => expect(main.style.colorScheme).toBe('light'));
+
+    await fireEvent.keyDown(trigger, { key: 'Home' });
+    expect(screen.getByRole('option', { name: 'Paper' })).toHaveAttribute('data-active', 'true');
+    await fireEvent.keyDown(trigger, { key: 'End' });
+    expect(screen.getByRole('option', { name: 'Field Notes' })).toHaveAttribute(
+      'data-active',
+      'true'
+    );
+    await fireEvent.keyDown(trigger, { key: 'ArrowUp' });
+    expect(screen.getByRole('option', { name: 'Midnight' })).toHaveAttribute('data-active', 'true');
+    await fireEvent.keyDown(trigger, { key: ' ' });
     await waitFor(() => {
       expect(main.style.colorScheme).toBe('dark');
       expect(reader?.style.colorScheme).toBe('dark');
+      expect(screen.queryByRole('listbox', { name: 'Theme options' })).not.toBeInTheDocument();
     });
   });
 
-  it('disables the native theme selector when the catalog has no alternative', async () => {
+  it('disables the theme trigger when the catalog has no alternative', async () => {
     const client: LibraryClient = {
       snapshot: () =>
         Promise.resolve({
@@ -130,7 +146,25 @@ describe('App', () => {
       })
     });
 
-    expect(await screen.findByRole('combobox', { name: 'Theme' })).toBeDisabled();
+    expect(await screen.findByRole('button', { name: `Theme: ${onlyTheme.name}` })).toBeDisabled();
+  });
+
+  it('dismisses the theme listbox with Escape and click-away, returning focus to its trigger', async () => {
+    render(App);
+
+    const trigger = await screen.findByRole<HTMLButtonElement>('button', { name: 'Theme: Paper' });
+    trigger.focus();
+    await fireEvent.keyDown(trigger, { key: 'Enter' });
+    expect(screen.getByRole('listbox', { name: 'Theme options' })).toBeInTheDocument();
+    await fireEvent.keyDown(trigger, { key: 'Escape' });
+    expect(screen.queryByRole('listbox', { name: 'Theme options' })).not.toBeInTheDocument();
+    expect(trigger).toHaveFocus();
+
+    await fireEvent.click(trigger);
+    expect(screen.getByRole('listbox', { name: 'Theme options' })).toBeInTheDocument();
+    await fireEvent.click(document.body);
+    expect(screen.queryByRole('listbox', { name: 'Theme options' })).not.toBeInTheDocument();
+    expect(trigger).toHaveFocus();
   });
 
   it('persists only user disclosure toggles and reapplies later presentation snapshots', async () => {
@@ -253,9 +287,9 @@ describe('App', () => {
     const refresh = await screen.findByRole('button', { name: 'Refresh library' });
     expect(refresh).toHaveClass('toolbar-action');
     expect(refresh).toHaveAttribute('data-state', 'resting');
-    const themeSelect = screen.getByRole<HTMLSelectElement>('combobox', { name: 'Theme' });
-    expect(themeSelect).toHaveClass('theme-select');
-    expect(themeSelect).toBeEnabled();
+    const themeTrigger = screen.getByRole<HTMLButtonElement>('button', { name: 'Theme: Paper' });
+    expect(themeTrigger).toHaveClass('theme-trigger');
+    expect(themeTrigger).toBeEnabled();
     expect(container.querySelector('.desk-reader > [data-testid="reader"]')).not.toBeNull();
     expect(container.querySelector('[data-testid="reading-frame"]')).toBeNull();
     await fireEvent.click(refresh);

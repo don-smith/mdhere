@@ -57,27 +57,31 @@ describe('Reading desk shell theme contract', () => {
     }
   });
 
-  it('defines every theme selector state through shell tokens', async () => {
+  it('defines every custom theme picker state through shell tokens', async () => {
     const css = await readFile(resolve('src/app.css'), 'utf8');
 
     for (const state of [
-      '.theme-select {',
-      '.theme-select:hover',
-      '.theme-select:focus-visible',
-      '.theme-select:active',
-      '.theme-select:open',
-      '.theme-select:disabled'
+      '.theme-trigger {',
+      '.theme-trigger:hover',
+      '.theme-trigger:focus-visible',
+      ".theme-trigger[data-state='open']",
+      '.theme-trigger:disabled',
+      '.theme-listbox {',
+      '.theme-option {',
+      '.theme-option:hover',
+      ".theme-option[aria-selected='true']"
     ]) {
       expect(css).toContain(state);
     }
-    expect(css).toMatch(/\.theme-select\s*\{[\s\S]*?var\(--shell-border-strong\)/);
-    expect(css).toMatch(/\.theme-select\s*\{[\s\S]*?font-weight:\s*650/);
-    expect(css).toMatch(/\.theme-select:hover[\s\S]*?var\(--shell-hover\)/);
-    expect(css).toMatch(/\.theme-select:focus-visible\s*\{[\s\S]*?var\(--shell-focus\)/);
+    expect(css).toMatch(/\.theme-trigger\s*\{[\s\S]*?var\(--shell-border-strong\)/);
+    expect(css).toMatch(/\.theme-trigger\s*\{[\s\S]*?font-weight:\s*650/);
+    expect(css).toMatch(/\.theme-trigger:hover[\s\S]*?var\(--shell-hover\)/);
+    expect(css).toMatch(/\.theme-trigger:focus-visible\s*\{[\s\S]*?var\(--shell-focus\)/);
     expect(css).toMatch(
-      /\.theme-select:active,\s*\.theme-select:open\s*\{[\s\S]*?var\(--shell-accent-soft\)/
+      /\.theme-trigger\[data-state='open'\]\s*\{[\s\S]*?var\(--shell-accent-soft\)/
     );
-    expect(css).toMatch(/\.theme-select:disabled[\s\S]*?var\(--shell-faint\)/);
+    expect(css).toMatch(/\.theme-trigger:disabled[\s\S]*?var\(--shell-faint\)/);
+    expect(css).toMatch(/\.theme-option\[aria-selected='true'\][\s\S]*?var\(--shell-selected\)/);
   });
 
   it('keeps the navigation scrollbar thin at the sidebar edge', async () => {
