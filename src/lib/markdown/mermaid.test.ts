@@ -188,6 +188,17 @@ describe('MermaidRenderer', () => {
     );
   });
 
+  it('allows style words inside quoted Mermaid labels', async () => {
+    const api = mermaidApi();
+    const renderer = new MermaidRenderer(api);
+    const article = articleWith('flowchart LR; A["CSS; style guide"] --> B');
+
+    await renderer.render(article, paper);
+
+    expect(api.parse).toHaveBeenCalledWith('flowchart LR; A["CSS; style guide"] --> B');
+    expect(article.querySelector('svg')).not.toBeNull();
+  });
+
   it.each([
     'classDef danger fill:#ff0000',
     'style A fill:#ff0000',

@@ -182,7 +182,37 @@ export class MermaidRenderer {
 }
 
 function hasDocumentStyleOverride(source: string): boolean {
-  return /(?:^|;)\s*(?:classDef|style|linkStyle|cssClass)\b/imu.test(source);
+  let statementStart = true;
+  let inQuotedText = false;
+
+  for (let index = 0; index < source.length; index += 1) {
+    const character = source[index];
+    if (inQuotedText) {
+      if (character === '\\') index += 1;
+      else if (character === '"') inQuotedText = false;
+      continue;
+    }
+    if (character === '"') {
+      inQuotedText = true;
+      continue;
+    }
+    if (character === '%' && source[index + 1] === '%') {
+      const newline = source.indexOf('\n', index + 2);
+      if (newline === -1) return false;
+      index = newline - 1;
+      continue;
+    }
+    if (character === '\n' || character === '\r' || character === ';') {
+      statementStart = true;
+      continue;
+    }
+    if (!statementStart) continue;
+    if (/\s/u.test(character ?? '')) continue;
+    if (/^(?:classDef|style|linkStyle|cssClass)\b/iu.test(source.slice(index))) return true;
+    statementStart = false;
+  }
+
+  return false;
 }
 
 function appendError(article: HTMLElement, placeholder: HTMLElement, text: string): void {
