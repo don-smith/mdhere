@@ -453,19 +453,17 @@
         </header>
 
         <div class="desk-reader">
-          <div class="reading-frame" data-testid="reading-frame">
-            <ReaderPane
-              bind:this={readerPane}
-              document={selectedDocument}
-              {fragment}
-              onDocumentLink={selectDocument}
-              onExternalLink={(url: string) => client.openExternalLink(url)}
-              frontMatterExpanded={presentation?.frontMatterExpanded ?? false}
-              onFrontMatterToggle={setFrontMatterExpanded}
-              themeCss={presentation?.selected.css}
-              themeAppearance={presentation?.selected.appearance}
-            />
-          </div>
+          <ReaderPane
+            bind:this={readerPane}
+            document={selectedDocument}
+            {fragment}
+            onDocumentLink={selectDocument}
+            onExternalLink={(url: string) => client.openExternalLink(url)}
+            frontMatterExpanded={presentation?.frontMatterExpanded ?? false}
+            onFrontMatterToggle={setFrontMatterExpanded}
+            themeCss={presentation?.selected.css}
+            themeAppearance={presentation?.selected.appearance}
+          />
         </div>
 
         <footer class="desk-status-strip" data-testid="status-strip">

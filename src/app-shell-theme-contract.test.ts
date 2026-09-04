@@ -56,4 +56,35 @@ describe('Reading desk shell theme contract', () => {
       );
     }
   });
+
+  it('defines every theme selector state through shell tokens', async () => {
+    const css = await readFile(resolve('src/app.css'), 'utf8');
+
+    for (const state of [
+      '.theme-select {',
+      '.theme-select:hover',
+      '.theme-select:focus-visible',
+      '.theme-select:active',
+      '.theme-select:open',
+      '.theme-select:disabled'
+    ]) {
+      expect(css).toContain(state);
+    }
+    expect(css).toMatch(/\.theme-select:hover[\s\S]*?var\(--shell-hover\)/);
+    expect(css).toMatch(/\.theme-select:focus-visible,[\s\S]*?var\(--shell-accent-soft\)/);
+    expect(css).toMatch(/\.theme-select:disabled[\s\S]*?var\(--shell-faint\)/);
+  });
+
+  it('keeps front matter subdued and separated in every bundled reader theme', async () => {
+    const themeCss = await Promise.all(
+      ['mdhere-light', 'mdhere-dark', 'field-notes'].map((theme) =>
+        readFile(resolve(`src-tauri/themes/${theme}/reader.css`), 'utf8')
+      )
+    );
+
+    for (const css of themeCss) {
+      expect(css).toMatch(/\.front-matter\s*\{[\s\S]*?margin-bottom:\s*2\.5rem/);
+      expect(css).toMatch(/\.front-matter-summary\s*\{[\s\S]*?font-weight:\s*normal/);
+    }
+  });
 });

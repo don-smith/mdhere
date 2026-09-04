@@ -16,7 +16,10 @@ test('renders the Reading desk shell with real library hierarchy and document id
 
   await expect(page.getByTestId('document-toolbar')).toContainText('Welcome');
   await expect(page.getByTestId('document-toolbar')).toContainText('guides/Welcome.md');
-  await expect(page.getByTestId('reading-frame').getByTestId('reader')).toBeVisible();
+  await expect(
+    page.getByTestId('reading-desk').locator('.desk-reader > [data-testid="reader"]')
+  ).toBeVisible();
+  await expect(page.getByTestId('reading-frame')).toHaveCount(0);
   await expect(page.getByTestId('status-strip')).toContainText('Markdown');
   await expect(page.getByTestId('status-strip')).toContainText('UTF-8');
 });

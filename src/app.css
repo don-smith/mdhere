@@ -318,6 +318,31 @@ select {
   background: var(--shell-raised-surface);
   color: var(--shell-foreground);
   font-size: 0.72rem;
+  cursor: pointer;
+  transition:
+    border-color 120ms ease,
+    background-color 120ms ease,
+    box-shadow 120ms ease;
+}
+
+.theme-select:hover {
+  border-color: var(--shell-border-strong);
+  background: var(--shell-hover);
+}
+
+.theme-select:focus-visible,
+.theme-select:active,
+.theme-select:open {
+  border-color: var(--shell-accent);
+  background: var(--shell-accent-soft);
+}
+
+.theme-select:disabled {
+  border-color: var(--shell-border);
+  background: var(--shell-surface);
+  color: var(--shell-faint);
+  cursor: not-allowed;
+  opacity: 0.65;
 }
 
 .theme-action {
@@ -341,31 +366,17 @@ select {
 }
 
 .desk-reader {
+  display: flex;
   min-height: 0;
   flex: 1;
-  padding: 2.25rem clamp(1.5rem, 5vw, 5rem) 3.5rem;
   overflow: hidden;
   background: var(--shell-background);
-}
-
-.reading-frame {
-  display: flex;
-  width: min(100%, 53rem);
-  height: 100%;
-  min-height: 0;
-  margin: 0 auto;
-  overflow: hidden;
-  border: 1px solid var(--shell-border);
-  border-radius: 0.35rem;
-  background: var(--shell-raised-surface);
-  box-shadow: 0 1.1rem 3rem color-mix(in srgb, var(--shell-overlay) 36%, transparent);
 }
 
 .reader-pane {
   min-width: 0;
   flex: 1;
   overflow: auto;
-  padding: 3rem clamp(2rem, 6vw, 5rem) 6rem;
 }
 
 .desk-status-strip {
@@ -600,10 +611,9 @@ select {
 
   .desk-reader {
     min-height: 32rem;
-    padding: 1rem;
   }
 
-  .reading-frame {
+  .reader-pane {
     min-height: 30rem;
   }
 }

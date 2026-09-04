@@ -72,6 +72,10 @@ nested:
 
     expect(details.open).toBe(false);
     expect(details.querySelector('summary')).toHaveTextContent('Document details');
+    const page = details.parentElement;
+    expect(page?.className).toBe('reader-page');
+    expect(page?.children[0]).toBe(details);
+    expect(page?.children[1]?.tagName).toBe('ARTICLE');
     expect(
       [...details.querySelectorAll('.front-matter-key')].map((element) => element.textContent)
     ).toEqual(['title', 'published', 'tags', 'nested', 'author', 'sections']);

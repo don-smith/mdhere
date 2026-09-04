@@ -124,7 +124,7 @@ struct FolderPickResult {
     error: Option<String>,
 }
 
-fn request_folder(app: AppHandle, window: tauri::WebviewWindow, show_window_after_pick: bool) {
+fn request_folder(app: AppHandle, window: tauri::WebviewWindow) {
     let label = window.label().to_owned();
     let callback_window = window.clone();
     app.dialog().file().pick_folder(move |folder| {
@@ -138,11 +138,6 @@ fn request_folder(app: AppHandle, window: tauri::WebviewWindow, show_window_afte
                 registry.snapshot(&label).map_err(|error| error.to_string())
             })
             .transpose();
-
-        if show_window_after_pick {
-            let _ = callback_window.show();
-            return;
-        }
 
         let payload = match result {
             Ok(snapshot) => FolderPickResult {
@@ -163,31 +158,27 @@ fn create_window(app: &AppHandle, root: Option<PathBuf>) -> Result<(), String> {
         "mdhere-{}",
         NEXT_WINDOW_LABEL.fetch_add(1, Ordering::Relaxed)
     );
-    let needs_folder = root.is_none();
     if let Some(root) = root {
         app.state::<LibraryRegistry>()
             .register_root(&label, root)
             .map_err(|error| error.to_string())?;
     }
-    let window = WebviewWindowBuilder::new(app, &label, WebviewUrl::App("index.html".into()))
+    let _window = WebviewWindowBuilder::new(app, &label, WebviewUrl::App("index.html".into()))
         .title("mdhere")
         .inner_size(1180.0, 760.0)
         .min_inner_size(800.0, 500.0)
-        .visible(!needs_folder)
+        .visible(true)
         .build()
         .map_err(|error| {
             app.state::<LibraryRegistry>().unregister(&label);
             error.to_string()
         })?;
-    if needs_folder {
-        request_folder(app.clone(), window, true);
-    }
     Ok(())
 }
 
 #[tauri::command]
 fn open_folder(window: tauri::WebviewWindow, app: tauri::AppHandle) -> Result<(), String> {
-    request_folder(app, window, false);
+    request_folder(app, window);
     Ok(())
 }
 

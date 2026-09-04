@@ -26,4 +26,10 @@ fn production_windows_are_created_by_the_coordinator_not_static_config() {
     let app_source = include_str!("../src/lib.rs");
     assert!(!app_source.contains("blocking_pick_folder"));
     assert!(app_source.contains(".pick_folder("));
+    assert!(app_source.contains(".visible(true)"));
+    assert_eq!(
+        app_source.matches("request_folder(").count(),
+        2,
+        "folder selection must be triggered only by the open_folder command"
+    );
 }

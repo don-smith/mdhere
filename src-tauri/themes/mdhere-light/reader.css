@@ -114,7 +114,7 @@
 }
 
 .front-matter {
-  margin-bottom: 1.5rem;
+  margin-bottom: 2.5rem;
   border: 1px solid #d9dfea;
   border-radius: 0.6rem;
   background: #f8faff;
@@ -125,7 +125,7 @@
   cursor: pointer;
   color: #101827;
   font-family: Inter, ui-sans-serif, system-ui, sans-serif;
-  font-weight: 650;
+  font-weight: normal;
 }
 
 .front-matter-fields,

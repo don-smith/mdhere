@@ -17,12 +17,13 @@ describe('App', () => {
     expect(screen.getByText('Loading library…')).toBeInTheDocument();
   });
 
-  it('offers a clear folder choice after a no-root window picker is cancelled', async () => {
+  it('offers a clear folder choice until an explicit no-root folder action', async () => {
+    const openFolder = vi.fn().mockResolvedValue(undefined);
     const client: LibraryClient = {
       snapshot: () => Promise.reject({ kind: 'notRegistered', message: 'No root selected' }),
       readDocument: () => Promise.reject(new Error('not used')),
       refresh: () => Promise.reject(new Error('not used')),
-      openFolder: () => Promise.resolve(undefined),
+      openFolder,
       newWindow: () => Promise.resolve(),
       openExternalLink: () => Promise.resolve()
     };
@@ -31,6 +32,9 @@ describe('App', () => {
     const heading = await screen.findByRole('heading', { name: 'Choose a folder' });
     const choice = heading.closest('section');
     expect(choice?.querySelector('button')).toHaveTextContent('Open Folder');
+    expect(openFolder).not.toHaveBeenCalled();
+    await fireEvent.click(screen.getByRole('button', { name: 'Open Folder' }));
+    expect(openFolder).toHaveBeenCalledOnce();
   });
 
   it('applies every shell token and color scheme from the presentation fixture', async () => {
@@ -208,12 +212,14 @@ describe('App', () => {
       newWindow: () => Promise.resolve(),
       openExternalLink: () => Promise.resolve()
     };
-    render(App, { client });
+    const { container } = render(App, { client });
 
     const refresh = await screen.findByRole('button', { name: 'Refresh library' });
     expect(refresh).toHaveClass('toolbar-action');
     expect(refresh).toHaveAttribute('data-state', 'resting');
     expect(screen.getByRole('combobox', { name: 'Theme' })).toHaveClass('theme-select');
+    expect(container.querySelector('.desk-reader > [data-testid="reader"]')).not.toBeNull();
+    expect(container.querySelector('[data-testid="reading-frame"]')).toBeNull();
     await fireEvent.click(refresh);
 
     await waitFor(() => {

@@ -51,7 +51,7 @@ impl LaunchRequest {
 }
 
 pub trait WindowFactory: Send + Sync {
-    fn build(&self, label: &str, hidden: bool) -> Result<(), String>;
+    fn build(&self, label: &str, visible: bool) -> Result<(), String>;
 }
 
 pub struct WindowCoordinator<F> {
@@ -71,13 +71,12 @@ impl<F: WindowFactory> WindowCoordinator<F> {
 
     pub fn open(&self, request: LaunchRequest) -> Result<String, String> {
         let label = self.allocate_label()?;
-        let hidden = request.root.is_none();
         if let Some(root) = request.root {
             self.registry
                 .register_root(&label, root)
                 .map_err(|error| error.to_string())?;
         }
-        if let Err(error) = self.factory.build(&label, hidden) {
+        if let Err(error) = self.factory.build(&label, true) {
             self.registry.unregister(&label);
             return Err(error);
         }

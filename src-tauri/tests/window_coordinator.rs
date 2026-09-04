@@ -14,8 +14,12 @@ struct FakeFactory {
     fail: bool,
 }
 impl WindowFactory for FakeFactory {
-    fn build(&self, label: &str, hidden: bool) -> Result<(), String> {
-        self.calls.lock().unwrap().push((label.into(), hidden));
+    fn build(&self, label: &str, visible: bool) -> Result<(), String> {
+        assert!(
+            visible,
+            "windows must be visible before an explicit folder choice"
+        );
+        self.calls.lock().unwrap().push((label.into(), visible));
         if self.fail {
             Err("build failed".into())
         } else {
