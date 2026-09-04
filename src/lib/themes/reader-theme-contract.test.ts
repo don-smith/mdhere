@@ -23,7 +23,8 @@ describe('reader theme contract', () => {
 
     expect(css).not.toMatch(/#[0-9a-f]{3,8}\b|\brgba?\(|\bhsla?\(/i);
     expect(css).not.toMatch(/(?:^|\n)\s*(?:color|background|border(?:-color)?|font)\s*:/m);
-    expect(css).toContain('.reader-page');
+    expect(css).toMatch(/\.reader-page\s*\{[\s\S]*?max-inline-size:\s*75ch/);
+    expect(css).toMatch(/\.reader-page\s*\{[\s\S]*?padding:\s*clamp\(0\.75rem, 2vw, 2rem\)/);
     expect(css).toContain(':focus-visible');
     expect(css).toContain('.contains-task-list');
   });

@@ -70,9 +70,27 @@ describe('Reading desk shell theme contract', () => {
     ]) {
       expect(css).toContain(state);
     }
+    expect(css).toMatch(/\.theme-select\s*\{[\s\S]*?var\(--shell-border-strong\)/);
+    expect(css).toMatch(/\.theme-select\s*\{[\s\S]*?font-weight:\s*650/);
     expect(css).toMatch(/\.theme-select:hover[\s\S]*?var\(--shell-hover\)/);
-    expect(css).toMatch(/\.theme-select:focus-visible,[\s\S]*?var\(--shell-accent-soft\)/);
+    expect(css).toMatch(/\.theme-select:focus-visible\s*\{[\s\S]*?var\(--shell-focus\)/);
+    expect(css).toMatch(
+      /\.theme-select:active,\s*\.theme-select:open\s*\{[\s\S]*?var\(--shell-accent-soft\)/
+    );
     expect(css).toMatch(/\.theme-select:disabled[\s\S]*?var\(--shell-faint\)/);
+  });
+
+  it('keeps the navigation scrollbar thin at the sidebar edge', async () => {
+    const css = await readFile(resolve('src/app.css'), 'utf8');
+
+    expect(css).toMatch(/\.library-navigation\s*\{[\s\S]*?margin-right:\s*-0\.9rem/);
+    expect(css).toMatch(/\.library-navigation\s*\{[\s\S]*?padding-right:\s*0\.9rem/);
+    expect(css).toMatch(/\.library-navigation\s*\{[\s\S]*?overflow-y:\s*auto/);
+    expect(css).toMatch(/\.library-navigation\s*\{[\s\S]*?scrollbar-width:\s*thin/);
+    expect(css).toMatch(/\.library-navigation::-webkit-scrollbar\s*\{[\s\S]*?width:\s*0\.4rem/);
+    expect(css).toMatch(
+      /\.library-navigation::-webkit-scrollbar-thumb\s*\{[\s\S]*?var\(--shell-border-strong\)/
+    );
   });
 
   it('keeps front matter subdued and separated in every bundled reader theme', async () => {
@@ -83,7 +101,7 @@ describe('Reading desk shell theme contract', () => {
     );
 
     for (const css of themeCss) {
-      expect(css).toMatch(/\.front-matter\s*\{[\s\S]*?margin-bottom:\s*2\.5rem/);
+      expect(css).toMatch(/\.front-matter\s*\{[\s\S]*?margin-bottom:\s*4rem/);
       expect(css).toMatch(/\.front-matter-summary\s*\{[\s\S]*?font-weight:\s*normal/);
     }
   });

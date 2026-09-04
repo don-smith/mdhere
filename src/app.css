@@ -129,7 +129,29 @@ select {
 .library-navigation {
   min-height: 0;
   flex: 1;
-  overflow: auto;
+  margin-right: -0.9rem;
+  padding-right: 0.9rem;
+  overflow-x: hidden;
+  overflow-y: auto;
+  scrollbar-color: var(--shell-border-strong) transparent;
+  scrollbar-width: thin;
+}
+
+.library-navigation::-webkit-scrollbar {
+  width: 0.4rem;
+}
+
+.library-navigation::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.library-navigation::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: var(--shell-border-strong);
+}
+
+.library-navigation::-webkit-scrollbar-thumb:hover {
+  background: var(--shell-accent);
 }
 
 .document-tree {
@@ -310,15 +332,18 @@ select {
 }
 
 .theme-select {
-  min-height: 2rem;
+  min-height: 2.1rem;
   max-width: 8rem;
-  padding: 0.2rem 0.45rem;
-  border: 1px solid var(--shell-border);
-  border-radius: 0.35rem;
+  padding: 0.22rem 0.55rem;
+  border: 1px solid var(--shell-border-strong);
+  border-radius: 0.4rem;
   background: var(--shell-raised-surface);
-  color: var(--shell-foreground);
-  font-size: 0.72rem;
+  box-shadow: inset 0 1px 0 var(--shell-surface);
+  color: var(--shell-foreground-strong);
   cursor: pointer;
+  font-size: 0.72rem;
+  font-weight: 650;
+  letter-spacing: 0.01em;
   transition:
     border-color 120ms ease,
     background-color 120ms ease,
@@ -326,22 +351,30 @@ select {
 }
 
 .theme-select:hover {
-  border-color: var(--shell-border-strong);
+  border-color: var(--shell-accent);
   background: var(--shell-hover);
 }
 
-.theme-select:focus-visible,
+.theme-select:focus-visible {
+  border-color: var(--shell-focus);
+  background: var(--shell-accent-soft);
+  box-shadow: 0 0 0 3px var(--shell-focus);
+}
+
 .theme-select:active,
 .theme-select:open {
   border-color: var(--shell-accent);
   background: var(--shell-accent-soft);
+  box-shadow: inset 0 1px 0 var(--shell-accent);
 }
 
 .theme-select:disabled {
   border-color: var(--shell-border);
   background: var(--shell-surface);
+  box-shadow: 0 0 0 transparent;
   color: var(--shell-faint);
   cursor: not-allowed;
+  font-weight: 550;
   opacity: 0.65;
 }
 

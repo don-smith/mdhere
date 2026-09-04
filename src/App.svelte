@@ -87,6 +87,19 @@
         openExternalLink: () => Promise.resolve()
       };
     }
+    if (scenario === 'long-library') {
+      return new InMemoryLibraryClient(
+        {
+          ...demoSnapshot,
+          tree: Array.from({ length: 48 }, (_, index) => ({
+            kind: 'document' as const,
+            name: `Chapter ${index + 1}.md`,
+            path: `chapters/Chapter ${index + 1}.md`
+          }))
+        },
+        demoDocuments
+      );
+    }
     const client = new InMemoryLibraryClient(demoSnapshot, demoDocuments);
     if (scenario === 'slow-loading') {
       return {

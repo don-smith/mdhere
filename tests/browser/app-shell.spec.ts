@@ -24,6 +24,30 @@ test('renders the Reading desk shell with real library hierarchy and document id
   await expect(page.getByTestId('status-strip')).toContainText('UTF-8');
 });
 
+test('keeps a thin, edge-aligned scrollbar outside long library content', async ({ page }) => {
+  await page.goto('/?scenario=long-library');
+
+  const navigation = page.getByRole('navigation', { name: 'Documents' });
+  await expect(navigation).toBeVisible();
+  const metrics = await navigation.evaluate((element) => {
+    const sidebar = element.closest<HTMLElement>('.desk-sidebar');
+    if (!sidebar) throw new Error('Expected the library sidebar');
+    const navigationRect = element.getBoundingClientRect();
+    const sidebarRect = sidebar.getBoundingClientRect();
+    return {
+      scrolls: element.scrollHeight > element.clientHeight,
+      scrollbarWidth: getComputedStyle(element).scrollbarWidth,
+      trailingPadding: getComputedStyle(element).paddingRight,
+      rightOffset: Math.round(sidebarRect.right - navigationRect.right)
+    };
+  });
+
+  expect(metrics.scrolls).toBe(true);
+  expect(metrics.scrollbarWidth).toBe('thin');
+  expect(metrics.trailingPadding).toBe('14.4px');
+  expect(metrics.rightOffset).toBeLessThanOrEqual(1);
+});
+
 test('renders named loading, empty, error, warning, overlay, and dialog states', async ({
   page
 }) => {

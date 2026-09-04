@@ -10,6 +10,7 @@
   }
 
   let { themes, selectedId, onSelect, onReload, onOpenFolder }: Props = $props();
+  let selectable = $derived(themes.length > 1);
 </script>
 
 <div class="theme-chooser" data-state="resting">
@@ -19,6 +20,7 @@
       class="theme-select"
       aria-label="Theme"
       value={selectedId}
+      disabled={!selectable}
       onchange={(event) => onSelect(event.currentTarget.value)}
     >
       {#each themes as theme (theme.id)}

@@ -10,10 +10,10 @@ for (const theme of [
   }) => {
     await page.goto('/');
     await page.getByRole('treeitem', { name: 'Welcome.md' }).click();
-    await page
-      .getByTestId('document-toolbar')
-      .getByLabel('Theme')
-      .selectOption({ label: theme.name });
+    const themeSelect = page.getByTestId('document-toolbar').getByLabel('Theme');
+    await expect(themeSelect).toHaveCount(1);
+    await expect(themeSelect.locator('option')).toHaveCount(3);
+    await themeSelect.selectOption({ label: theme.name });
 
     const reader = page.getByTestId('reader');
     await expect(reader.locator('h1')).toHaveText('Welcome');
@@ -26,6 +26,9 @@ for (const theme of [
     await expect(page.getByTestId('reading-desk')).toHaveScreenshot(`${theme.id}.png`, {
       animations: 'disabled'
     });
+    await themeSelect.hover();
+    await themeSelect.focus();
+    await expect(themeSelect).toBeFocused();
   });
 
   test(`captures the ${theme.name} warning, no-match, dialog, and overlay state fixture`, async ({
@@ -50,6 +53,11 @@ for (const theme of [
   }) => {
     await page.goto(`/?scenario=slow-refresh&theme=${theme.id}`);
     const refresh = page.getByRole('button', { name: 'Refresh library' });
+    const themeSelect = page.getByRole('combobox', { name: 'Theme' });
+    await themeSelect.evaluate((element) => {
+      (element as HTMLSelectElement).disabled = true;
+    });
+    await expect(themeSelect).toBeDisabled();
     await refresh.hover();
     await refresh.focus();
     await refresh.click();

@@ -3,7 +3,10 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import type { LibraryClient } from './lib/library-client';
 import type { LibrarySnapshot } from './lib/contracts';
-import { presentationFixture } from './lib/presentation/presentation-fixture';
+import {
+  createFixturePresentationApi,
+  presentationFixture
+} from './lib/presentation/presentation-fixture';
 import type { PresentationApi } from './lib/presentation/presentation-store';
 import type { PresentationSnapshot } from './lib/themes/types';
 import App from './App.svelte';
@@ -91,11 +94,43 @@ describe('App', () => {
 
     const chooser = container.querySelector<HTMLSelectElement>('[aria-label="Theme"]');
     if (!chooser) throw new Error('Expected the theme chooser');
+    expect(screen.getAllByRole('combobox', { name: 'Theme' })).toHaveLength(1);
+    expect([...chooser.options].map((option) => option.textContent)).toEqual(
+      presentationFixture.themes.map((theme) => theme.name)
+    );
+    expect(chooser).toBeEnabled();
     await fireEvent.change(chooser, { target: { value: 'mdhere-dark' } });
     await waitFor(() => {
       expect(main.style.colorScheme).toBe('dark');
       expect(reader?.style.colorScheme).toBe('dark');
     });
+  });
+
+  it('disables the native theme selector when the catalog has no alternative', async () => {
+    const client: LibraryClient = {
+      snapshot: () =>
+        Promise.resolve({
+          rootName: 'Library',
+          diagnostics: [],
+          tree: [{ kind: 'document', name: 'Guide.md', path: 'Guide.md' }]
+        }),
+      readDocument: () => Promise.resolve({ path: 'Guide.md', title: 'Guide', content: '# Guide' }),
+      refresh: () => Promise.resolve({ rootName: 'Library', diagnostics: [], tree: [] }),
+      openFolder: () => Promise.resolve(undefined),
+      newWindow: () => Promise.resolve(),
+      openExternalLink: () => Promise.resolve()
+    };
+    const onlyTheme = structuredClone(presentationFixture.selected);
+    render(App, {
+      client,
+      presentationApi: createFixturePresentationApi({
+        ...structuredClone(presentationFixture),
+        themes: [onlyTheme],
+        selected: onlyTheme
+      })
+    });
+
+    expect(await screen.findByRole('combobox', { name: 'Theme' })).toBeDisabled();
   });
 
   it('persists only user disclosure toggles and reapplies later presentation snapshots', async () => {
@@ -217,7 +252,9 @@ describe('App', () => {
     const refresh = await screen.findByRole('button', { name: 'Refresh library' });
     expect(refresh).toHaveClass('toolbar-action');
     expect(refresh).toHaveAttribute('data-state', 'resting');
-    expect(screen.getByRole('combobox', { name: 'Theme' })).toHaveClass('theme-select');
+    const themeSelect = screen.getByRole<HTMLSelectElement>('combobox', { name: 'Theme' });
+    expect(themeSelect).toHaveClass('theme-select');
+    expect(themeSelect).toBeEnabled();
     expect(container.querySelector('.desk-reader > [data-testid="reader"]')).not.toBeNull();
     expect(container.querySelector('[data-testid="reading-frame"]')).toBeNull();
     await fireEvent.click(refresh);
