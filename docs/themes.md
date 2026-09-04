@@ -84,9 +84,9 @@ Unknown fields are ignored. mdhere rejects missing or malformed required fields 
 
 `reader.css` is adopted after mdhere's structural reader CSS. Package CSS owns reader presentation, while mdhere keeps overflow handling, image sizing, table mechanics, focus mechanics, task-list mechanics, and the framed page bounds.
 
-Use these stable hooks: `:host`, `.reader-page`, `.reader-content`, `.front-matter`, `.front-matter-summary`, `.front-matter-fields`, `.front-matter-field`, `.front-matter-key`, `.front-matter-value`, `.front-matter-map`, `.front-matter-list`, `.front-matter-tags`, `.front-matter-tag`, `.front-matter-warning`, `.mdhere-image-unavailable`, `.shiki`, `.task-list-item`, `.contains-task-list`, plus ordinary Markdown element selectors.
+Use these stable hooks: `:host`, `.reader-page`, `.reader-content`, `.front-matter`, `.front-matter-summary`, `.front-matter-fields`, `.front-matter-field`, `.front-matter-key`, `.front-matter-value`, `.front-matter-map`, `.front-matter-list`, `.front-matter-tags`, `.front-matter-tag`, `.front-matter-warning`, `.mdhere-image-unavailable`, `.shiki`, `.task-list-item`, `.contains-task-list`, plus ordinary Markdown element selectors. Define every listed hook in `reader.css`; selectors may be grouped when they share a rule. The starter stylesheet is a complete readable implementation of this contract.
 
-Syntax highlighting reads these CSS variables from the package: `--shiki-foreground`, `--shiki-background`, `--shiki-token-comment`, `--shiki-token-constant`, `--shiki-token-string`, `--shiki-token-string-expression`, `--shiki-token-keyword`, `--shiki-token-parameter`, `--shiki-token-function`, `--shiki-token-punctuation`, `--shiki-token-link`, `--shiki-token-changed`, `--shiki-token-deleted`, and `--shiki-token-inserted`.
+Syntax highlighting reads these CSS variables from the package: `--shiki-foreground`, `--shiki-background`, `--shiki-token-comment`, `--shiki-token-constant`, `--shiki-token-string`, `--shiki-token-string-expression`, `--shiki-token-keyword`, `--shiki-token-parameter`, `--shiki-token-function`, `--shiki-token-punctuation`, `--shiki-token-link`, `--shiki-token-changed`, `--shiki-token-deleted`, and `--shiki-token-inserted`. mdhere emits only `var(--shiki-…)` references, so packages choose the complete syntax palette without a fixed Shiki theme.
 
 ## V1 to v2 migration
 

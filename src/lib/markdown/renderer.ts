@@ -1,14 +1,15 @@
 import MarkdownIt from 'markdown-it';
 import taskLists from 'markdown-it-task-lists';
-import { createHighlighter } from 'shiki';
+import { createCssVariablesTheme, createHighlighter } from 'shiki';
 
 import { extractFrontMatter } from './front-matter';
 import { resolveDocumentLink, resolveImage } from './link-resolver';
 import { sanitizeHtml } from './sanitize';
 import type { RenderedDocument } from './types';
 
+const shikiTheme = createCssVariablesTheme({ name: 'mdhere' });
 const highlighter = createHighlighter({
-  themes: ['github-light', 'github-dark'],
+  themes: [shikiTheme],
   langs: ['text', 'bash', 'css', 'html', 'javascript', 'json', 'markdown', 'rust', 'typescript']
 });
 
@@ -93,11 +94,7 @@ export class MarkdownRenderer {
       const language = token.info.trim().split(/\s+/, 1)[0] || 'text';
       const content = token.content.replace(/\r?\n$/, '');
       try {
-        return syntaxHighlighter.codeToHtml(content, {
-          lang: language,
-          themes: { light: 'github-light', dark: 'github-dark' },
-          defaultColor: false
-        });
+        return syntaxHighlighter.codeToHtml(content, { lang: language, theme: 'mdhere' });
       } catch {
         const originalContent = token.content;
         token.content = content;

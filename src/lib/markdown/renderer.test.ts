@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 
+import { shikiVariables } from '../../../scripts/reader-theme-contract.mjs';
 import { MarkdownRenderer } from './renderer';
 
 describe('MarkdownRenderer', () => {
@@ -38,14 +39,19 @@ describe('MarkdownRenderer', () => {
     expect(rendered.html).toContain('<h1 id="a-heading" tabindex="-1">');
   });
 
-  it('emits light and dark Shiki tokens for language-aware code fences', async () => {
+  it('emits only package-owned CSS-variable Shiki colors for language-aware code fences', async () => {
     const renderer = await MarkdownRenderer.create();
     const rendered = renderer.render('```typescript\nconst answer: number = 42;\n```', 'guide.md');
 
-    expect(rendered.html).toContain('class="shiki');
-    expect(rendered.html).toContain('--shiki-light:');
-    expect(rendered.html).toContain('--shiki-dark:');
-    expect(rendered.html).toContain('--shiki-dark-bg:');
+    expect(rendered.html).toContain('class="shiki mdhere"');
+    const variables = [...rendered.html.matchAll(/var\((--shiki-[\w-]+)\)/g)].map(
+      (match) => match[1]
+    );
+    expect(variables).not.toHaveLength(0);
+    expect(variables.every((variable) => shikiVariables.includes(variable!))).toBe(true);
+    expect(rendered.html).not.toMatch(
+      /--shiki-(?:light|dark)|github-(?:light|dark)|#[0-9a-f]{3,8}\b/i
+    );
     expect(rendered.html.match(/class="line"/g)).toHaveLength(1);
   });
 

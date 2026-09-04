@@ -14,13 +14,20 @@ cat > "$app/Contents/Info.plist" <<'PLIST'
 PLIST
 : > "$app/Contents/MacOS/mdhere"
 chmod +x "$app/Contents/MacOS/mdhere"
+reader_selectors=':host .reader-page .reader-content .front-matter .front-matter-summary .front-matter-fields .front-matter-field .front-matter-key .front-matter-value .front-matter-map .front-matter-list .front-matter-tags .front-matter-tag .front-matter-warning .mdhere-image-unavailable .shiki .task-list-item .contains-task-list'
+shiki_variables='--shiki-foreground --shiki-background --shiki-token-comment --shiki-token-constant --shiki-token-string --shiki-token-string-expression --shiki-token-keyword --shiki-token-parameter --shiki-token-function --shiki-token-punctuation --shiki-token-link --shiki-token-changed --shiki-token-deleted --shiki-token-inserted'
+contract_css=':host {'
+for variable in $shiki_variables; do contract_css="$contract_css$variable: #000000;"; done
+contract_css="$contract_css }"
+for selector in $reader_selectors; do contract_css="$contract_css\n$selector {}"; done
+
 for theme in mdhere-light mdhere-dark field-notes; do
   package="$app/Contents/Resources/themes/$theme"
   mkdir -p "$package"
   cat > "$package/theme.json" <<JSON
 {"schemaVersion":2,"id":"$theme","name":"$theme","appearance":"light","shell":{"background":"#ffffff","panel":"#ffffff","surface":"#ffffff","raisedSurface":"#ffffff","foreground":"#172033","foregroundStrong":"#101827","muted":"#5a6475","faint":"#7b8494","border":"#d9dfea","borderStrong":"#b8c3d6","accent":"#195bbd","accentForeground":"#ffffff","accentSoft":"#e5efff","hover":"#f0f4fa","selected":"#dbeafe","focus":"#195bbd","danger":"#a63838","warning":"#966614","overlay":"#17203366"}}
 JSON
-  printf ':host { color: #172033; }\n' > "$package/reader.css"
+  printf '%b\n' "$contract_css" > "$package/reader.css"
 done
 pnpm verify:bundle -- "$app"
 
@@ -29,7 +36,7 @@ if pnpm verify:bundle -- "$app"; then
   echo 'verify:bundle accepted empty reader.css' >&2
   exit 1
 fi
-printf ':host { color: #172033; }\n' > "$app/Contents/Resources/themes/field-notes/reader.css"
+printf '%b\n' "$contract_css" > "$app/Contents/Resources/themes/field-notes/reader.css"
 printf '{"schemaVersion":2,"id":"field-notes","name":"Field Notes","appearance":"light","shell":{}}\n' > "$app/Contents/Resources/themes/field-notes/theme.json"
 if pnpm verify:bundle -- "$app"; then
   echo 'verify:bundle accepted an incomplete manifest' >&2

@@ -49,7 +49,7 @@
       path: 'guides/Welcome.md',
       title: 'Welcome',
       content:
-        "---\ntitle: Welcome\ntags: [reader, safe, local, ignored]\nsummary: A rendered fixture\n---\n# Welcome\n\n~~Rendered safely~~. [Read next](Second.md#second-section) [Web](https://example.com) ![remote](https://example.com/image.png)\n\n```typescript\nconst theme = 'dark';\n```\n\n<scr" +
+        "---\ntitle: Welcome\ntags: [reader, safe, local, ignored]\nsummary: A rendered fixture\ncontext:\n  author: mdhere\n---\n# Welcome\n\n~~Rendered safely~~. [Read next](Second.md#second-section) [Web](https://example.com) ![remote](https://example.com/image.png)\n\n## Reader coverage\n\n- [x] Themed task\n- [ ] Open task\n\n| Surface | Result |\n| --- | --- |\n| Table | Themed |\n\n```typescript\nconst theme = 'dark';\n```\n\n<scr" +
         'ipt>alert(1)</scr' +
         'ipt>'
     },
@@ -66,6 +66,10 @@
 
   function testScenario(): string | null {
     return new URLSearchParams(window.location.search).get('scenario');
+  }
+
+  function testThemeId(): string | null {
+    return new URLSearchParams(window.location.search).get('theme');
   }
 
   function testLibraryClient(): LibraryClient {
@@ -114,11 +118,11 @@
   }
 
   function testPresentationApi(): PresentationApi {
-    if (testScenario() !== 'warning') return createFixturePresentationApi();
-    return createFixturePresentationApi({
-      ...structuredClone(presentationFixture),
-      diagnostics: ['A local theme needs attention.']
-    });
+    const fixture = structuredClone(presentationFixture);
+    const selected = fixture.themes.find((theme) => theme.id === testThemeId());
+    if (selected) fixture.selected = selected;
+    if (testScenario() === 'warning') fixture.diagnostics = ['A local theme needs attention.'];
+    return createFixturePresentationApi(fixture);
   }
 
   let {

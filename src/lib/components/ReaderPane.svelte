@@ -90,13 +90,16 @@
     }
 
     const rendered = renderer.render(document.content, document.path);
+    const page = window.document.createElement('div');
+    page.className = 'reader-page';
     const article = window.document.createElement('article');
     article.className = 'reader-content';
     // Sanitized Markdown is the sole HTML string admitted to the reader DOM.
     article.innerHTML = rendered.html;
-    content.replaceChildren(
+    page.replaceChildren(
       ...(rendered.frontMatter ? [frontMatterElement(rendered.frontMatter), article] : [article])
     );
+    content.replaceChildren(page);
 
     host.scrollTop = scrollPositions.get(document.path) ?? 0;
     if (fragment) {
@@ -258,6 +261,7 @@
       return;
     }
     const style = window.document.createElement('style');
+    style.dataset.mdhereBase = 'true';
     style.textContent = baseReaderCss;
     root.append(style);
     themeStyle = window.document.createElement('style');

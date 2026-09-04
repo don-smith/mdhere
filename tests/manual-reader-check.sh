@@ -12,6 +12,12 @@ trap cleanup EXIT
 mkdir -p "$fixture_root/images"
 
 cat >"$fixture_root/Readme.md" <<'MARKDOWN'
+---
+title: Reader check
+tags: [manual, reader, safe, ignored]
+context:
+  mode: visual
+---
 # Reader check
 
 ~~Strikethrough~~ and “typographic quotes”.
@@ -43,6 +49,26 @@ cat >"$fixture_root/Second.md" <<'MARKDOWN'
 Local-link destination.
 MARKDOWN
 
+cat >"$fixture_root/Malformed.md" <<'MARKDOWN'
+---
+title: [unterminated
+---
+# Malformed front matter
+MARKDOWN
+
+{
+  printf '%s\n' '---' 'notes: '
+  head -c $((64 * 1024 + 1)) /dev/zero | tr '\0' x
+  printf '%s\n' '' '---' '# Over-limit front matter'
+} >"$fixture_root/Over-limit.md"
+
+cat >"$fixture_root/Unclosed.md" <<'MARKDOWN'
+---
+title: This remains Markdown
+
+# Unclosed front matter
+MARKDOWN
+
 cat >"$fixture_root/images/cover.ppm" <<'PPM'
 P3
 8 8
@@ -62,7 +88,9 @@ rm "$fixture_root/images/cover.ppm"
 cat <<EOF
 Launching mdhere with a temporary manual-check library.
 
-Check that tables, tasks, strikethrough, typography, code, and the local image render.
+Check that valid metadata starts collapsed and renders tags and nested values. Confirm Malformed.md
+shows an escaped warning, Over-limit.md reports truncated source, and Unclosed.md remains ordinary Markdown.
+Also check that tables, tasks, strikethrough, typography, code, and the local image render.
 Confirm the missing image and traversal link fail safely; the HTTPS link opens externally;
 and the local link opens Second.md with its heading focused. No alert should appear.
 

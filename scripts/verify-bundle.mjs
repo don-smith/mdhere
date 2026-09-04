@@ -2,6 +2,8 @@
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 
+import { missingReaderContract } from './reader-theme-contract.mjs';
+
 const root = resolve(import.meta.dirname, '..');
 const bundledThemes = ['mdhere-light', 'mdhere-dark', 'field-notes'];
 const shellTokens = [
@@ -87,8 +89,11 @@ function verifyThemePackage(directory, expectedId) {
       throw new Error(`${manifestPath} has an invalid shell.${token}`);
     }
   }
-  if (!readFileSync(cssPath, 'utf8').trim()) {
-    throw new Error(`${cssPath} must not be empty`);
+  const css = readFileSync(cssPath, 'utf8');
+  if (!css.trim()) throw new Error(`${cssPath} must not be empty`);
+  const missing = missingReaderContract(css);
+  if (missing.length > 0) {
+    throw new Error(`${cssPath} is missing reader contract entries: ${missing.join(', ')}`);
   }
 }
 

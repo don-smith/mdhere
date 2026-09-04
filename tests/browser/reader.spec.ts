@@ -42,6 +42,42 @@ test('renders sanitized GFM inside the reader Shadow DOM', async ({ page }) => {
   ).toBe(true);
 });
 
+test('installs structural CSS before the package stylesheet inside the reader Shadow DOM', async ({
+  page
+}) => {
+  await page.goto('/');
+  await page.getByRole('treeitem', { name: 'Welcome.md' }).click();
+
+  const reader = page.getByTestId('reader');
+  await expect
+    .poll(() =>
+      reader.evaluate((element) => {
+        const root = element.shadowRoot;
+        if (!root) return false;
+        const styles =
+          root.adoptedStyleSheets.length >= 2
+            ? [...root.adoptedStyleSheets].map((sheet) =>
+                [...sheet.cssRules].map((rule) => rule.cssText).join('\n')
+              )
+            : [...root.querySelectorAll('style')].map((style) => style.textContent ?? '');
+        return styles.length >= 2 && styles[0]?.includes('.reader-page');
+      })
+    )
+    .toBe(true);
+
+  const styles = await reader.evaluate((element) => {
+    const root = element.shadowRoot!;
+    return root.adoptedStyleSheets.length >= 2
+      ? [...root.adoptedStyleSheets].map((sheet) =>
+          [...sheet.cssRules].map((rule) => rule.cssText).join('\n')
+        )
+      : [...root.querySelectorAll('style')].map((style) => style.textContent ?? '');
+  });
+  expect(styles[0]).toContain('.reader-page');
+  expect(styles[1]).toContain('--shiki-background');
+  expect(styles[1]).not.toContain('--shiki-light');
+});
+
 test('activates the native disclosure with Enter and Space', async ({ page }) => {
   await page.goto('/');
   await page.getByRole('treeitem', { name: 'Welcome.md' }).click();
