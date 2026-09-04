@@ -65,7 +65,7 @@
       ...demoDocuments['guides/Welcome.md'],
       content:
         demoDocuments['guides/Welcome.md'].content +
-        '\n\n```mermaid\nflowchart LR\n  A --> B\n```\n\n```mmd\nflowchart LR\n  C --> D\n```\n\n```mermaid\n%%{init: {"theme": "dark", "themeVariables": {"lineColor": "#ff0000"}} }%%\nflowchart LR\n  E --> F\n```\n\n```mermaid\nflowchart LR\n  G --> H\n  classDef unsafe fill:#ff0000\n```'
+        '\n\n```mermaid\nflowchart LR\n  A --> B\n```\n\n```mmd\nflowchart LR\n  C --> D\n```\n\n```mermaid\n%%{init: {"theme": "dark", "themeVariables": {"lineColor": "#ff0000"}} }%%\nflowchart LR\n  E --> F\n```\n\n```mermaid\nflowchart LR; G --> H; style G fill:#ff0000\n```'
     }
   };
 

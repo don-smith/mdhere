@@ -55,9 +55,7 @@ flowchart LR
 ```
 
 ```mermaid
-flowchart LR
-  Rejected --> Style
-  classDef unsafe fill:#ff0000
+flowchart LR; Rejected --> Style; style Rejected fill:#ff0000
 ```
 
 ![Local image](images/cover.png)
@@ -122,7 +120,7 @@ Confirm the invalid Mermaid source remains visible with a clear reason. In Readm
 to `A[Changed source]`, then use Refresh library and confirm the updated diagram appears. Repeat the diagram
 legibility check in Paper, Midnight, and Field Notes without reopening the document or library. In Midnight, check
 that the diagram with the `%%{init: ...}%%` directive keeps readable app-controlled connectors instead of red ones.
-Confirm the diagram with `classDef` retains its source with a clear style-override reason. Narrow the reader and
+Confirm the diagram with the semicolon-separated `style` command retains its source with a clear style-override reason. Narrow the reader and
 confirm the inline code examples stay whole while prose and fenced code retain their current wrapping and overflow behavior. Confirm the missing image and traversal link fail safely; the HTTPS link opens externally;
 and the local link opens Second.md with its heading focused. No alert should appear.
 

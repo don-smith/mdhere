@@ -188,14 +188,19 @@ describe('MermaidRenderer', () => {
     );
   });
 
-  it('keeps source when a document tries to define Mermaid styles', async () => {
+  it.each([
+    'classDef danger fill:#ff0000',
+    'style A fill:#ff0000',
+    'linkStyle 0 stroke:#ff0000',
+    'cssClass A danger'
+  ])('keeps source when a semicolon introduces Mermaid %s', async (command) => {
     const api = mermaidApi();
     const renderer = new MermaidRenderer(api);
-    const article = articleWith('flowchart LR\n  A --> B\n  classDef danger fill:#ff0000');
+    const article = articleWith(`flowchart LR; A --> B; ${command}`);
 
     await renderer.render(article, paper);
 
-    expect(article.querySelector('pre')).toHaveTextContent('classDef danger fill:#ff0000');
+    expect(article.querySelector('pre')).toHaveTextContent(command);
     expect(article.querySelector('[role="alert"]')).toHaveTextContent(
       'Document-controlled Mermaid styles are not supported.'
     );

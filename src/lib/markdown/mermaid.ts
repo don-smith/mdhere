@@ -182,7 +182,7 @@ export class MermaidRenderer {
 }
 
 function hasDocumentStyleOverride(source: string): boolean {
-  return /^\s*(?:classDef|style|linkStyle|cssClass)\b/imu.test(source);
+  return /(?:^|;)\s*(?:classDef|style|linkStyle|cssClass)\b/imu.test(source);
 }
 
 function appendError(article: HTMLElement, placeholder: HTMLElement, text: string): void {
