@@ -95,6 +95,43 @@ test('keeps a 1440px reader bounded while its tables use available width or scro
   expect(metrics.unbreakableScrollWidth).toBeGreaterThan(metrics.unbreakableClientWidth);
 });
 
+test('gives front-matter and plain documents the same roomier reader-page top offset', async ({
+  page
+}) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto('/');
+  await page.getByRole('treeitem', { name: 'Welcome.md' }).click();
+
+  const reader = page.getByTestId('reader');
+  await expect(reader.locator('details.front-matter')).toBeVisible();
+  const frontMatterPadding = await reader.evaluate((element) => {
+    const readerPage = element.shadowRoot?.querySelector<HTMLElement>('.reader-page');
+    if (!readerPage) throw new Error('Expected reader page');
+    return parseFloat(getComputedStyle(readerPage).paddingTop);
+  });
+
+  await reader.locator('a[data-mdhere-path="guides/Second.md"]').click();
+  await expect(reader.locator('h1')).toHaveText('Second section');
+  const plainMetrics = await reader.evaluate((element) => {
+    const readerPage = element.shadowRoot?.querySelector<HTMLElement>('.reader-page');
+    const heading = element.shadowRoot?.querySelector<HTMLElement>('h1');
+    if (!readerPage || !heading) throw new Error('Expected plain reader page and heading');
+    const pageRect = readerPage.getBoundingClientRect();
+    const headingRect = heading.getBoundingClientRect();
+    return {
+      paddingTop: parseFloat(getComputedStyle(readerPage).paddingTop),
+      headingOffset: headingRect.top - pageRect.top
+    };
+  });
+
+  expect(frontMatterPadding).toBeGreaterThanOrEqual(57);
+  expect(frontMatterPadding).toBeLessThanOrEqual(59);
+  expect(plainMetrics.paddingTop).toBeGreaterThanOrEqual(57);
+  expect(plainMetrics.paddingTop).toBeLessThanOrEqual(59);
+  expect(plainMetrics.headingOffset).toBeGreaterThanOrEqual(57);
+  expect(plainMetrics.headingOffset).toBeLessThanOrEqual(59);
+});
+
 test('installs structural CSS before the package stylesheet inside the reader Shadow DOM', async ({
   page
 }) => {

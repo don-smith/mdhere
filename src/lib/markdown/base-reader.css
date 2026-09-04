@@ -10,6 +10,7 @@
   min-block-size: 100%;
   margin-inline: auto;
   padding: clamp(0.75rem, 2vw, 2rem);
+  padding-block-start: clamp(1.5rem, 4vw, 4rem);
 }
 
 .reader-content {

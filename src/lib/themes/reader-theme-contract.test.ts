@@ -25,6 +25,9 @@ describe('reader theme contract', () => {
     expect(css).not.toMatch(/(?:^|\n)\s*(?:color|background|border(?:-color)?|font)\s*:/m);
     expect(css).toMatch(/\.reader-page\s*\{[\s\S]*?max-inline-size:\s*96ch/);
     expect(css).toMatch(/\.reader-page\s*\{[\s\S]*?padding:\s*clamp\(0\.75rem, 2vw, 2rem\)/);
+    expect(css).toMatch(
+      /\.reader-page\s*\{[\s\S]*?padding-block-start:\s*clamp\(1\.5rem, 4vw, 4rem\)/
+    );
     expect(css).toContain(':focus-visible');
     expect(css).toContain('.contains-task-list');
     expect(css).toMatch(/table th,[\s\S]*?table td\s*\{[\s\S]*?overflow-wrap:\s*normal/);
