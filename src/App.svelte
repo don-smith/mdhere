@@ -17,6 +17,7 @@
   import { KeyboardController } from './lib/keyboard/controller';
   import type { Pane } from './lib/keyboard/types';
   import { InMemoryLibraryClient } from './lib/in-memory-library-client';
+  import { filterTree } from './lib/tree/filter-tree';
   import type { LibraryClient } from './lib/library-client';
   import { TauriLibraryClient } from './lib/tauri-library-client';
 
@@ -82,6 +83,10 @@
   const keyboard = new KeyboardController();
   let documentTree = $state<KeyboardTarget>();
   let readerPane = $state<KeyboardTarget>();
+  let filterQuery = $state('');
+  let filterInput = $state<HTMLInputElement>();
+  let filterActive = $derived(filterQuery.trim().length > 0);
+  let filteredTree = $derived(snapshot ? filterTree(snapshot.tree, filterQuery) : []);
 
   onMount(() => {
     presentationStore = new PresentationStore(presentationApi, (value) => (presentation = value));
@@ -169,8 +174,23 @@
       void client.newWindow().catch((reason) => (error = messageFor(reason)));
       return;
     }
-    if (event.altKey || event.ctrlKey || event.metaKey) return;
+    if (event.metaKey && !event.altKey && !event.ctrlKey && event.key.toLowerCase() === 'k') {
+      event.preventDefault();
+      filterInput?.focus();
+      filterInput?.select();
+      return;
+    }
     const target = event.target as HTMLElement | null;
+    if (target === filterInput && event.key === 'Escape') {
+      event.preventDefault();
+      if (filterQuery) filterQuery = '';
+      else {
+        activePane = 'tree';
+        documentTree?.focus();
+      }
+      return;
+    }
+    if (event.altKey || event.ctrlKey || event.metaKey) return;
     const treeTarget = target?.closest('[role="treeitem"], [role="tree"]');
     const eventPath = event.composedPath();
     if (eventPath.some((entry) => entry instanceof HTMLElement && entry.tagName === 'SUMMARY'))
@@ -291,12 +311,21 @@
   {:else if snapshot}
     <div class="workspace">
       <nav aria-label="Documents">
+        <input
+          bind:this={filterInput}
+          bind:value={filterQuery}
+          type="search"
+          aria-label="Filter documents"
+          placeholder="Filter documents"
+        />
         <DocumentTree
           bind:this={documentTree}
-          tree={snapshot.tree}
+          tree={filteredTree}
+          {filterActive}
           selectedPath={selectedDocument?.path}
           onSelect={selectDocument}
         />
+        {#if !filteredTree.length}<p role="status">No matching documents.</p>{/if}
       </nav>
       <article aria-label="Reader">
         <ReaderPane

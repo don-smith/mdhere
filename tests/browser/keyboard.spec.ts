@@ -26,6 +26,38 @@ test('supports keyboard-only tree navigation, pane switching, and shortcut help'
   await expect(document).toBeFocused();
 });
 
+test('filters the local tree with Command-K and restores tree focus on Escape', async ({
+  page
+}) => {
+  await page.goto('/');
+
+  const folder = page.getByRole('treeitem', { name: 'guides' });
+  await folder.click();
+  await expect(folder).toHaveAttribute('aria-expanded', 'false');
+
+  await page.keyboard.press('Meta+k');
+  const filter = page.getByRole('searchbox', { name: 'Filter documents' });
+  await expect(filter).toBeFocused();
+  await filter.fill('welcome');
+  await expect(folder).toHaveAttribute('aria-expanded', 'true');
+
+  const document = page.getByRole('treeitem', { name: 'Welcome.md' });
+  await folder.focus();
+  await page.keyboard.press('ArrowDown');
+  await expect(document).toBeFocused();
+  await page.keyboard.press('Enter');
+  await expect(page.getByTestId('reader').locator('h1')).toHaveText('Welcome');
+
+  await filter.fill('missing');
+  await expect(page.getByRole('status')).toHaveText('No matching documents.');
+  await expect(filter).toBeFocused();
+  await page.keyboard.press('Escape');
+  await expect(filter).toHaveValue('');
+  await expect(folder).toHaveAttribute('aria-expanded', 'false');
+  await page.keyboard.press('Escape');
+  await expect(folder).toBeFocused();
+});
+
 test('uses Vim tree commands and centers the keyboard-help overlay', async ({ page }) => {
   await page.goto('/');
 

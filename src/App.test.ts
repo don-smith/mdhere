@@ -155,6 +155,40 @@ describe('App', () => {
     });
   });
 
+  it('filters the in-memory snapshot without calling the library client', async () => {
+    const snapshot = vi.fn().mockResolvedValue({
+      rootName: 'Library',
+      diagnostics: [],
+      tree: [
+        {
+          kind: 'folder' as const,
+          name: 'Guides',
+          path: 'guides',
+          children: [{ kind: 'document' as const, name: 'Welcome.md', path: 'guides/Welcome.md' }]
+        }
+      ]
+    });
+    const readDocument = vi.fn();
+    const refresh = vi.fn();
+    const client: LibraryClient = {
+      snapshot,
+      readDocument,
+      refresh,
+      openFolder: vi.fn(),
+      newWindow: vi.fn(),
+      openExternalLink: vi.fn()
+    };
+    render(App, { client });
+
+    const filter = await screen.findByRole('searchbox', { name: 'Filter documents' });
+    await fireEvent.change(filter, { target: { value: 'welcome' } });
+
+    expect(screen.getByRole('treeitem', { name: 'Welcome.md' })).toBeInTheDocument();
+    expect(snapshot).toHaveBeenCalledOnce();
+    expect(readDocument).not.toHaveBeenCalled();
+    expect(refresh).not.toHaveBeenCalled();
+  });
+
   it('opens a native window with Command-N', async () => {
     const newWindow = vi.fn().mockResolvedValue(undefined);
     const client: LibraryClient = {

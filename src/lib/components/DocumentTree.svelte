@@ -8,18 +8,24 @@
   interface Props {
     tree: TreeNode[];
     selectedPath?: string;
+    filterActive?: boolean;
     onSelect: Function;
   }
 
-  let { tree, selectedPath, onSelect }: Props = $props();
+  let { tree, selectedPath, filterActive = false, onSelect }: Props = $props();
   // The Set reference is deliberately replaced to make expand/collapse a single state transition.
   // eslint-disable-next-line svelte/no-unnecessary-state-wrap
   let expanded = $state<Set<string>>(new SvelteSet());
   let cursorPath = $state<string | undefined>();
   let observedSelectedPath = $state<string | undefined>();
+  let observedFilterActive = $state<boolean | undefined>();
+  let unfilteredCursorPath = $state<string | undefined>();
   let treeElement: HTMLDivElement;
   let initialized = false;
-  let items = $derived(visibleItems(tree, expanded));
+  let effectiveExpanded = $derived(
+    filterActive ? new SvelteSet([...expanded, ...initialExpandedPaths(tree)]) : expanded
+  );
+  let items = $derived(visibleItems(tree, effectiveExpanded));
 
   $effect(() => {
     if (!initialized) {
@@ -35,6 +41,20 @@
     observedSelectedPath = selectedPath;
     if (selectedPath && items.some((item) => item.node.path === selectedPath)) {
       cursorPath = selectedPath;
+    }
+  });
+
+  $effect(() => {
+    if (filterActive === observedFilterActive) return;
+    observedFilterActive = filterActive;
+    if (filterActive) {
+      unfilteredCursorPath = cursorPath;
+      if (!items.some((item) => item.node.path === cursorPath)) cursorPath = items[0]?.node.path;
+    } else if (
+      unfilteredCursorPath &&
+      items.some((item) => item.node.path === unfilteredCursorPath)
+    ) {
+      cursorPath = unfilteredCursorPath;
     }
   });
 
@@ -161,7 +181,9 @@
       class:folder={item.node.kind === 'folder'}
       aria-level={item.level}
       aria-selected={selectedPath === item.node.path}
-      aria-expanded={item.node.kind === 'folder' ? expanded.has(item.node.path) : undefined}
+      aria-expanded={item.node.kind === 'folder'
+        ? effectiveExpanded.has(item.node.path)
+        : undefined}
       tabindex={cursorPath === item.node.path ? 0 : -1}
       data-tree-path={item.node.path}
       style:padding-left={`${0.45 + (item.level - 1) * 1.15}rem`}
