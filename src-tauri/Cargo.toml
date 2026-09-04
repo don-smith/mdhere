@@ -30,5 +30,8 @@ tauri-plugin-single-instance = "=2.4.4"
 thiserror = "=2.0.20"
 url = "=2.5.8"
 
+[target.'cfg(target_os = "macos")'.dependencies]
+objc2-app-kit = { version = "=0.3.2", features = ["NSColor", "NSWindow", "objc2-core-foundation"] }
+
 [dev-dependencies]
 tempfile = "=3.27.0"

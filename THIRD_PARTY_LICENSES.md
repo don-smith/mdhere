@@ -185,12 +185,18 @@ This inventory contains production npm packages and normal (non-dev) Cargo depen
 | Cargo     | num-conv                      | 0.2.2            | MIT OR Apache-2.0                   |
 | Cargo     | num-traits                    | 0.2.19           | MIT OR Apache-2.0                   |
 | Cargo     | objc2-app-kit                 | 0.3.2            | Zlib OR Apache-2.0 OR MIT           |
+| Cargo     | objc2-cloud-kit               | 0.3.2            | Zlib OR Apache-2.0 OR MIT           |
+| Cargo     | objc2-core-data               | 0.3.2            | Zlib OR Apache-2.0 OR MIT           |
 | Cargo     | objc2-core-foundation         | 0.3.2            | Zlib OR Apache-2.0 OR MIT           |
 | Cargo     | objc2-core-graphics           | 0.3.2            | Zlib OR Apache-2.0 OR MIT           |
+| Cargo     | objc2-core-image              | 0.3.2            | Zlib OR Apache-2.0 OR MIT           |
+| Cargo     | objc2-core-text               | 0.3.2            | Zlib OR Apache-2.0 OR MIT           |
+| Cargo     | objc2-core-video              | 0.3.2            | Zlib OR Apache-2.0 OR MIT           |
 | Cargo     | objc2-encode                  | 4.1.0            | MIT                                 |
 | Cargo     | objc2-exception-helper        | 0.1.1            | Zlib OR Apache-2.0 OR MIT           |
 | Cargo     | objc2-foundation              | 0.3.2            | MIT                                 |
 | Cargo     | objc2-io-surface              | 0.3.2            | Zlib OR Apache-2.0 OR MIT           |
+| Cargo     | objc2-quartz-core             | 0.3.2            | Zlib OR Apache-2.0 OR MIT           |
 | Cargo     | objc2-web-kit                 | 0.3.2            | Zlib OR Apache-2.0 OR MIT           |
 | Cargo     | objc2                         | 0.6.4            | MIT                                 |
 | Cargo     | once_cell                     | 1.21.4           | MIT OR Apache-2.0                   |

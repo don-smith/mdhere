@@ -29,10 +29,13 @@ fn production_windows_are_created_by_the_coordinator_not_static_config() {
     assert!(app_source.contains(".pick_folder("));
     assert!(app_source.contains(".visible(true)"));
     assert!(app_source.contains("#[cfg(target_os = \"macos\")]"));
-    assert!(app_source.contains(".transparent(true)"));
     assert!(app_source.contains("TitleBarStyle::Transparent"));
-    assert!(app_source.contains("Effect::HeaderView"));
-    assert!(app_source.contains("EffectState::Active"));
+    assert!(app_source.contains("NSColor::windowBackgroundColor"));
+    assert!(app_source.contains("setBackgroundColor"));
+    assert!(!app_source.contains(".transparent(true)"));
+    assert!(!app_source.contains(".effects("));
+    let manifest = include_str!("../Cargo.toml");
+    assert!(manifest.contains("objc2-app-kit"));
     assert_eq!(
         app_source.matches("request_folder(").count(),
         2,

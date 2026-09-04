@@ -15,13 +15,12 @@ use assets::AssetProtocol;
 use external_links::validate_external_url;
 use launch::LaunchRequest;
 use library::{Document, LibraryError, LibraryRegistry, LibrarySnapshot};
-use presentation::PresentationManager;
-use tauri::{AppHandle, Emitter, Manager, WebviewUrl, WebviewWindowBuilder, http::Response};
 #[cfg(target_os = "macos")]
-use tauri::{
-    TitleBarStyle,
-    window::{Effect, EffectState, EffectsBuilder},
-};
+use objc2_app_kit::{NSColor, NSWindow};
+use presentation::PresentationManager;
+#[cfg(target_os = "macos")]
+use tauri::TitleBarStyle;
+use tauri::{AppHandle, Emitter, Manager, WebviewUrl, WebviewWindowBuilder, http::Response};
 use tauri_plugin_dialog::DialogExt;
 
 #[tauri::command]
@@ -185,19 +184,17 @@ fn create_window(app: &AppHandle, root: Option<PathBuf>) -> Result<(), String> {
         .min_inner_size(800.0, 500.0)
         .visible(true);
     #[cfg(target_os = "macos")]
-    let window = window
-        .transparent(true)
-        .title_bar_style(TitleBarStyle::Transparent)
-        .effects(
-            EffectsBuilder::new()
-                .effect(Effect::HeaderView)
-                .state(EffectState::Active)
-                .build(),
-        );
-    let _window = window.build().map_err(|error| {
+    let window = window.title_bar_style(TitleBarStyle::Transparent);
+    let window = window.build().map_err(|error| {
         app.state::<LibraryRegistry>().unregister(&label);
         error.to_string()
     })?;
+    #[cfg(target_os = "macos")]
+    {
+        let native_window = window.ns_window().map_err(|error| error.to_string())? as *mut NSWindow;
+        let native_window = unsafe { &*native_window };
+        native_window.setBackgroundColor(Some(&NSColor::windowBackgroundColor()));
+    }
     Ok(())
 }
 
