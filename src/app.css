@@ -10,6 +10,11 @@ body {
   margin: 0;
 }
 
+/* Mermaid appends this element to body; fixed positioning keeps it outside document overflow. */
+.mermaidTooltip {
+  position: fixed !important;
+}
+
 button,
 input,
 select {

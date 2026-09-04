@@ -25,6 +25,38 @@ test('renders the Reading desk shell with real library hierarchy and document id
   await expect(page.getByTestId('status-strip')).toContainText('UTF-8');
 });
 
+test('keeps Mermaid overflow confined to the reader pane', async ({ page }) => {
+  await page.setViewportSize({ width: 900, height: 500 });
+  await page.goto('/?scenario=mermaid');
+  await page.getByRole('treeitem', { name: 'Welcome.md' }).click();
+
+  const reader = page.getByTestId('reader');
+  await expect(reader.locator('.mdhere-mermaid-diagram svg')).toHaveCount(3);
+  const metrics = await page.evaluate(() => {
+    const scrollingElement = document.scrollingElement;
+    const navigation = document.querySelector<HTMLElement>('.library-navigation');
+    const reader = document.querySelector<HTMLElement>('.reader-pane');
+    if (!scrollingElement || !navigation || !reader) throw new Error('Expected app scroll panes');
+    return {
+      windowScrollsHorizontally: scrollingElement.scrollWidth > scrollingElement.clientWidth,
+      windowScrollsVertically: scrollingElement.scrollHeight > scrollingElement.clientHeight,
+      navigationOverflowY: getComputedStyle(navigation).overflowY,
+      readerOverflowY: getComputedStyle(reader).overflowY,
+      readerScrollsVertically: reader.scrollHeight > reader.clientHeight,
+      mermaidTooltipPosition: getComputedStyle(
+        document.querySelector<HTMLElement>('.mermaidTooltip')!
+      ).position
+    };
+  });
+
+  expect(metrics.windowScrollsHorizontally).toBe(false);
+  expect(metrics.windowScrollsVertically).toBe(false);
+  expect(metrics.navigationOverflowY).toBe('auto');
+  expect(metrics.readerOverflowY).toBe('auto');
+  expect(metrics.readerScrollsVertically).toBe(true);
+  expect(metrics.mermaidTooltipPosition).toBe('fixed');
+});
+
 test('keeps a thin, edge-aligned scrollbar outside long library content', async ({ page }) => {
   await page.goto('/?scenario=long-library');
 
