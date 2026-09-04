@@ -49,6 +49,27 @@ test('keeps a thin, edge-aligned scrollbar outside long library content', async 
   expect(metrics.rightOffset).toBeLessThanOrEqual(1);
 });
 
+test('collapses the sidebar while retaining its expanded width and keyboard resize control', async ({
+  page
+}) => {
+  await page.goto('/');
+
+  const sidebar = page.locator('.desk-sidebar');
+  const separator = page.getByRole('separator', { name: 'Sidebar width' });
+  await expect(separator).toHaveAttribute('aria-valuenow', '304');
+  await separator.focus();
+  await page.keyboard.press('ArrowRight');
+  await expect(separator).toHaveAttribute('aria-valuenow', '320');
+
+  await page.getByRole('button', { name: 'Collapse sidebar' }).click();
+  await expect(sidebar).toHaveAttribute('data-state', 'collapsed');
+  await expect(page.getByRole('button', { name: 'Open Folder' })).toBeVisible();
+
+  await page.getByRole('button', { name: 'Expand sidebar' }).click();
+  await expect(sidebar).toHaveAttribute('data-state', 'expanded');
+  await expect(separator).toHaveAttribute('aria-valuenow', '320');
+});
+
 test('renders named loading, empty, error, warning, overlay, and dialog states', async ({
   page
 }) => {

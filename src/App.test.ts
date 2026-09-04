@@ -310,6 +310,43 @@ describe('App', () => {
     await waitFor(() => expect(screen.getByTestId('document-toolbar')).toHaveTextContent('Other'));
   });
 
+  it('collapses the sidebar without losing its expanded width and exposes an operable resize separator', async () => {
+    const openFolder = vi.fn().mockResolvedValue(undefined);
+    const client: LibraryClient = {
+      snapshot: () =>
+        Promise.resolve({
+          rootName: 'Library',
+          diagnostics: [],
+          tree: [{ kind: 'document', name: 'Guide.md', path: 'Guide.md' }]
+        }),
+      readDocument: () => Promise.resolve({ path: 'Guide.md', title: 'Guide', content: '# Guide' }),
+      refresh: () => Promise.reject(new Error('not used')),
+      openFolder,
+      newWindow: () => Promise.resolve(),
+      openExternalLink: () => Promise.resolve()
+    };
+    const presentationApi = createFixturePresentationApi();
+    const setSidebarWidth = vi.spyOn(presentationApi, 'setSidebarWidth');
+    const { container } = render(App, { client, presentationApi });
+
+    const toggle = await screen.findByRole('button', { name: 'Collapse sidebar' });
+    const separator = screen.getByRole('separator', { name: 'Sidebar width' });
+    expect(separator).toHaveAttribute('aria-valuenow', '304');
+
+    await fireEvent.click(toggle);
+    expect(container.querySelector('.desk-sidebar')).toHaveAttribute('data-state', 'collapsed');
+    expect(screen.getByRole('button', { name: 'Open Folder' })).toBeInTheDocument();
+    await fireEvent.click(screen.getByRole('button', { name: 'Open Folder' }));
+    expect(openFolder).toHaveBeenCalledOnce();
+
+    await fireEvent.click(screen.getByRole('button', { name: 'Expand sidebar' }));
+    expect(container.querySelector('.desk-sidebar')).toHaveAttribute('data-state', 'expanded');
+    expect(separator).toHaveAttribute('aria-valuenow', '304');
+    await fireEvent.keyDown(separator, { key: 'ArrowRight' });
+    expect(setSidebarWidth).toHaveBeenCalledWith(320);
+    await waitFor(() => expect(separator).toHaveAttribute('aria-valuenow', '320'));
+  });
+
   it('opens a native window with Command-N', async () => {
     const newWindow = vi.fn().mockResolvedValue(undefined);
     const client: LibraryClient = {

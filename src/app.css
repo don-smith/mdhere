@@ -30,7 +30,7 @@ select {
   display: grid;
   min-height: 0;
   flex: 1;
-  grid-template-columns: minmax(15.5rem, 19rem) minmax(0, 1fr);
+  grid-template-columns: var(--sidebar-width) 0.5rem minmax(0, 1fr);
 }
 
 .desk-sidebar {
@@ -39,7 +39,6 @@ select {
   min-height: 0;
   flex-direction: column;
   padding: 1.1rem 0.9rem 0.85rem;
-  border-right: 1px solid var(--shell-border);
   background: var(--shell-panel);
 }
 
@@ -49,6 +48,65 @@ select {
   gap: 0.7rem;
   margin-bottom: 1rem;
   padding: 0 0.35rem;
+}
+
+.sidebar-toggle {
+  display: grid;
+  width: 2rem;
+  height: 2rem;
+  margin-left: auto;
+  place-items: center;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: 0.38rem;
+  background: transparent;
+  color: var(--shell-muted);
+  cursor: pointer;
+}
+
+.sidebar-toggle:hover {
+  border-color: var(--shell-border);
+  background: var(--shell-hover);
+}
+
+.desk-sidebar[data-state='collapsed'] {
+  padding-right: 0.5rem;
+  padding-left: 0.5rem;
+}
+
+.desk-sidebar[data-state='collapsed'] .desk-brand {
+  padding: 0;
+}
+
+.sidebar-resizer {
+  position: relative;
+  z-index: 2;
+  min-width: 0.5rem;
+  padding: 0;
+  border: 0;
+  background: var(--shell-panel);
+  cursor: col-resize;
+}
+
+.sidebar-resizer::before {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: calc(50% - 0.5px);
+  width: 1px;
+  background: var(--shell-border);
+  content: '';
+}
+
+.sidebar-resizer:hover::before,
+.sidebar-resizer:focus-visible::before {
+  width: 3px;
+  left: calc(50% - 1.5px);
+  background: var(--shell-focus);
+}
+
+.sidebar-resizer:focus-visible {
+  outline: 0;
 }
 
 .brand-mark {
@@ -255,6 +313,24 @@ select {
   border-color: var(--shell-border);
   font-size: 0.74rem;
   text-align: left;
+}
+
+.sidebar-action-icon {
+  display: grid;
+  width: 2rem;
+  height: 2rem;
+  margin-top: auto;
+  place-items: center;
+  padding: 0;
+}
+
+.sidebar-action-icon svg {
+  width: 1.1rem;
+  height: 1.1rem;
+  fill: none;
+  stroke: var(--shell-muted);
+  stroke-linejoin: round;
+  stroke-width: 1.8;
 }
 
 .desk-main {
@@ -576,6 +652,7 @@ select {
 .tree-folder-row:focus-visible,
 .tree-document-row:focus-visible,
 .sidebar-action:focus-visible,
+.sidebar-toggle:focus-visible,
 .theme-select:focus-visible,
 .theme-action:focus-visible,
 .toolbar-action:focus-visible,
@@ -598,10 +675,6 @@ select {
 }
 
 @media (max-width: 900px) {
-  .reading-desk {
-    grid-template-columns: minmax(13rem, 15rem) minmax(0, 1fr);
-  }
-
   .theme-action {
     display: none;
   }
@@ -616,6 +689,10 @@ select {
 
   .reading-desk {
     grid-template-columns: 1fr;
+  }
+
+  .sidebar-resizer {
+    display: none;
   }
 
   .desk-sidebar {

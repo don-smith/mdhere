@@ -150,6 +150,14 @@
   let loading = $state(true);
   let presentation = $state<PresentationSnapshot | undefined>();
   let presentationStore: PresentationStore | undefined;
+  let sidebarCollapsed = $state(false);
+  let sidebarWidth = $state(304);
+  let resizingSidebar = $state(false);
+  const SIDEBAR_MIN_WIDTH = 248;
+  const SIDEBAR_MAX_WIDTH = 560;
+  const SIDEBAR_KEYBOARD_STEP = 16;
+  const COLLAPSED_SIDEBAR_WIDTH = 52;
+  let deskSidebarWidth = $derived(sidebarCollapsed ? COLLAPSED_SIDEBAR_WIDTH : sidebarWidth);
   interface KeyboardTarget {
     focus(): void;
     run: Function;
@@ -337,6 +345,49 @@
     void presentationStore?.setFrontMatterExpanded(expanded);
   }
 
+  function clampSidebarWidth(width: number): number {
+    return Math.min(SIDEBAR_MAX_WIDTH, Math.max(SIDEBAR_MIN_WIDTH, width));
+  }
+
+  function updateSidebarWidth(width: number, persist: boolean) {
+    sidebarWidth = clampSidebarWidth(width);
+    if (persist) void presentationStore?.setSidebarWidth(sidebarWidth);
+  }
+
+  function startSidebarResize(event: PointerEvent) {
+    if (sidebarCollapsed) return;
+    resizingSidebar = true;
+    (event.currentTarget as HTMLElement | null)?.setPointerCapture(event.pointerId);
+  }
+
+  function resizeSidebar(event: PointerEvent) {
+    if (!resizingSidebar) return;
+    updateSidebarWidth(event.clientX, false);
+  }
+
+  function finishSidebarResize(event: PointerEvent) {
+    if (!resizingSidebar) return;
+    resizingSidebar = false;
+    (event.currentTarget as HTMLElement | null)?.releasePointerCapture(event.pointerId);
+    updateSidebarWidth(sidebarWidth, true);
+  }
+
+  function resizeSidebarWithKeyboard(event: KeyboardEvent) {
+    const adjustment =
+      event.key === 'ArrowLeft'
+        ? -SIDEBAR_KEYBOARD_STEP
+        : event.key === 'ArrowRight'
+          ? SIDEBAR_KEYBOARD_STEP
+          : 0;
+    if (!adjustment) return;
+    event.preventDefault();
+    updateSidebarWidth(sidebarWidth + adjustment, true);
+  }
+
+  $effect(() => {
+    if (presentation && !resizingSidebar) sidebarWidth = presentation.sidebarWidth;
+  });
+
   function flattenedDocuments(nodes: TreeNode[]): TreeNode[] {
     return nodes.flatMap((node) =>
       node.kind === 'folder' ? [node, ...flattenedDocuments(node.children)] : [node]
@@ -397,39 +448,87 @@
       <button class="status-action" data-state="resting" onclick={openFolder}>Open Folder</button>
     </section>
   {:else if snapshot}
-    <div class="reading-desk" data-testid="reading-desk">
-      <aside class="desk-sidebar" aria-label="Library">
+    <div
+      class="reading-desk"
+      data-testid="reading-desk"
+      data-sidebar-state={sidebarCollapsed ? 'collapsed' : 'expanded'}
+      style:--sidebar-width={`${deskSidebarWidth}px`}
+    >
+      <aside
+        class="desk-sidebar"
+        aria-label="Library"
+        data-state={sidebarCollapsed ? 'collapsed' : 'expanded'}
+      >
         <div class="desk-brand">
-          <span class="brand-mark" aria-hidden="true">m</span>
-          <span class="brand-copy"><strong>mdhere</strong><small>{snapshot.rootName}</small></span>
+          {#if !sidebarCollapsed}
+            <span class="brand-mark" aria-hidden="true">m</span>
+            <span class="brand-copy"><strong>mdhere</strong><small>{snapshot.rootName}</small></span
+            >
+          {/if}
+          <button
+            class="sidebar-toggle"
+            type="button"
+            aria-label={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+            aria-expanded={!sidebarCollapsed}
+            onclick={() => (sidebarCollapsed = !sidebarCollapsed)}>☰</button
+          >
         </div>
-        <label class="library-search">
-          <span class="visually-hidden">Filter documents</span>
-          <input
-            bind:this={filterInput}
-            bind:value={filterQuery}
-            class="library-search-input"
-            type="search"
-            aria-label="Filter documents"
-            placeholder="Filter documents"
-          />
-          <kbd aria-hidden="true">⌘K</kbd>
-        </label>
-        <nav class="library-navigation" aria-label="Documents">
-          <DocumentTree
-            bind:this={documentTree}
-            tree={filteredTree}
-            {filterActive}
-            selectedPath={selectedDocument?.path}
-            onSelect={selectDocument}
-          />
-          {#if !filteredTree.length}<p class="filter-status" data-state="empty" role="status">
-              No matching documents.
-            </p>{/if}
-        </nav>
-        <button class="sidebar-action" data-state="resting" onclick={openFolder}>Open Folder</button
-        >
+        {#if !sidebarCollapsed}
+          <label class="library-search">
+            <span class="visually-hidden">Filter documents</span>
+            <input
+              bind:this={filterInput}
+              bind:value={filterQuery}
+              class="library-search-input"
+              type="search"
+              aria-label="Filter documents"
+              placeholder="Filter documents"
+            />
+            <kbd aria-hidden="true">⌘K</kbd>
+          </label>
+          <nav class="library-navigation" aria-label="Documents">
+            <DocumentTree
+              bind:this={documentTree}
+              tree={filteredTree}
+              {filterActive}
+              selectedPath={selectedDocument?.path}
+              onSelect={selectDocument}
+            />
+            {#if !filteredTree.length}<p class="filter-status" data-state="empty" role="status">
+                No matching documents.
+              </p>{/if}
+          </nav>
+          <button class="sidebar-action" data-state="resting" onclick={openFolder}
+            >Open Folder</button
+          >
+        {:else}
+          <button
+            class="sidebar-action sidebar-action-icon"
+            data-state="resting"
+            type="button"
+            aria-label="Open Folder"
+            onclick={openFolder}
+          >
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h7l2 2h9v10H3z" /></svg>
+          </button>
+        {/if}
       </aside>
+      <!-- svelte-ignore a11y_no_noninteractive_tabindex, a11y_no_noninteractive_element_interactions -->
+      <div
+        class="sidebar-resizer"
+        role="separator"
+        aria-label="Sidebar width"
+        aria-orientation="vertical"
+        aria-valuemin={SIDEBAR_MIN_WIDTH}
+        aria-valuemax={SIDEBAR_MAX_WIDTH}
+        aria-valuenow={sidebarWidth}
+        tabindex="0"
+        onpointerdown={startSidebarResize}
+        onpointermove={resizeSidebar}
+        onpointerup={finishSidebarResize}
+        onpointercancel={finishSidebarResize}
+        onkeydown={resizeSidebarWithKeyboard}
+      ></div>
 
       <section class="desk-main" aria-label="Reading desk">
         <header class="document-toolbar" data-testid="document-toolbar">
