@@ -94,6 +94,14 @@ Also check that tables, tasks, strikethrough, typography, code, and the local im
 Confirm the missing image and traversal link fail safely; the HTTPS link opens externally;
 and the local link opens Second.md with its heading focused. No alert should appear.
 
+Check the window shell: native traffic lights, title-area glass, drag, and resize must work.
+Resize the expanded sidebar, collapse it with its hamburger, use the icon-only Open Folder action,
+and expand it to confirm its prior width returns. Close and relaunch the app to confirm that saved
+expanded width returns while the sidebar starts expanded. Tab to the Theme trigger: its label and
+focus ring must be visible; open it, navigate options with Arrow keys, Home, and End, select with
+Enter or Space, dismiss with Escape and a click away, and confirm focus returns to the trigger.
+Confirm Reload themes and Themes folder still work across Paper, Midnight, and Field Notes.
+
 Close the development app to remove the temporary library.
 EOF
 
