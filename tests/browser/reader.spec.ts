@@ -108,6 +108,47 @@ test('rerenders visible Mermaid diagrams with the selected reader theme', async 
   expect(fieldNotesStyle).toContain('#65705e');
 });
 
+test('keeps inline code whole while prose and fenced code retain their wrapping rules', async ({
+  page
+}) => {
+  await page.setViewportSize({ width: 360, height: 700 });
+  await page.goto('/');
+  await page.getByRole('treeitem', { name: 'Welcome.md' }).click();
+
+  const reader = page.getByTestId('reader');
+  const metrics = await reader.evaluate((element) => {
+    const article = element.shadowRoot?.querySelector<HTMLElement>('article.reader-content');
+    if (!article) throw new Error('Expected reader article');
+    article.insertAdjacentHTML(
+      'beforeend',
+      `<p data-inline-code>Prose before <code>WaitingToSyncWithTheRemoteService</code> prose after.</p><pre data-fenced-code><code>const value = aLongFencedCodeLine;</code></pre>`
+    );
+    const inlineCode = article.querySelector<HTMLElement>('[data-inline-code] code');
+    const prose = article.querySelector<HTMLElement>('[data-inline-code]');
+    const fenced = article.querySelector<HTMLElement>('[data-fenced-code]');
+    if (!inlineCode || !prose || !fenced) throw new Error('Expected injected code examples');
+    const range = document.createRange();
+    range.selectNodeContents(inlineCode);
+    return {
+      inlineRects: range.getClientRects().length,
+      inlineWhiteSpace: getComputedStyle(inlineCode).whiteSpace,
+      inlineOverflowWrap: getComputedStyle(inlineCode).overflowWrap,
+      inlineWordBreak: getComputedStyle(inlineCode).wordBreak,
+      proseOverflowWrap: getComputedStyle(prose).overflowWrap,
+      fencedWhiteSpace: getComputedStyle(fenced).whiteSpace,
+      fencedOverflowX: getComputedStyle(fenced).overflowX
+    };
+  });
+
+  expect(metrics.inlineRects).toBe(1);
+  expect(metrics.inlineWhiteSpace).toBe('nowrap');
+  expect(metrics.inlineOverflowWrap).toBe('normal');
+  expect(metrics.inlineWordBreak).toBe('normal');
+  expect(metrics.proseOverflowWrap).toBe('anywhere');
+  expect(metrics.fencedWhiteSpace).toBe('pre-wrap');
+  expect(metrics.fencedOverflowX).toBe('auto');
+});
+
 test('keeps a 1440px reader bounded while its tables use available width or scroll', async ({
   page
 }) => {

@@ -32,6 +32,9 @@ describe('reader theme contract', () => {
     expect(css).toContain('.contains-task-list');
     expect(css).toMatch(/table th,[\s\S]*?table td\s*\{[\s\S]*?overflow-wrap:\s*normal/);
     expect(css).toMatch(/table th,[\s\S]*?table td\s*\{[\s\S]*?word-break:\s*normal/);
+    expect(css).toMatch(
+      /\.reader-content :not\(pre\) > code\s*\{[\s\S]*?white-space:\s*nowrap[\s\S]*?overflow-wrap:\s*normal[\s\S]*?word-break:\s*normal/
+    );
   });
 
   it('keeps packages, starter, and guide synchronized on reader hooks and Shiki variables', async () => {
