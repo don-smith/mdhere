@@ -2,6 +2,7 @@ import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/sv
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import type { LibraryClient } from './lib/library-client';
+import type { LibrarySnapshot } from './lib/contracts';
 import { presentationFixture } from './lib/presentation/presentation-fixture';
 import type { PresentationApi } from './lib/presentation/presentation-store';
 import type { PresentationSnapshot } from './lib/themes/types';
@@ -187,6 +188,82 @@ describe('App', () => {
     expect(snapshot).toHaveBeenCalledOnce();
     expect(readDocument).not.toHaveBeenCalled();
     expect(refresh).not.toHaveBeenCalled();
+  });
+
+  it('uses named Reading desk controls and disables refresh while it is pending', async () => {
+    let resolveRefresh: ((snapshot: LibrarySnapshot) => void) | undefined;
+    const library: LibrarySnapshot = {
+      rootName: 'Library',
+      diagnostics: [],
+      tree: [{ kind: 'document' as const, name: 'Guide.md', path: 'Guide.md' }]
+    };
+    const client: LibraryClient = {
+      snapshot: () => Promise.resolve(library),
+      readDocument: () => Promise.reject(new Error('not used')),
+      refresh: () =>
+        new Promise((resolve) => {
+          resolveRefresh = resolve;
+        }),
+      openFolder: () => Promise.resolve(undefined),
+      newWindow: () => Promise.resolve(),
+      openExternalLink: () => Promise.resolve()
+    };
+    render(App, { client });
+
+    const refresh = await screen.findByRole('button', { name: 'Refresh library' });
+    expect(refresh).toHaveClass('toolbar-action');
+    expect(refresh).toHaveAttribute('data-state', 'resting');
+    expect(screen.getByRole('combobox', { name: 'Theme' })).toHaveClass('theme-select');
+    await fireEvent.click(refresh);
+
+    await waitFor(() => {
+      expect(refresh).toBeDisabled();
+      expect(refresh).toHaveAttribute('data-state', 'loading');
+    });
+    resolveRefresh?.(library);
+    await waitFor(() => expect(refresh).toBeEnabled());
+  });
+
+  it('does not let a refresh reread overwrite a newer document selection', async () => {
+    const snapshot: LibrarySnapshot = {
+      rootName: 'Library',
+      diagnostics: [],
+      tree: [
+        { kind: 'document', name: 'Guide.md', path: 'Guide.md' },
+        { kind: 'document', name: 'Other.md', path: 'Other.md' }
+      ]
+    };
+    const guide = { path: 'Guide.md', title: 'Guide', content: '# Guide' };
+    const other = { path: 'Other.md', title: 'Other', content: '# Other' };
+    let guideReads = 0;
+    let resolveRefreshedGuide: ((document: typeof guide) => void) | undefined;
+    const client: LibraryClient = {
+      snapshot: () => Promise.resolve(snapshot),
+      refresh: () => Promise.resolve(snapshot),
+      readDocument: (path) => {
+        if (path === 'Other.md') return Promise.resolve(other);
+        guideReads += 1;
+        return guideReads === 1
+          ? Promise.resolve(guide)
+          : new Promise((resolve) => {
+              resolveRefreshedGuide = resolve;
+            });
+      },
+      openFolder: () => Promise.resolve(undefined),
+      newWindow: () => Promise.resolve(),
+      openExternalLink: () => Promise.resolve()
+    };
+    render(App, { client });
+
+    await fireEvent.click(await screen.findByRole('treeitem', { name: 'Guide.md' }));
+    await waitFor(() => expect(screen.getByTestId('document-toolbar')).toHaveTextContent('Guide'));
+    await fireEvent.click(screen.getByRole('button', { name: 'Refresh library' }));
+    await waitFor(() => expect(guideReads).toBe(2));
+    await fireEvent.click(screen.getByRole('treeitem', { name: 'Other.md' }));
+    await waitFor(() => expect(screen.getByTestId('document-toolbar')).toHaveTextContent('Other'));
+
+    resolveRefreshedGuide?.(guide);
+    await waitFor(() => expect(screen.getByTestId('document-toolbar')).toHaveTextContent('Other'));
   });
 
   it('opens a native window with Command-N', async () => {

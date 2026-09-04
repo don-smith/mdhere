@@ -6,9 +6,9 @@
 </script>
 
 {#if diagnostics.length}
-  <aside class="theme-notice" role="status">
+  <aside class="theme-notice" data-state="warning" role="status">
     <strong>Some themes were not loaded.</strong>
-    <ul>
+    <ul class="theme-notice-list">
       {#each diagnostics as diagnostic (diagnostic)}<li>{diagnostic}</li>{/each}
     </ul>
   </aside>

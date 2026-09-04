@@ -176,9 +176,11 @@
     <button
       type="button"
       role="treeitem"
+      class:tree-folder-row={item.node.kind === 'folder'}
+      class:tree-document-row={item.node.kind === 'document'}
       class:selected={selectedPath === item.node.path}
       class:current={cursorPath === item.node.path}
-      class:folder={item.node.kind === 'folder'}
+      aria-label={item.node.name}
       aria-level={item.level}
       aria-selected={selectedPath === item.node.path}
       aria-expanded={item.node.kind === 'folder'
@@ -192,10 +194,15 @@
         item.node.kind === 'folder' ? toggle(item.node.path) : onSelect(item.node.path);
       }}
     >
-      {#if item.node.kind === 'folder'}<span aria-hidden="true"
-          >{expanded.has(item.node.path) ? '▾' : '▸'}</span
-        >{/if}
-      {item.node.name}
+      {#if item.node.kind === 'folder'}
+        <span class="tree-folder-chevron" aria-hidden="true"
+          >{effectiveExpanded.has(item.node.path) ? '▾' : '▸'}</span
+        >
+        <span class="tree-folder-name">{item.node.name}</span>
+      {:else}
+        <span class="tree-document-title">{item.node.name}</span>
+        <small class="tree-document-path">{item.node.path}</small>
+      {/if}
     </button>
   {/each}
 </div>

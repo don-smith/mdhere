@@ -28,8 +28,10 @@ export const presentationFixture: PresentationSnapshot = {
   frontMatterExpanded: false
 };
 
-export function createFixturePresentationApi(): PresentationApi {
-  let snapshot = structuredClone(presentationFixture);
+export function createFixturePresentationApi(
+  initialSnapshot: PresentationSnapshot = presentationFixture
+): PresentationApi {
+  let snapshot = structuredClone(initialSnapshot);
   let handler: ((next: PresentationSnapshot) => void) | undefined;
 
   function update(next: Omit<PresentationSnapshot, 'revision'>): PresentationSnapshot {

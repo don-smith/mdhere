@@ -18,13 +18,15 @@
 </script>
 
 {#if open}
-  <div class="keyboard-help-backdrop">
+  <div class="keyboard-help-backdrop" data-state="open">
     <dialog class="keyboard-help" open aria-label="Keyboard shortcuts">
-      <header>
+      <header class="keyboard-help-header">
         <h2>Keyboard shortcuts</h2>
-        <button type="button" onclick={onClose}>Close</button>
+        <button class="keyboard-help-close" data-state="resting" type="button" onclick={onClose}
+          >Close</button
+        >
       </header>
-      <dl>
+      <dl class="keyboard-help-bindings">
         {#each bindings as [keys, description] (keys)}<div>
             <dt><kbd>{keys}</kbd></dt>
             <dd>{description}</dd>

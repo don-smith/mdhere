@@ -12,17 +12,24 @@
   let { themes, selectedId, onSelect, onReload, onOpenFolder }: Props = $props();
 </script>
 
-<label class="theme-chooser">
-  <span>Theme</span>
-  <select
-    aria-label="Theme"
-    value={selectedId}
-    onchange={(event) => onSelect(event.currentTarget.value)}
+<div class="theme-chooser" data-state="resting">
+  <label class="theme-field">
+    <span>Theme</span>
+    <select
+      class="theme-select"
+      aria-label="Theme"
+      value={selectedId}
+      onchange={(event) => onSelect(event.currentTarget.value)}
+    >
+      {#each themes as theme (theme.id)}
+        <option value={theme.id}>{theme.name}</option>
+      {/each}
+    </select>
+  </label>
+  <button class="theme-action" data-state="resting" type="button" onclick={onReload}
+    >Reload themes</button
   >
-    {#each themes as theme (theme.id)}
-      <option value={theme.id}>{theme.name}</option>
-    {/each}
-  </select>
-</label>
-<button onclick={onReload}>Reload Themes</button>
-<button onclick={onOpenFolder}>Open Themes Folder</button>
+  <button class="theme-action" data-state="resting" type="button" onclick={onOpenFolder}
+    >Themes folder</button
+  >
+</div>

@@ -12,7 +12,10 @@
     tauriPresentationApi,
     type PresentationApi
   } from './lib/presentation/presentation-store';
-  import { createFixturePresentationApi } from './lib/presentation/presentation-fixture';
+  import {
+    createFixturePresentationApi,
+    presentationFixture
+  } from './lib/presentation/presentation-fixture';
   import type { PresentationSnapshot } from './lib/themes/types';
   import { KeyboardController } from './lib/keyboard/controller';
   import type { Pane } from './lib/keyboard/types';
@@ -57,13 +60,70 @@
     }
   };
 
+  function delay(milliseconds: number): Promise<void> {
+    return new Promise((resolve) => window.setTimeout(resolve, milliseconds));
+  }
+
+  function testScenario(): string | null {
+    return new URLSearchParams(window.location.search).get('scenario');
+  }
+
+  function testLibraryClient(): LibraryClient {
+    const scenario = testScenario();
+    if (scenario === 'empty') {
+      return new InMemoryLibraryClient({ ...demoSnapshot, tree: [] }, demoDocuments);
+    }
+    if (scenario === 'error') {
+      return {
+        snapshot: () => Promise.reject(new Error('The library could not be read.')),
+        readDocument: () => Promise.reject(new Error('not used')),
+        refresh: () => Promise.reject(new Error('not used')),
+        openFolder: () => Promise.resolve(undefined),
+        newWindow: () => Promise.resolve(),
+        openExternalLink: () => Promise.resolve()
+      };
+    }
+    const client = new InMemoryLibraryClient(demoSnapshot, demoDocuments);
+    if (scenario === 'slow-loading') {
+      return {
+        snapshot: async () => {
+          await delay(300);
+          return client.snapshot();
+        },
+        readDocument: (path) => client.readDocument(path),
+        refresh: () => client.refresh(),
+        openFolder: () => client.openFolder(),
+        newWindow: () => client.newWindow(),
+        openExternalLink: () => client.openExternalLink()
+      };
+    }
+    if (scenario === 'slow-refresh') {
+      return {
+        snapshot: () => client.snapshot(),
+        readDocument: (path) => client.readDocument(path),
+        refresh: async () => {
+          await delay(300);
+          return client.refresh();
+        },
+        openFolder: () => client.openFolder(),
+        newWindow: () => client.newWindow(),
+        openExternalLink: () => client.openExternalLink()
+      };
+    }
+    return client;
+  }
+
+  function testPresentationApi(): PresentationApi {
+    if (testScenario() !== 'warning') return createFixturePresentationApi();
+    return createFixturePresentationApi({
+      ...structuredClone(presentationFixture),
+      diagnostics: ['A local theme needs attention.']
+    });
+  }
+
   let {
-    client = import.meta.env.MODE === 'test'
-      ? new InMemoryLibraryClient(demoSnapshot, demoDocuments)
-      : new TauriLibraryClient(),
-    presentationApi = import.meta.env.MODE === 'test'
-      ? createFixturePresentationApi()
-      : tauriPresentationApi
+    client = import.meta.env.MODE === 'test' ? testLibraryClient() : new TauriLibraryClient(),
+    presentationApi = import.meta.env.MODE === 'test' ? testPresentationApi() : tauriPresentationApi
   }: Props = $props();
   let snapshot = $state<LibrarySnapshot | undefined>();
   let selectedDocument = $state<Document | undefined>();
@@ -87,6 +147,11 @@
   let filterInput = $state<HTMLInputElement>();
   let filterActive = $derived(filterQuery.trim().length > 0);
   let filteredTree = $derived(snapshot ? filterTree(snapshot.tree, filterQuery) : []);
+  let selectedLineCount = $derived(
+    selectedDocument ? selectedDocument.content.split(/\r?\n/).length : undefined
+  );
+  let libraryOperation = 0;
+  let selectionOperation = 0;
 
   onMount(() => {
     presentationStore = new PresentationStore(presentationApi, (value) => (presentation = value));
@@ -96,42 +161,56 @@
   });
 
   async function loadSnapshot() {
+    const operation = ++libraryOperation;
     loading = true;
     error = undefined;
     try {
-      snapshot = await client.snapshot();
+      const nextSnapshot = await client.snapshot();
+      if (operation !== libraryOperation) return;
+      snapshot = nextSnapshot;
       needsFolder = false;
     } catch (reason) {
+      if (operation !== libraryOperation) return;
       needsFolder = isUnregisteredLibrary(reason);
       error = messageFor(reason);
     } finally {
-      loading = false;
+      if (operation === libraryOperation) loading = false;
     }
   }
 
   async function refreshLibrary() {
+    const operation = ++libraryOperation;
     loading = true;
     error = undefined;
     try {
-      snapshot = await client.refresh();
-      if (selectedDocument) {
+      const nextSnapshot = await client.refresh();
+      if (operation !== libraryOperation) return;
+      snapshot = nextSnapshot;
+      const path = selectedDocument?.path;
+      const selectedOperation = selectionOperation;
+      if (path) {
         try {
-          selectedDocument = await client.readDocument(selectedDocument.path);
+          const refreshedDocument = await client.readDocument(path);
+          if (operation === libraryOperation && selectedOperation === selectionOperation)
+            selectedDocument = refreshedDocument;
         } catch {
-          selectedDocument = undefined;
+          if (operation === libraryOperation && selectedOperation === selectionOperation)
+            selectedDocument = undefined;
         }
       }
     } catch (reason) {
-      error = messageFor(reason);
+      if (operation === libraryOperation) error = messageFor(reason);
     } finally {
-      loading = false;
+      if (operation === libraryOperation) loading = false;
     }
   }
 
   async function openFolder() {
+    const operation = ++libraryOperation;
     error = undefined;
     try {
       const nextSnapshot = await client.openFolder();
+      if (operation !== libraryOperation) return;
       if (nextSnapshot) {
         snapshot = nextSnapshot;
         selectedDocument = undefined;
@@ -139,17 +218,19 @@
         needsFolder = false;
       }
     } catch (reason) {
-      error = messageFor(reason);
+      if (operation === libraryOperation) error = messageFor(reason);
     }
   }
 
   async function selectDocument(path: string, nextFragment?: string) {
+    const operation = ++selectionOperation;
     error = undefined;
     fragment = nextFragment;
     try {
-      selectedDocument = await client.readDocument(path);
+      const nextDocument = await client.readDocument(path);
+      if (operation === selectionOperation) selectedDocument = nextDocument;
     } catch (reason) {
-      error = messageFor(reason);
+      if (operation === selectionOperation) error = messageFor(reason);
     }
   }
 
@@ -250,6 +331,8 @@
 <svelte:window onkeydown={handleKeydown} />
 
 <main
+  class="app-shell"
+  data-state={loading ? 'loading' : error ? 'error' : 'ready'}
   style:--shell-background={presentation?.selected.shell.background}
   style:--shell-panel={presentation?.selected.shell.panel}
   style:--shell-surface={presentation?.selected.shell.surface}
@@ -271,76 +354,125 @@
   style:--shell-overlay={presentation?.selected.shell.overlay}
   style:color-scheme={presentation?.selected.appearance}
 >
-  <header aria-label="mdhere header">
-    <strong>mdhere</strong>
-    {#if snapshot}<span class="root">{snapshot.rootName}</span>{/if}
-    {#if presentation}
-      <ThemeChooser
-        themes={presentation.themes}
-        selectedId={presentation.selected.id}
-        onSelect={selectTheme}
-        onReload={reloadThemes}
-        onOpenFolder={openThemesFolder}
-      />
-    {/if}
-    <button onclick={openFolder}>Open Folder</button>
-    <button onclick={refreshLibrary} disabled={loading}>Refresh</button>
-  </header>
-  {#if presentation}<ThemeNotice diagnostics={presentation.diagnostics} />{/if}
-
-  {#if loading}
-    <p class="status">Loading library…</p>
+  {#if loading && !snapshot}
+    <section class="shell-status" data-state="loading" aria-live="polite">
+      <p>Loading library…</p>
+    </section>
   {:else if needsFolder}
-    <section class="status">
+    <section class="shell-status" data-state="empty">
       <h1>Choose a folder</h1>
       <p>Select a folder containing Markdown documents to start reading.</p>
-      <button onclick={openFolder}>Open Folder</button>
+      <button class="status-action" data-state="resting" onclick={openFolder}>Open Folder</button>
     </section>
   {:else if error}
-    <section class="status error" role="alert">
+    <section class="shell-status" data-state="error" role="alert">
       <h1>Unable to open the library</h1>
       <p>{error}</p>
-      <button onclick={openFolder}>Open Folder</button>
-      <button onclick={loadSnapshot}>Try again</button>
+      <div class="status-actions">
+        <button class="status-action" data-state="danger" onclick={openFolder}>Open Folder</button>
+        <button class="status-action" data-state="resting" onclick={loadSnapshot}>Try again</button>
+      </div>
     </section>
   {:else if snapshot && flattenedDocuments(snapshot.tree).length === 0}
-    <section class="status">
+    <section class="shell-status" data-state="empty">
       <h1>No Markdown documents found</h1>
       <p>Choose another folder or add a .md file.</p>
+      <button class="status-action" data-state="resting" onclick={openFolder}>Open Folder</button>
     </section>
   {:else if snapshot}
-    <div class="workspace">
-      <nav aria-label="Documents">
-        <input
-          bind:this={filterInput}
-          bind:value={filterQuery}
-          type="search"
-          aria-label="Filter documents"
-          placeholder="Filter documents"
-        />
-        <DocumentTree
-          bind:this={documentTree}
-          tree={filteredTree}
-          {filterActive}
-          selectedPath={selectedDocument?.path}
-          onSelect={selectDocument}
-        />
-        {#if !filteredTree.length}<p role="status">No matching documents.</p>{/if}
-      </nav>
-      <article aria-label="Reader">
-        <ReaderPane
-          bind:this={readerPane}
-          document={selectedDocument}
-          {fragment}
-          onDocumentLink={selectDocument}
-          onExternalLink={(url: string) => client.openExternalLink(url)}
-          frontMatterExpanded={presentation?.frontMatterExpanded ?? false}
-          onFrontMatterToggle={setFrontMatterExpanded}
-          themeCss={presentation?.selected.css}
-          themeAppearance={presentation?.selected.appearance}
-        />
-      </article>
-      <KeyboardHelp open={helpOpen} onClose={() => (helpOpen = false)} />
+    <div class="reading-desk" data-testid="reading-desk">
+      <aside class="desk-sidebar" aria-label="Library">
+        <div class="desk-brand">
+          <span class="brand-mark" aria-hidden="true">m</span>
+          <span class="brand-copy"><strong>mdhere</strong><small>{snapshot.rootName}</small></span>
+        </div>
+        <label class="library-search">
+          <span class="visually-hidden">Filter documents</span>
+          <input
+            bind:this={filterInput}
+            bind:value={filterQuery}
+            class="library-search-input"
+            type="search"
+            aria-label="Filter documents"
+            placeholder="Filter documents"
+          />
+          <kbd aria-hidden="true">⌘K</kbd>
+        </label>
+        <nav class="library-navigation" aria-label="Documents">
+          <DocumentTree
+            bind:this={documentTree}
+            tree={filteredTree}
+            {filterActive}
+            selectedPath={selectedDocument?.path}
+            onSelect={selectDocument}
+          />
+          {#if !filteredTree.length}<p class="filter-status" data-state="empty" role="status">
+              No matching documents.
+            </p>{/if}
+        </nav>
+        <button class="sidebar-action" data-state="resting" onclick={openFolder}>Open Folder</button
+        >
+      </aside>
+
+      <section class="desk-main" aria-label="Reading desk">
+        <header class="document-toolbar" data-testid="document-toolbar">
+          <div class="document-identity">
+            <p>{selectedDocument?.path ?? snapshot.rootName}</p>
+            <h1>{selectedDocument?.title ?? 'Select a document'}</h1>
+          </div>
+          <div class="toolbar-controls">
+            {#if presentation}
+              <ThemeChooser
+                themes={presentation.themes}
+                selectedId={presentation.selected.id}
+                onSelect={selectTheme}
+                onReload={reloadThemes}
+                onOpenFolder={openThemesFolder}
+              />
+            {/if}
+            <button
+              class="toolbar-action"
+              data-state="resting"
+              type="button"
+              aria-label="Keyboard shortcuts"
+              onclick={() => (helpOpen = true)}>?</button
+            >
+            <button
+              class="toolbar-action"
+              data-state={loading ? 'loading' : 'resting'}
+              type="button"
+              aria-label="Refresh library"
+              onclick={refreshLibrary}
+              disabled={loading}>↻</button
+            >
+          </div>
+        </header>
+
+        <div class="desk-reader">
+          <div class="reading-frame" data-testid="reading-frame">
+            <ReaderPane
+              bind:this={readerPane}
+              document={selectedDocument}
+              {fragment}
+              onDocumentLink={selectDocument}
+              onExternalLink={(url: string) => client.openExternalLink(url)}
+              frontMatterExpanded={presentation?.frontMatterExpanded ?? false}
+              onFrontMatterToggle={setFrontMatterExpanded}
+              themeCss={presentation?.selected.css}
+              themeAppearance={presentation?.selected.appearance}
+            />
+          </div>
+        </div>
+
+        <footer class="desk-status-strip" data-testid="status-strip">
+          <span>Markdown</span>
+          {#if selectedLineCount}<span>{selectedLineCount} lines</span>{/if}
+          <span>UTF-8</span>
+        </footer>
+      </section>
     </div>
   {/if}
+
+  {#if presentation}<ThemeNotice diagnostics={presentation.diagnostics} />{/if}
+  <KeyboardHelp open={helpOpen} onClose={() => (helpOpen = false)} />
 </main>
