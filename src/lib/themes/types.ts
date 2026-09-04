@@ -38,4 +38,5 @@ export interface PresentationSnapshot {
   selected: Theme;
   diagnostics: string[];
   frontMatterExpanded: boolean;
+  sidebarWidth: number;
 }

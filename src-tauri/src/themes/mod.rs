@@ -10,6 +10,7 @@ use thiserror::Error;
 
 const THEME_SCHEMA_VERSION: u8 = 2;
 pub const PREFERENCES_SCHEMA_VERSION: u8 = 1;
+pub const DEFAULT_SIDEBAR_WIDTH: f64 = 304.0;
 const BUILTIN_LIGHT_MANIFEST: &str = include_str!("../../themes/mdhere-light/theme.json");
 const BUILTIN_LIGHT_CSS: &str = include_str!("../../themes/mdhere-light/reader.css");
 const BUILTIN_DARK_MANIFEST: &str = include_str!("../../themes/mdhere-dark/theme.json");
@@ -216,13 +217,19 @@ pub struct Theme {
     pub builtin: bool,
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct ThemePreferences {
     pub schema_version: u8,
     pub theme_id: String,
     #[serde(default)]
     pub front_matter_expanded: bool,
+    #[serde(default = "default_sidebar_width")]
+    pub sidebar_width: f64,
+}
+
+fn default_sidebar_width() -> f64 {
+    DEFAULT_SIDEBAR_WIDTH
 }
 
 impl Default for ThemePreferences {
@@ -231,6 +238,7 @@ impl Default for ThemePreferences {
             schema_version: PREFERENCES_SCHEMA_VERSION,
             theme_id: String::new(),
             front_matter_expanded: false,
+            sidebar_width: DEFAULT_SIDEBAR_WIDTH,
         }
     }
 }

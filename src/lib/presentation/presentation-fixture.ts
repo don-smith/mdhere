@@ -25,7 +25,8 @@ export const presentationFixture: PresentationSnapshot = {
   themes,
   selected: themes[0]!,
   diagnostics: [],
-  frontMatterExpanded: false
+  frontMatterExpanded: false,
+  sidebarWidth: 304
 };
 
 export function createFixturePresentationApi(
@@ -50,6 +51,7 @@ export function createFixturePresentationApi(
     reload: async () => update(snapshot),
     setFrontMatterExpanded: async (frontMatterExpanded) =>
       update({ ...snapshot, frontMatterExpanded }),
+    setSidebarWidth: async (sidebarWidth) => update({ ...snapshot, sidebarWidth }),
     openFolder: async () => undefined,
     onChanged: async (next) => {
       handler = next;

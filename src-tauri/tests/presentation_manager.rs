@@ -37,7 +37,7 @@ fn manager() -> (TempDir, TempDir, TempDir, PresentationManager) {
 }
 
 #[test]
-fn defaults_the_disclosure_to_collapsed_and_reads_legacy_preferences() {
+fn defaults_new_preferences_and_reads_legacy_preferences() {
     let (root, builtins, users, _) = manager();
     let preferences = root.path().join("preferences.json");
     fs::write(
@@ -50,6 +50,25 @@ fn defaults_the_disclosure_to_collapsed_and_reads_legacy_preferences() {
     let snapshot = manager.snapshot();
     assert_eq!(snapshot.selected.manifest.id, "mdhere-dark");
     assert!(!snapshot.front_matter_expanded);
+    assert_eq!(snapshot.sidebar_width, 304.0);
+}
+
+#[test]
+fn persists_a_valid_sidebar_width_and_rejects_values_outside_the_shell_bounds() {
+    let (root, _, _, manager) = manager();
+    let preferences = root.path().join("preferences.json");
+
+    let snapshot = manager.set_sidebar_width(420.0).unwrap();
+    assert_eq!(snapshot.sidebar_width, 420.0);
+    assert_eq!(
+        ThemePreferences::read(&preferences).unwrap().sidebar_width,
+        420.0
+    );
+
+    for invalid in [0.0, 247.0, 561.0, f64::NAN] {
+        assert!(manager.set_sidebar_width(invalid).is_err());
+    }
+    assert_eq!(manager.snapshot().sidebar_width, 420.0);
 }
 
 #[test]
@@ -58,6 +77,7 @@ fn writes_complete_preferences_for_both_mutation_directions() {
     let preferences = root.path().join("preferences.json");
 
     manager.set_front_matter_expanded(true).unwrap();
+    manager.set_sidebar_width(420.0).unwrap();
     manager.select_theme("mdhere-dark").unwrap();
     assert_eq!(
         ThemePreferences::read(&preferences).unwrap(),
@@ -65,6 +85,7 @@ fn writes_complete_preferences_for_both_mutation_directions() {
             schema_version: PREFERENCES_SCHEMA_VERSION,
             theme_id: "mdhere-dark".into(),
             front_matter_expanded: true,
+            sidebar_width: 420.0,
         }
     );
 
@@ -76,6 +97,7 @@ fn writes_complete_preferences_for_both_mutation_directions() {
             schema_version: PREFERENCES_SCHEMA_VERSION,
             theme_id: "mdhere-light".into(),
             front_matter_expanded: false,
+            sidebar_width: 420.0,
         }
     );
     assert!(!root.path().join("preferences.tmp").exists());
@@ -91,6 +113,7 @@ fn malformed_preferences_fall_back_with_a_diagnostic() {
     let snapshot = manager.snapshot();
     assert_eq!(snapshot.selected.manifest.id, "mdhere-light");
     assert!(!snapshot.front_matter_expanded);
+    assert_eq!(snapshot.sidebar_width, 304.0);
     assert!(
         snapshot
             .diagnostics
@@ -118,6 +141,7 @@ fn failed_writes_do_not_change_memory_or_publish_a_temporary_file() {
     let before = manager.snapshot();
     assert!(manager.select_theme("mdhere-dark").is_err());
     assert!(manager.set_front_matter_expanded(true).is_err());
+    assert!(manager.set_sidebar_width(420.0).is_err());
     let after = manager.snapshot();
     assert_eq!(after.revision, before.revision);
     assert_eq!(after.selected.manifest.id, before.selected.manifest.id);
@@ -132,6 +156,7 @@ fn reconstructs_preferences_and_reselects_a_repaired_saved_package() {
     manager.reload().unwrap();
     manager.select_theme("sea").unwrap();
     manager.set_front_matter_expanded(true).unwrap();
+    manager.set_sidebar_width(420.0).unwrap();
 
     let restarted = PresentationManager::load(
         builtins.path(),
@@ -142,6 +167,7 @@ fn reconstructs_preferences_and_reselects_a_repaired_saved_package() {
     let snapshot = restarted.snapshot();
     assert_eq!(snapshot.selected.manifest.id, "sea");
     assert!(snapshot.front_matter_expanded);
+    assert_eq!(snapshot.sidebar_width, 420.0);
 
     fs::write(users.path().join("sea/theme.json"), "{").unwrap();
     let snapshot = restarted.reload().unwrap();
@@ -163,6 +189,7 @@ fn snapshots_use_monotonic_revisions() {
     let (_root, _builtins, _users, manager) = manager();
     assert_eq!(manager.snapshot().revision, 0);
     assert_eq!(manager.set_front_matter_expanded(true).unwrap().revision, 1);
-    assert_eq!(manager.select_theme("mdhere-dark").unwrap().revision, 2);
-    assert_eq!(manager.reload().unwrap().revision, 3);
+    assert_eq!(manager.set_sidebar_width(420.0).unwrap().revision, 2);
+    assert_eq!(manager.select_theme("mdhere-dark").unwrap().revision, 3);
+    assert_eq!(manager.reload().unwrap().revision, 4);
 }

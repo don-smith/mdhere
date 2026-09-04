@@ -147,6 +147,7 @@ describe('App', () => {
       select: vi.fn(),
       reload: vi.fn(),
       setFrontMatterExpanded,
+      setSidebarWidth: vi.fn(),
       openFolder: vi.fn(),
       onChanged: vi.fn().mockImplementation(async (handler) => {
         changed = handler;

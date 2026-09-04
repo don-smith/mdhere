@@ -15,6 +15,7 @@ it('propagates complete newer snapshots to two stores and rejects stale revision
     select: vi.fn(),
     reload: vi.fn(),
     setFrontMatterExpanded: vi.fn(),
+    setSidebarWidth: vi.fn(),
     openFolder: vi.fn(),
     onChanged: vi.fn(async (handler) => {
       handlers.add(handler);
@@ -64,6 +65,7 @@ it('applies a mutation response and its matching event only once', async () => {
     }),
     reload: vi.fn(),
     setFrontMatterExpanded: vi.fn(),
+    setSidebarWidth: vi.fn(),
     openFolder: vi.fn(),
     onChanged: vi.fn(async (next) => {
       handler = next;
@@ -81,6 +83,36 @@ it('applies a mutation response and its matching event only once', async () => {
   expect(api.select).toHaveBeenCalledWith('mdhere-dark');
 });
 
+it('applies a persisted sidebar-width mutation and its matching event only once', async () => {
+  let handler: ((snapshot: PresentationSnapshot) => void) | undefined;
+  const initial = fixture();
+  const updated = { ...initial, revision: 1, sidebarWidth: 420 };
+  const api: PresentationApi = {
+    snapshot: vi.fn(async () => initial),
+    select: vi.fn(),
+    reload: vi.fn(),
+    setFrontMatterExpanded: vi.fn(),
+    setSidebarWidth: vi.fn(async () => {
+      handler?.(updated);
+      return updated;
+    }),
+    openFolder: vi.fn(),
+    onChanged: vi.fn(async (next) => {
+      handler = next;
+      return () => undefined;
+    })
+  };
+  const applied = vi.fn();
+  const store = new PresentationStore(api, applied);
+
+  await store.load();
+  await store.setSidebarWidth(420);
+
+  expect(store.snapshot).toEqual(updated);
+  expect(applied).toHaveBeenCalledTimes(2);
+  expect(api.setSidebarWidth).toHaveBeenCalledWith(420);
+});
+
 it('records mutation failures without replacing the applied snapshot', async () => {
   const initial = fixture();
   const api: PresentationApi = {
@@ -88,6 +120,7 @@ it('records mutation failures without replacing the applied snapshot', async () 
     select: vi.fn(async () => Promise.reject(new Error('Preferences could not be saved.'))),
     reload: vi.fn(),
     setFrontMatterExpanded: vi.fn(),
+    setSidebarWidth: vi.fn(),
     openFolder: vi.fn(),
     onChanged: vi.fn(async () => () => undefined)
   };
@@ -110,6 +143,7 @@ it('subscribes once and stops applying events after disposal', async () => {
     select: vi.fn(),
     reload: vi.fn(),
     setFrontMatterExpanded: vi.fn(),
+    setSidebarWidth: vi.fn(),
     openFolder: vi.fn(),
     onChanged: vi.fn(async (next) => {
       handler = next;

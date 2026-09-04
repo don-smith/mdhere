@@ -17,6 +17,11 @@ use launch::LaunchRequest;
 use library::{Document, LibraryError, LibraryRegistry, LibrarySnapshot};
 use presentation::PresentationManager;
 use tauri::{AppHandle, Emitter, Manager, WebviewUrl, WebviewWindowBuilder, http::Response};
+#[cfg(target_os = "macos")]
+use tauri::{
+    TitleBarStyle,
+    window::{Effect, EffectsBuilder},
+};
 use tauri_plugin_dialog::DialogExt;
 
 #[tauri::command]
@@ -91,6 +96,17 @@ fn set_front_matter_expanded(
     )
 }
 
+#[tauri::command]
+fn set_sidebar_width(
+    app: tauri::AppHandle,
+    presentation: tauri::State<'_, PresentationManager>,
+    width: f64,
+) -> Result<presentation::PresentationSnapshot, String> {
+    complete_presentation_mutation(presentation.set_sidebar_width(width), |snapshot| {
+        emit_presentation_changed(&app, snapshot)
+    })
+}
+
 fn complete_presentation_mutation(
     mutation: Result<presentation::PresentationSnapshot, themes::ThemeError>,
     emit: impl FnOnce(&presentation::PresentationSnapshot) -> Result<(), String>,
@@ -163,16 +179,20 @@ fn create_window(app: &AppHandle, root: Option<PathBuf>) -> Result<(), String> {
             .register_root(&label, root)
             .map_err(|error| error.to_string())?;
     }
-    let _window = WebviewWindowBuilder::new(app, &label, WebviewUrl::App("index.html".into()))
+    let window = WebviewWindowBuilder::new(app, &label, WebviewUrl::App("index.html".into()))
         .title("mdhere")
         .inner_size(1180.0, 760.0)
         .min_inner_size(800.0, 500.0)
-        .visible(true)
-        .build()
-        .map_err(|error| {
-            app.state::<LibraryRegistry>().unregister(&label);
-            error.to_string()
-        })?;
+        .visible(true);
+    #[cfg(target_os = "macos")]
+    let window = window
+        .transparent(true)
+        .title_bar_style(TitleBarStyle::Transparent)
+        .effects(EffectsBuilder::new().effect(Effect::Titlebar).build());
+    let _window = window.build().map_err(|error| {
+        app.state::<LibraryRegistry>().unregister(&label);
+        error.to_string()
+    })?;
     Ok(())
 }
 
@@ -247,6 +267,7 @@ pub fn run() {
             select_theme,
             reload_themes,
             set_front_matter_expanded,
+            set_sidebar_width,
             open_themes_folder
         ])
         .run(tauri::generate_context!())
@@ -277,6 +298,7 @@ mod tests {
             manager.select_theme("mdhere-dark"),
             manager.reload(),
             manager.set_front_matter_expanded(true),
+            manager.set_sidebar_width(420.0),
         ] {
             let emitted = RefCell::new(None);
             let returned = complete_presentation_mutation(mutation, |snapshot| {
@@ -295,6 +317,7 @@ mod tests {
                 returned.front_matter_expanded,
                 published.front_matter_expanded
             );
+            assert_eq!(returned.sidebar_width, published.sidebar_width);
             assert_eq!(returned.diagnostics, published.diagnostics);
             assert_eq!(returned.themes.len(), 3);
             assert_eq!(returned.themes.len(), published.themes.len());

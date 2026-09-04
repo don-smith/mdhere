@@ -18,6 +18,7 @@ fn production_windows_are_created_by_the_coordinator_not_static_config() {
     );
     assert_eq!(config["bundle"]["resources"], serde_json::json!(["themes"]));
     assert_eq!(config["bundle"]["macOS"]["minimumSystemVersion"], "13.0");
+    assert_eq!(config["app"]["macOSPrivateApi"], true);
 
     let capabilities: Value =
         serde_json::from_str(include_str!("../capabilities/default.json")).unwrap();
@@ -27,6 +28,10 @@ fn production_windows_are_created_by_the_coordinator_not_static_config() {
     assert!(!app_source.contains("blocking_pick_folder"));
     assert!(app_source.contains(".pick_folder("));
     assert!(app_source.contains(".visible(true)"));
+    assert!(app_source.contains("#[cfg(target_os = \"macos\")]"));
+    assert!(app_source.contains(".transparent(true)"));
+    assert!(app_source.contains("TitleBarStyle::Transparent"));
+    assert!(app_source.contains("Effect::Titlebar"));
     assert_eq!(
         app_source.matches("request_folder(").count(),
         2,

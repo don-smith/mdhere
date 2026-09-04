@@ -5,7 +5,19 @@ use std::{
 
 use serde::Serialize;
 
-use crate::themes::{Theme, ThemeCatalog, ThemeError, ThemePreferences};
+use crate::themes::{DEFAULT_SIDEBAR_WIDTH, Theme, ThemeCatalog, ThemeError, ThemePreferences};
+
+const MIN_SIDEBAR_WIDTH: f64 = 248.0;
+const MAX_SIDEBAR_WIDTH: f64 = 560.0;
+
+fn valid_sidebar_width(sidebar_width: f64) -> f64 {
+    if sidebar_width.is_finite() && (MIN_SIDEBAR_WIDTH..=MAX_SIDEBAR_WIDTH).contains(&sidebar_width)
+    {
+        sidebar_width
+    } else {
+        DEFAULT_SIDEBAR_WIDTH
+    }
+}
 
 #[derive(Clone, Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -15,6 +27,7 @@ pub struct PresentationSnapshot {
     pub selected: Theme,
     pub diagnostics: Vec<String>,
     pub front_matter_expanded: bool,
+    pub sidebar_width: f64,
 }
 
 struct PresentationData {
@@ -43,7 +56,8 @@ impl PresentationManager {
     }
 
     fn from_catalog(catalog: ThemeCatalog) -> Self {
-        let preferences = ThemePreferences::read_or_default(catalog.preference_path());
+        let mut preferences = ThemePreferences::read_or_default(catalog.preference_path());
+        preferences.sidebar_width = valid_sidebar_width(preferences.sidebar_width);
         Self {
             catalog,
             data: Mutex::new(PresentationData {
@@ -98,6 +112,29 @@ impl PresentationManager {
         Ok(self.snapshot_locked(&data))
     }
 
+    pub fn set_sidebar_width(
+        &self,
+        sidebar_width: f64,
+    ) -> Result<PresentationSnapshot, ThemeError> {
+        if !sidebar_width.is_finite()
+            || !(MIN_SIDEBAR_WIDTH..=MAX_SIDEBAR_WIDTH).contains(&sidebar_width)
+        {
+            return Err(ThemeError::Preferences(format!(
+                "sidebarWidth must be between {MIN_SIDEBAR_WIDTH} and {MAX_SIDEBAR_WIDTH}"
+            )));
+        }
+        let mut data = self
+            .data
+            .lock()
+            .map_err(|_| ThemeError::Io("presentation manager lock was poisoned".into()))?;
+        let mut preferences = data.preferences.clone();
+        preferences.sidebar_width = sidebar_width;
+        preferences.replace(self.catalog.preference_path())?;
+        data.preferences = preferences;
+        data.revision += 1;
+        Ok(self.snapshot_locked(&data))
+    }
+
     pub fn user_dir(&self) -> &Path {
         self.catalog.user_dir()
     }
@@ -109,6 +146,7 @@ impl PresentationManager {
             selected: self.catalog.selected(),
             diagnostics: self.catalog.diagnostics(),
             front_matter_expanded: data.preferences.front_matter_expanded,
+            sidebar_width: valid_sidebar_width(data.preferences.sidebar_width),
         }
     }
 }
