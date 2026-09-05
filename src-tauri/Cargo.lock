@@ -2099,7 +2099,7 @@ dependencies = [
 
 [[package]]
 name = "mdhere"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "ignore",
  "infer 0.22.0",
