@@ -7,12 +7,14 @@
   let { open, onClose }: Props = $props();
   const bindings = [
     ['j / k', 'Move tree selection or scroll reader'],
+    ['Shift+J / Shift+K', 'Scroll the reader while keeping tree focus'],
     ['h / l', 'Collapse or expand the selected folder'],
     ['Enter', 'Open the selected document or activate a reader link'],
     ['Tab / Shift+Tab', 'Switch between tree and reader'],
     ['gg / G', 'Jump to first/last item or reader top/bottom'],
     ['d / u', 'Page tree or half-page reader'],
     ['Esc', 'Return focus to the tree'],
+    ['⌘/Ctrl + (=, +, -, 0)', 'Increase, decrease, or reset application zoom'],
     ['?', 'Show this help']
   ];
 </script>

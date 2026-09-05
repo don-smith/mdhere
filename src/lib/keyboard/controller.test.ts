@@ -20,6 +20,10 @@ describe('KeyboardController', () => {
     ['reader', 'k', { kind: 'scroll-reader', intent: 'line-up' }],
     ['reader', 'd', { kind: 'scroll-reader', intent: 'page-down' }],
     ['reader', 'u', { kind: 'scroll-reader', intent: 'page-up' }],
+    ['tree', 'J', { kind: 'scroll-reader', intent: 'line-down' }],
+    ['tree', 'K', { kind: 'scroll-reader', intent: 'line-up' }],
+    ['reader', 'J', { kind: 'scroll-reader', intent: 'line-down' }],
+    ['reader', 'K', { kind: 'scroll-reader', intent: 'line-up' }],
     ['reader', 'h', undefined],
     ['reader', 'l', undefined]
   ] as const)('%s %s maps to the settled command', (pane, key, command) => {
@@ -32,6 +36,12 @@ describe('KeyboardController', () => {
     expect(controller.transition(first.state, 'g').command).toEqual({
       kind: 'move-tree-edge',
       edge: 'first'
+    });
+
+    const readerFirst = controller.transition({ pane: 'reader' }, 'g');
+    expect(controller.transition(readerFirst.state, 'g').command).toEqual({
+      kind: 'scroll-reader',
+      intent: 'top'
     });
     expect(controller.transition(first.state, 'x').state.pending).toBeUndefined();
   });

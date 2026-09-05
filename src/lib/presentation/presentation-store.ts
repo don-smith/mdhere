@@ -9,6 +9,7 @@ export interface PresentationApi {
   reload(): Promise<PresentationSnapshot>;
   setFrontMatterExpanded(expanded: boolean): Promise<PresentationSnapshot>;
   setSidebarWidth(width: number): Promise<PresentationSnapshot>;
+  setZoom(zoom: number): Promise<PresentationSnapshot>;
   openFolder(): Promise<void>;
   onChanged(handler: (snapshot: PresentationSnapshot) => void): Promise<() => void>;
 }
@@ -19,6 +20,7 @@ export const tauriPresentationApi: PresentationApi = {
   reload: () => invoke('reload_themes'),
   setFrontMatterExpanded: (expanded) => invoke('set_front_matter_expanded', { expanded }),
   setSidebarWidth: (width) => invoke('set_sidebar_width', { width }),
+  setZoom: (zoom) => invoke('set_zoom', { zoom }),
   openFolder: () => invoke('open_themes_folder'),
   onChanged: async (handler) =>
     listen<PresentationSnapshot>('presentation-changed', (event) => handler(event.payload))
@@ -59,6 +61,10 @@ export class PresentationStore {
 
   async setSidebarWidth(width: number): Promise<void> {
     await this.mutate(() => this.api.setSidebarWidth(width));
+  }
+
+  async setZoom(zoom: number): Promise<void> {
+    await this.mutate(() => this.api.setZoom(zoom));
   }
 
   openFolder(): Promise<void> {

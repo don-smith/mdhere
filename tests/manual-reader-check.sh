@@ -132,6 +132,17 @@ focus ring must be visible; open it, navigate options with Arrow keys, Home, and
 Enter or Space, dismiss with Escape and a click away, and confirm focus returns to the trigger.
 Confirm Reload themes and Themes folder still work across Paper, Midnight, and Field Notes.
 
+With Welcome.md selected and focus in the tree, use Shift+J and Shift+K and confirm the reader scrolls
+while the same tree item remains focused and selected. Confirm lowercase j and k still move through the
+tree and l still expands or opens its current item. Move focus to the reader, then confirm gg reaches the
+top and Shift+G reaches the bottom.
+
+Use Command+=, Command++, Command+-, and Command+0 and confirm the entire application follows the
+80, 90, 100, 110, 125, 150, 175, and 200 percent sequence without a second native zoom action. Open a
+second window and confirm a zoom change reaches both windows, then open another window and confirm it
+starts at the saved zoom. Close and relaunch mdhere and confirm the saved zoom is restored. Confirm zoom
+shortcuts do not take over while focus is in the filter input, theme controls, or a dialog.
+
 Close the development app to remove the temporary library.
 EOF
 

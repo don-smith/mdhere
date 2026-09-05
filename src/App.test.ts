@@ -12,7 +12,10 @@ import type { PresentationSnapshot } from './lib/themes/types';
 import App from './App.svelte';
 
 describe('App', () => {
-  afterEach(cleanup);
+  afterEach(() => {
+    cleanup();
+    vi.restoreAllMocks();
+  });
 
   it('shows a loading state while the library snapshot is requested', () => {
     render(App);
@@ -182,6 +185,7 @@ describe('App', () => {
       reload: vi.fn(),
       setFrontMatterExpanded,
       setSidebarWidth: vi.fn(),
+      setZoom: vi.fn(),
       openFolder: vi.fn(),
       onChanged: vi.fn().mockImplementation(async (handler) => {
         changed = handler;
@@ -379,6 +383,44 @@ describe('App', () => {
     await fireEvent.keyDown(separator, { key: 'ArrowRight' });
     expect(setSidebarWidth).toHaveBeenCalledWith(320);
     await waitFor(() => expect(separator).toHaveAttribute('aria-valuenow', '320'));
+  });
+
+  it('uses the platform modifier for bounded application zoom shortcuts', async () => {
+    const platform = vi.spyOn(window.navigator, 'platform', 'get').mockReturnValue('MacIntel');
+    const presentationApi = createFixturePresentationApi();
+    const setZoom = vi.spyOn(presentationApi, 'setZoom');
+    render(App, { presentationApi });
+    await screen.findByRole('button', { name: 'Theme: Paper' });
+
+    const press = (target: EventTarget, key: string, modifiers: KeyboardEventInit) => {
+      const event = new KeyboardEvent('keydown', {
+        key,
+        bubbles: true,
+        cancelable: true,
+        ...modifiers
+      });
+      target.dispatchEvent(event);
+      return event;
+    };
+
+    expect(press(window, '=', { metaKey: true }).defaultPrevented).toBe(true);
+    await waitFor(() => expect(setZoom).toHaveBeenLastCalledWith(1.1));
+    expect(press(window, '+', { metaKey: true, shiftKey: true }).defaultPrevented).toBe(true);
+    await waitFor(() => expect(setZoom).toHaveBeenLastCalledWith(1.25));
+    expect(press(window, '-', { metaKey: true }).defaultPrevented).toBe(true);
+    await waitFor(() => expect(setZoom).toHaveBeenLastCalledWith(1.1));
+    expect(press(window, '0', { metaKey: true }).defaultPrevented).toBe(true);
+    await waitFor(() => expect(setZoom).toHaveBeenLastCalledWith(1));
+
+    expect(press(window, '=', { ctrlKey: true }).defaultPrevented).toBe(false);
+    expect(setZoom).toHaveBeenCalledTimes(4);
+    const filter = screen.getByRole('searchbox', { name: 'Filter documents' });
+    expect(press(filter, '=', { metaKey: true }).defaultPrevented).toBe(false);
+    expect(setZoom).toHaveBeenCalledTimes(4);
+
+    platform.mockReturnValue('Linux x86_64');
+    expect(press(window, '=', { ctrlKey: true }).defaultPrevented).toBe(true);
+    await waitFor(() => expect(setZoom).toHaveBeenLastCalledWith(1.1));
   });
 
   it('opens a native window with Command-N', async () => {

@@ -40,20 +40,24 @@ pnpm tauri build --bundles app
 - **Open Folder** replaces the current window’s root only. Cancelling keeps its current root.
 - **Refresh** rescans the current root and retains the selected document when possible.
 - **⌘N** opens a new window and asks for a folder.
+- **⌘+=**, **⌘++**, **⌘-**, and **⌘0** adjust or reset whole-application zoom on macOS. Use Control instead of Command on Windows and Linux. The zoom level is shared by all windows and restored after restart.
 - Launching `mdhere [folder]` opens a separate window for that directory; no argument uses the shell’s current directory.
 
 ### Keyboard controls
 
-| Context | Keys                       | Action                             |
-| ------- | -------------------------- | ---------------------------------- |
-| Tree    | `j` / `k`, `↓` / `↑`       | Move through visible items         |
-| Tree    | `h` / `l`, `←` / `→`       | Collapse/expand folders            |
-| Tree    | `Enter` / `Space`          | Open a document or toggle a folder |
-| Tree    | `gg` / `G`, `Home` / `End` | First/last visible item            |
-| Tree    | `Tab`                      | Move to the reader                 |
-| Reader  | `d` / `u`                  | Scroll down/up                     |
-| Reader  | `Esc`                      | Return to the tree                 |
-| App     | `?`                        | Show keyboard help                 |
+| Context | Keys                       | Action                                        |
+| ------- | -------------------------- | --------------------------------------------- |
+| Tree    | `j` / `k`, `↓` / `↑`       | Move through visible items                    |
+| Tree    | `h` / `l`, `←` / `→`       | Collapse/expand folders                       |
+| Tree    | `Enter` / `Space`          | Open a document or toggle a folder            |
+| Tree    | `gg` / `G`, `Home` / `End` | First/last visible item                       |
+| Tree    | `Shift+J` / `Shift+K`      | Scroll the reader without moving tree focus   |
+| Tree    | `Tab`                      | Move to the reader                            |
+| Reader  | `j` / `k`, `d` / `u`       | Scroll by line or half-page                   |
+| Reader  | `gg` / `G`                 | Jump to the top/bottom                        |
+| Reader  | `Esc`                      | Return to the tree                            |
+| App     | `⌘/Ctrl+=`, `+`, `-`, `0`  | Increase, decrease, or reset application zoom |
+| App     | `?`                        | Show keyboard help                            |
 
 ## Install the command
 

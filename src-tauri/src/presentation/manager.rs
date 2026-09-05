@@ -5,10 +5,13 @@ use std::{
 
 use serde::Serialize;
 
-use crate::themes::{DEFAULT_SIDEBAR_WIDTH, Theme, ThemeCatalog, ThemeError, ThemePreferences};
+use crate::themes::{
+    DEFAULT_SIDEBAR_WIDTH, DEFAULT_ZOOM, Theme, ThemeCatalog, ThemeError, ThemePreferences,
+};
 
 const MIN_SIDEBAR_WIDTH: f64 = 248.0;
 const MAX_SIDEBAR_WIDTH: f64 = 560.0;
+pub const ZOOM_LEVELS: [f64; 8] = [0.8, 0.9, 1.0, 1.1, 1.25, 1.5, 1.75, 2.0];
 
 fn valid_sidebar_width(sidebar_width: f64) -> f64 {
     if sidebar_width.is_finite() && (MIN_SIDEBAR_WIDTH..=MAX_SIDEBAR_WIDTH).contains(&sidebar_width)
@@ -16,6 +19,14 @@ fn valid_sidebar_width(sidebar_width: f64) -> f64 {
         sidebar_width
     } else {
         DEFAULT_SIDEBAR_WIDTH
+    }
+}
+
+fn valid_zoom(zoom: f64) -> f64 {
+    if ZOOM_LEVELS.contains(&zoom) {
+        zoom
+    } else {
+        DEFAULT_ZOOM
     }
 }
 
@@ -28,6 +39,7 @@ pub struct PresentationSnapshot {
     pub diagnostics: Vec<String>,
     pub front_matter_expanded: bool,
     pub sidebar_width: f64,
+    pub zoom: f64,
 }
 
 struct PresentationData {
@@ -58,6 +70,7 @@ impl PresentationManager {
     fn from_catalog(catalog: ThemeCatalog) -> Self {
         let mut preferences = ThemePreferences::read_or_default(catalog.preference_path());
         preferences.sidebar_width = valid_sidebar_width(preferences.sidebar_width);
+        preferences.zoom = valid_zoom(preferences.zoom);
         Self {
             catalog,
             data: Mutex::new(PresentationData {
@@ -92,6 +105,8 @@ impl PresentationManager {
             .map_err(|_| ThemeError::Io("presentation manager lock was poisoned".into()))?;
         self.catalog.reload()?;
         data.preferences = ThemePreferences::read_or_default(self.catalog.preference_path());
+        data.preferences.sidebar_width = valid_sidebar_width(data.preferences.sidebar_width);
+        data.preferences.zoom = valid_zoom(data.preferences.zoom);
         data.revision += 1;
         Ok(self.snapshot_locked(&data))
     }
@@ -135,6 +150,29 @@ impl PresentationManager {
         Ok(self.snapshot_locked(&data))
     }
 
+    pub fn set_zoom(&self, zoom: f64) -> Result<PresentationSnapshot, ThemeError> {
+        if !ZOOM_LEVELS.contains(&zoom) {
+            return Err(ThemeError::Preferences(format!(
+                "zoom must be one of {}",
+                ZOOM_LEVELS
+                    .iter()
+                    .map(|value| value.to_string())
+                    .collect::<Vec<_>>()
+                    .join(", ")
+            )));
+        }
+        let mut data = self
+            .data
+            .lock()
+            .map_err(|_| ThemeError::Io("presentation manager lock was poisoned".into()))?;
+        let mut preferences = data.preferences.clone();
+        preferences.zoom = zoom;
+        preferences.replace(self.catalog.preference_path())?;
+        data.preferences = preferences;
+        data.revision += 1;
+        Ok(self.snapshot_locked(&data))
+    }
+
     pub fn user_dir(&self) -> &Path {
         self.catalog.user_dir()
     }
@@ -147,6 +185,7 @@ impl PresentationManager {
             diagnostics: self.catalog.diagnostics(),
             front_matter_expanded: data.preferences.front_matter_expanded,
             sidebar_width: valid_sidebar_width(data.preferences.sidebar_width),
+            zoom: valid_zoom(data.preferences.zoom),
         }
     }
 }

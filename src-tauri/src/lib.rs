@@ -106,6 +106,32 @@ fn set_sidebar_width(
     })
 }
 
+#[tauri::command]
+fn set_zoom(
+    app: tauri::AppHandle,
+    presentation: tauri::State<'_, PresentationManager>,
+    zoom: f64,
+) -> Result<presentation::PresentationSnapshot, String> {
+    complete_presentation_mutation(presentation.set_zoom(zoom), |snapshot| {
+        apply_zoom(&app, snapshot)?;
+        emit_presentation_changed(&app, snapshot)
+    })
+}
+
+fn apply_zoom(
+    app: &AppHandle,
+    snapshot: &presentation::PresentationSnapshot,
+) -> Result<(), String> {
+    for window in app.webview_windows().values() {
+        if window.label().starts_with("mdhere-") {
+            window
+                .set_zoom(snapshot.zoom)
+                .map_err(|error| error.to_string())?;
+        }
+    }
+    Ok(())
+}
+
 fn complete_presentation_mutation(
     mutation: Result<presentation::PresentationSnapshot, themes::ThemeError>,
     emit: impl FnOnce(&presentation::PresentationSnapshot) -> Result<(), String>,
@@ -189,6 +215,12 @@ fn create_window(app: &AppHandle, root: Option<PathBuf>) -> Result<(), String> {
         app.state::<LibraryRegistry>().unregister(&label);
         error.to_string()
     })?;
+    let snapshot = app.state::<PresentationManager>().snapshot();
+    if let Err(error) = window.set_zoom(snapshot.zoom) {
+        let _ = window.close();
+        app.state::<LibraryRegistry>().unregister(&label);
+        return Err(error.to_string());
+    }
     #[cfg(target_os = "macos")]
     {
         let native_window = window.ns_window().map_err(|error| error.to_string())? as *mut NSWindow;
@@ -270,6 +302,7 @@ pub fn run() {
             reload_themes,
             set_front_matter_expanded,
             set_sidebar_width,
+            set_zoom,
             open_themes_folder
         ])
         .run(tauri::generate_context!())
@@ -301,6 +334,7 @@ mod tests {
             manager.reload(),
             manager.set_front_matter_expanded(true),
             manager.set_sidebar_width(420.0),
+            manager.set_zoom(1.25),
         ] {
             let emitted = RefCell::new(None);
             let returned = complete_presentation_mutation(mutation, |snapshot| {
@@ -320,6 +354,7 @@ mod tests {
                 published.front_matter_expanded
             );
             assert_eq!(returned.sidebar_width, published.sidebar_width);
+            assert_eq!(returned.zoom, published.zoom);
             assert_eq!(returned.diagnostics, published.diagnostics);
             assert_eq!(returned.themes.len(), 3);
             assert_eq!(returned.themes.len(), published.themes.len());

@@ -16,6 +16,7 @@ it('propagates complete newer snapshots to two stores and rejects stale revision
     reload: vi.fn(),
     setFrontMatterExpanded: vi.fn(),
     setSidebarWidth: vi.fn(),
+    setZoom: vi.fn(),
     openFolder: vi.fn(),
     onChanged: vi.fn(async (handler) => {
       handlers.add(handler);
@@ -66,6 +67,7 @@ it('applies a mutation response and its matching event only once', async () => {
     reload: vi.fn(),
     setFrontMatterExpanded: vi.fn(),
     setSidebarWidth: vi.fn(),
+    setZoom: vi.fn(),
     openFolder: vi.fn(),
     onChanged: vi.fn(async (next) => {
       handler = next;
@@ -96,6 +98,7 @@ it('applies a persisted sidebar-width mutation and its matching event only once'
       handler?.(updated);
       return updated;
     }),
+    setZoom: vi.fn(),
     openFolder: vi.fn(),
     onChanged: vi.fn(async (next) => {
       handler = next;
@@ -113,6 +116,38 @@ it('applies a persisted sidebar-width mutation and its matching event only once'
   expect(api.setSidebarWidth).toHaveBeenCalledWith(420);
 });
 
+it('applies zoom mutations and ignores a stale snapshot that follows them', async () => {
+  let handler: ((snapshot: PresentationSnapshot) => void) | undefined;
+  const initial = fixture();
+  const updated = { ...initial, revision: 2, zoom: 1.25 };
+  const api: PresentationApi = {
+    snapshot: vi.fn(async () => initial),
+    select: vi.fn(),
+    reload: vi.fn(),
+    setFrontMatterExpanded: vi.fn(),
+    setSidebarWidth: vi.fn(),
+    setZoom: vi.fn(async () => {
+      handler?.(updated);
+      return updated;
+    }),
+    openFolder: vi.fn(),
+    onChanged: vi.fn(async (next) => {
+      handler = next;
+      return () => undefined;
+    })
+  };
+  const applied = vi.fn();
+  const store = new PresentationStore(api, applied);
+
+  await store.load();
+  await store.setZoom(1.25);
+  handler?.({ ...initial, revision: 1, zoom: 0.9 });
+
+  expect(api.setZoom).toHaveBeenCalledWith(1.25);
+  expect(store.snapshot?.zoom).toBe(1.25);
+  expect(applied).toHaveBeenCalledTimes(2);
+});
+
 it('records mutation failures without replacing the applied snapshot', async () => {
   const initial = fixture();
   const api: PresentationApi = {
@@ -121,6 +156,7 @@ it('records mutation failures without replacing the applied snapshot', async () 
     reload: vi.fn(),
     setFrontMatterExpanded: vi.fn(),
     setSidebarWidth: vi.fn(),
+    setZoom: vi.fn(),
     openFolder: vi.fn(),
     onChanged: vi.fn(async () => () => undefined)
   };
@@ -144,6 +180,7 @@ it('subscribes once and stops applying events after disposal', async () => {
     reload: vi.fn(),
     setFrontMatterExpanded: vi.fn(),
     setSidebarWidth: vi.fn(),
+    setZoom: vi.fn(),
     openFolder: vi.fn(),
     onChanged: vi.fn(async (next) => {
       handler = next;

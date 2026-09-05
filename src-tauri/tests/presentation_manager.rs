@@ -2,7 +2,7 @@ use std::{fs, path::Path};
 
 use mdhere_lib::{
     presentation::PresentationManager,
-    themes::{PREFERENCES_SCHEMA_VERSION, ThemePreferences},
+    themes::{DEFAULT_ZOOM, PREFERENCES_SCHEMA_VERSION, ThemePreferences},
 };
 use tempfile::TempDir;
 
@@ -51,6 +51,36 @@ fn defaults_new_preferences_and_reads_legacy_preferences() {
     assert_eq!(snapshot.selected.manifest.id, "mdhere-dark");
     assert!(!snapshot.front_matter_expanded);
     assert_eq!(snapshot.sidebar_width, 304.0);
+    assert_eq!(snapshot.zoom, DEFAULT_ZOOM);
+}
+
+#[test]
+fn persists_valid_zoom_levels_rejects_other_values_and_reloads_the_saved_level() {
+    let (root, builtins, users, manager) = manager();
+    let preferences = root.path().join("preferences.json");
+
+    for zoom in [0.8, 0.9, 1.0, 1.1, 1.25, 1.5, 1.75, 2.0] {
+        let snapshot = manager.set_zoom(zoom).unwrap();
+        assert_eq!(snapshot.zoom, zoom);
+        assert_eq!(ThemePreferences::read(&preferences).unwrap().zoom, zoom);
+    }
+    for invalid in [0.0, 0.81, 2.01, f64::NAN, f64::INFINITY] {
+        assert!(manager.set_zoom(invalid).is_err());
+    }
+    assert_eq!(manager.snapshot().zoom, 2.0);
+
+    let restarted =
+        PresentationManager::load(builtins.path(), users.path(), preferences.clone()).unwrap();
+    assert_eq!(restarted.snapshot().zoom, 2.0);
+
+    fs::write(
+        &preferences,
+        r#"{"schemaVersion":1,"themeId":"mdhere-dark","zoom":1.2}"#,
+    )
+    .unwrap();
+    let reloaded = restarted.reload().unwrap();
+    assert_eq!(reloaded.selected.manifest.id, "mdhere-dark");
+    assert_eq!(reloaded.zoom, DEFAULT_ZOOM);
 }
 
 #[test]
@@ -86,6 +116,7 @@ fn writes_complete_preferences_for_both_mutation_directions() {
             theme_id: "mdhere-dark".into(),
             front_matter_expanded: true,
             sidebar_width: 420.0,
+            zoom: DEFAULT_ZOOM,
         }
     );
 
@@ -98,6 +129,7 @@ fn writes_complete_preferences_for_both_mutation_directions() {
             theme_id: "mdhere-light".into(),
             front_matter_expanded: false,
             sidebar_width: 420.0,
+            zoom: DEFAULT_ZOOM,
         }
     );
     assert!(!root.path().join("preferences.tmp").exists());
@@ -114,6 +146,7 @@ fn malformed_preferences_fall_back_with_a_diagnostic() {
     assert_eq!(snapshot.selected.manifest.id, "mdhere-light");
     assert!(!snapshot.front_matter_expanded);
     assert_eq!(snapshot.sidebar_width, 304.0);
+    assert_eq!(snapshot.zoom, DEFAULT_ZOOM);
     assert!(
         snapshot
             .diagnostics
@@ -142,10 +175,12 @@ fn failed_writes_do_not_change_memory_or_publish_a_temporary_file() {
     assert!(manager.select_theme("mdhere-dark").is_err());
     assert!(manager.set_front_matter_expanded(true).is_err());
     assert!(manager.set_sidebar_width(420.0).is_err());
+    assert!(manager.set_zoom(1.25).is_err());
     let after = manager.snapshot();
     assert_eq!(after.revision, before.revision);
     assert_eq!(after.selected.manifest.id, before.selected.manifest.id);
     assert_eq!(after.front_matter_expanded, before.front_matter_expanded);
+    assert_eq!(after.zoom, before.zoom);
     assert!(!blocked.join("preferences.tmp").exists());
 }
 
@@ -157,6 +192,7 @@ fn reconstructs_preferences_and_reselects_a_repaired_saved_package() {
     manager.select_theme("sea").unwrap();
     manager.set_front_matter_expanded(true).unwrap();
     manager.set_sidebar_width(420.0).unwrap();
+    manager.set_zoom(1.5).unwrap();
 
     let restarted = PresentationManager::load(
         builtins.path(),
@@ -168,6 +204,7 @@ fn reconstructs_preferences_and_reselects_a_repaired_saved_package() {
     assert_eq!(snapshot.selected.manifest.id, "sea");
     assert!(snapshot.front_matter_expanded);
     assert_eq!(snapshot.sidebar_width, 420.0);
+    assert_eq!(snapshot.zoom, 1.5);
 
     fs::write(users.path().join("sea/theme.json"), "{").unwrap();
     let snapshot = restarted.reload().unwrap();

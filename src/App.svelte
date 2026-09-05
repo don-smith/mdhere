@@ -18,7 +18,7 @@
   } from './lib/presentation/presentation-fixture';
   import type { PresentationSnapshot } from './lib/themes/types';
   import { KeyboardController } from './lib/keyboard/controller';
-  import type { Pane } from './lib/keyboard/types';
+  import type { KeyboardState, Pane } from './lib/keyboard/types';
   import { InMemoryLibraryClient } from './lib/in-memory-library-client';
   import { filterTree } from './lib/tree/filter-tree';
   import type { LibraryClient } from './lib/library-client';
@@ -169,13 +169,14 @@
   const SIDEBAR_MAX_WIDTH = 560;
   const SIDEBAR_KEYBOARD_STEP = 16;
   const COLLAPSED_SIDEBAR_WIDTH = 52;
+  const ZOOM_LEVELS = [0.8, 0.9, 1, 1.1, 1.25, 1.5, 1.75, 2] as const;
   let deskSidebarWidth = $derived(sidebarCollapsed ? COLLAPSED_SIDEBAR_WIDTH : sidebarWidth);
   interface KeyboardTarget {
     focus(): void;
     run: Function;
   }
 
-  let activePane = $state<Pane>('tree');
+  let keyboardState = $state<KeyboardState>({ pane: 'tree' });
   let helpOpen = $state(false);
   const keyboard = new KeyboardController();
   let documentTree = $state<KeyboardTarget>();
@@ -298,17 +299,16 @@
       filterInput?.select();
       return;
     }
-    const target = event.target as HTMLElement | null;
+    const target = event.target instanceof HTMLElement ? event.target : null;
     if (target === filterInput && event.key === 'Escape') {
       event.preventDefault();
       if (filterQuery) filterQuery = '';
       else {
-        activePane = 'tree';
+        keyboardState = { ...keyboardState, pane: 'tree' };
         documentTree?.focus();
       }
       return;
     }
-    if (event.altKey || event.ctrlKey || event.metaKey) return;
     const treeTarget = target?.closest('[role="treeitem"], [role="tree"]');
     const eventPath = event.composedPath();
     if (eventPath.some((entry) => entry instanceof HTMLElement && entry.tagName === 'SUMMARY'))
@@ -322,10 +322,13 @@
       target?.closest('button, input, textarea, select, [role="dialog"]')
     )
       return;
+    if (handleZoomShortcut(event)) return;
+    if (event.altKey || event.ctrlKey || event.metaKey) return;
 
-    const pane: Pane = treeTarget ? 'tree' : readerTarget ? 'reader' : activePane;
-    const result = keyboard.transition({ pane }, event.key);
-    activePane = result.state.pane;
+    const pane: Pane = treeTarget ? 'tree' : readerTarget ? 'reader' : keyboardState.pane;
+    keyboardState = { ...keyboardState, pane };
+    const result = keyboard.transition(keyboardState, event.key);
+    keyboardState = result.state;
     if (!result.command) return;
     event.preventDefault();
     if (result.command.kind === 'toggle-help') {
@@ -339,6 +342,26 @@
     } else {
       documentTree?.run(result.command);
     }
+  }
+
+  function handleZoomShortcut(event: KeyboardEvent): boolean {
+    if (!presentation || !presentationStore || event.altKey) return false;
+    const macOS = navigator.platform.toLowerCase().includes('mac');
+    const platformModifier = macOS
+      ? event.metaKey && !event.ctrlKey
+      : event.ctrlKey && !event.metaKey;
+    if (!platformModifier || !['=', '+', '-', '0'].includes(event.key)) return false;
+
+    const currentIndex = ZOOM_LEVELS.indexOf(presentation.zoom as (typeof ZOOM_LEVELS)[number]);
+    if (currentIndex < 0) return false;
+    const nextIndex =
+      event.key === '-'
+        ? Math.max(0, currentIndex - 1)
+        : Math.min(ZOOM_LEVELS.length - 1, currentIndex + 1);
+    const zoom = event.key === '0' ? 1 : ZOOM_LEVELS[nextIndex]!;
+    event.preventDefault();
+    void presentationStore.setZoom(zoom);
+    return true;
   }
 
   async function selectTheme(themeId: string) {

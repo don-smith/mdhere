@@ -16,6 +16,12 @@ export class KeyboardController {
     if (key === 'Escape' && state.pane === 'reader') {
       return { state: { pane: 'tree' }, command: { kind: 'focus-tree' } };
     }
+    if (key === 'J' || key === 'K') {
+      return {
+        state: { ...state, pending: undefined },
+        command: { kind: 'scroll-reader', intent: key === 'J' ? 'line-down' : 'line-up' }
+      };
+    }
     if (key === 'g') {
       if (state.pending === 'g') {
         return this.withPaneCommand(

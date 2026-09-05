@@ -26,6 +26,65 @@ test('supports keyboard-only tree navigation, pane switching, and shortcut help'
   await expect(document).toBeFocused();
 });
 
+test('keeps reader chord state across events and reaches both document boundaries', async ({
+  page
+}) => {
+  await page.setViewportSize({ width: 1000, height: 360 });
+  await page.goto('/');
+
+  const document = page.getByRole('treeitem', { name: 'Welcome.md' });
+  await document.click();
+  const reader = page.getByTestId('reader');
+  await expect(reader.locator('h1')).toHaveText('Welcome');
+  await reader.focus();
+
+  await reader.evaluate((element) => {
+    element.scrollTop = element.scrollHeight;
+  });
+  await expect.poll(() => reader.evaluate((element) => element.scrollTop)).toBeGreaterThan(0);
+  await page.keyboard.press('g');
+  await page.keyboard.press('g');
+  await expect.poll(() => reader.evaluate((element) => element.scrollTop)).toBe(0);
+
+  await page.keyboard.press('Shift+G');
+  await expect.poll(() => reader.evaluate((element) => element.scrollTop)).toBeGreaterThan(0);
+});
+
+test('scrolls the reader with uppercase tree commands without moving tree state', async ({
+  page
+}) => {
+  await page.setViewportSize({ width: 1000, height: 360 });
+  await page.goto('/');
+
+  const folder = page.getByRole('treeitem', { name: 'guides' });
+  const document = page.getByRole('treeitem', { name: 'Welcome.md' });
+  await document.click();
+  const reader = page.getByTestId('reader');
+  await expect(reader.locator('h1')).toHaveText('Welcome');
+  await reader.evaluate((element) => {
+    element.scrollTop = 0;
+  });
+
+  await document.focus();
+  await page.keyboard.press('Shift+J');
+  await expect.poll(() => reader.evaluate((element) => element.scrollTop)).toBeGreaterThan(0);
+  await expect(document).toBeFocused();
+  await expect(document).toHaveAttribute('aria-selected', 'true');
+  await page.keyboard.press('Shift+K');
+  await expect.poll(() => reader.evaluate((element) => element.scrollTop)).toBe(0);
+  await expect(document).toBeFocused();
+  await expect(document).toHaveAttribute('aria-selected', 'true');
+
+  await page.keyboard.press('k');
+  await expect(folder).toBeFocused();
+  await page.keyboard.press('l');
+  await expect(document).toBeFocused();
+  await page.keyboard.press('k');
+  await expect(folder).toBeFocused();
+  await page.keyboard.press('j');
+  await expect(document).toBeFocused();
+});
+
 test('filters the local tree with Command-K and restores tree focus on Escape', async ({
   page
 }) => {

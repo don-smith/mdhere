@@ -23,6 +23,10 @@ fn production_windows_are_created_by_the_coordinator_not_static_config() {
     let capabilities: Value =
         serde_json::from_str(include_str!("../capabilities/default.json")).unwrap();
     assert_eq!(capabilities["windows"], serde_json::json!(["mdhere-*"]));
+    assert_eq!(
+        capabilities["permissions"],
+        serde_json::json!(["core:default"])
+    );
 
     let app_source = include_str!("../src/lib.rs");
     assert!(!app_source.contains("blocking_pick_folder"));
@@ -34,6 +38,9 @@ fn production_windows_are_created_by_the_coordinator_not_static_config() {
     assert!(app_source.contains("setBackgroundColor"));
     assert!(!app_source.contains(".transparent(true)"));
     assert!(!app_source.contains(".effects("));
+    assert!(!app_source.contains("zoom_hotkeys_enabled"));
+    assert!(app_source.contains("window.set_zoom(snapshot.zoom)"));
+    assert!(app_source.contains("app.webview_windows()"));
     let manifest = include_str!("../Cargo.toml");
     assert!(manifest.contains("objc2-app-kit"));
     assert_eq!(

@@ -39,4 +39,5 @@ export interface PresentationSnapshot {
   diagnostics: string[];
   frontMatterExpanded: boolean;
   sidebarWidth: number;
+  zoom: number;
 }
