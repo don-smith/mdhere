@@ -69,11 +69,10 @@ table td {
 }
 
 .task-list-item {
-  display: flex;
-  align-items: baseline;
-  gap: 0.5rem;
+  display: list-item;
 }
 
-input[type='checkbox'] {
-  flex: none;
+.task-list-item input[type='checkbox'] {
+  margin-inline-end: 0.5rem;
+  vertical-align: baseline;
 }

@@ -164,6 +164,32 @@ test('rerenders visible Mermaid diagrams with the selected reader theme', async 
   expect(fieldNotesStyle).toContain('#65705e');
 });
 
+test('keeps inline code inline inside task-list items', async ({ page }) => {
+  await page.goto('/');
+  await page.getByRole('treeitem', { name: 'Welcome.md' }).click();
+
+  const reader = page.getByTestId('reader');
+  const metrics = await reader.evaluate((element) => {
+    const article = element.shadowRoot?.querySelector<HTMLElement>('article.reader-content');
+    if (!article) throw new Error('Expected reader article');
+    article.insertAdjacentHTML(
+      'beforeend',
+      '<ul class="contains-task-list"><li class="task-list-item" data-task-code><input type="checkbox"> Manual check with <code>pnpm verify</code> after.</li></ul>'
+    );
+    const item = article.querySelector<HTMLElement>('[data-task-code]');
+    const code = item?.querySelector<HTMLElement>('code');
+    if (!item || !code) throw new Error('Expected task-list inline code');
+    const itemBox = item.getBoundingClientRect();
+    const codeBox = code.getBoundingClientRect();
+    return {
+      codeDisplay: getComputedStyle(code).display,
+      codeFitsWithinItem: codeBox.width < itemBox.width
+    };
+  });
+
+  expect(metrics).toEqual({ codeDisplay: 'inline', codeFitsWithinItem: true });
+});
+
 test('keeps inline code whole while prose and fenced code retain their wrapping rules', async ({
   page
 }) => {
