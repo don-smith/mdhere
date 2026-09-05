@@ -8,6 +8,9 @@ cat > "$app/Contents/Info.plist" <<'PLIST'
 <?xml version="1.0" encoding="UTF-8"?>
 <plist version="1.0"><dict>
 <key>CFBundleIdentifier</key><string>dev.mdhere.app</string>
+<key>CFBundleName</key><string>mdhere</string>
+<key>CFBundleShortVersionString</key><string>0.1.0</string>
+<key>CFBundleVersion</key><string>0.1.0</string>
 <key>LSMinimumSystemVersion</key><string>13.0</string>
 <key>CFBundleExecutable</key><string>mdhere</string>
 </dict></plist>
@@ -37,6 +40,22 @@ mkdir -p "$app/Contents/Resources/licenses/fonts"
 cp THIRD_PARTY_LICENSES.md "$app/Contents/Resources/licenses/THIRD_PARTY_LICENSES.md"
 cp src/assets/fonts/inventory.json src/assets/fonts/LICENSE-Source-Sans-3.md src/assets/fonts/LICENSE-Source-Serif-4.md "$app/Contents/Resources/licenses/fonts/"
 pnpm verify:bundle -- "$app"
+
+renamed="$root/not-mdhere.app"
+mv "$app" "$renamed"
+if pnpm verify:bundle -- "$renamed"; then
+  echo 'verify:bundle accepted an incorrectly named application bundle' >&2
+  exit 1
+fi
+mv "$renamed" "$app"
+
+cp "$app/Contents/Info.plist" "$root/Info.plist"
+perl -0pi -e 's/<string>0\.1\.0<\//<string>9.9.9<\//g' "$app/Contents/Info.plist"
+if pnpm verify:bundle -- "$app"; then
+  echo 'verify:bundle accepted stale application version metadata' >&2
+  exit 1
+fi
+cp "$root/Info.plist" "$app/Contents/Info.plist"
 
 printf '\nstale\n' >> "$app/Contents/Resources/licenses/fonts/LICENSE-Source-Sans-3.md"
 if pnpm verify:bundle -- "$app"; then

@@ -1,10 +1,11 @@
 #!/usr/bin/env node
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
-import { join, resolve } from 'node:path';
+import { basename, join, resolve } from 'node:path';
 
 import { missingReaderContract } from './reader-theme-contract.mjs';
 
 const root = resolve(import.meta.dirname, '..');
+const packageVersion = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8')).version;
 const bundledThemes = ['mdhere-light', 'mdhere-dark', 'field-notes'];
 const shellTokens = [
   'background',
@@ -124,12 +125,20 @@ function verifyFontLicenses(path) {
 }
 
 function verifyBundle(path) {
-  if (!path.endsWith('.app') || !existsSync(path) || !statSync(path).isDirectory()) {
-    throw new Error(`Expected a macOS .app bundle: ${path}`);
+  if (basename(path) !== 'mdhere.app' || !existsSync(path) || !statSync(path).isDirectory()) {
+    throw new Error(`Expected a macOS bundle named mdhere.app: ${path}`);
   }
   const plist = readFileSync(join(path, 'Contents', 'Info.plist'), 'utf8');
   if (plistValue(plist, 'CFBundleIdentifier') !== 'dev.mdhere.app') {
     throw new Error('Bundle identifier must be dev.mdhere.app');
+  }
+  if (plistValue(plist, 'CFBundleName') !== 'mdhere') {
+    throw new Error('Bundle name must be mdhere');
+  }
+  for (const key of ['CFBundleShortVersionString', 'CFBundleVersion']) {
+    if (plistValue(plist, key) !== packageVersion) {
+      throw new Error(`${key} must match package version ${packageVersion}`);
+    }
   }
   if (plistValue(plist, 'LSMinimumSystemVersion') !== '13.0') {
     throw new Error('Bundle minimum macOS version must be 13.0');

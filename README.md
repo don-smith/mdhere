@@ -33,7 +33,33 @@ pnpm build
 pnpm tauri build --bundles app
 ```
 
-`pnpm verify` runs formatting, linting, TypeScript/Svelte checks, native checks, the production-license policy, and all automated tests. `pnpm verify:bundle -- "<path>/mdhere.app"` checks a built app’s identity, macOS minimum, bundled themes, and source capability policy.
+`pnpm verify` runs formatting, linting, TypeScript/Svelte checks, native checks, the production-license policy, and all automated tests. `pnpm verify:bundle -- "<path>/mdhere.app"` checks a built app’s name, identity, version, macOS minimum, bundled themes, font notices, and source capability policy.
+
+## Prepare release metadata
+
+`package.json` is the application version authority. Prepare a version with the repository command so the package, Cargo manifest, and Cargo lock metadata stay aligned:
+
+```sh
+pnpm version:prepare -- 0.2.0 --dry-run
+pnpm version:prepare -- 0.2.0
+```
+
+Review and commit those metadata changes before creating `v0.2.0`. CI must verify committed metadata; it must not prepare a version. After fetching `origin/main` and creating the tag locally, its preflight is:
+
+```sh
+git fetch origin main
+pnpm release:preflight -- refs/tags/v0.2.0
+```
+
+The first release matrix uses only these explicit Tauri build arguments:
+
+| Platform        | Command               | Expected bundle               |
+| --------------- | --------------------- | ----------------------------- |
+| macOS universal | `pnpm bundle:macos`   | `mdhere_0.2.0_universal.dmg`  |
+| Linux x86-64    | `pnpm bundle:linux`   | `mdhere_0.2.0_amd64.AppImage` |
+| Windows x86-64  | `pnpm bundle:windows` | `mdhere_0.2.0_x64-setup.exe`  |
+
+Run each cross-platform command on its corresponding operating system. Release workflow and signing instructions are added separately; these commands do not publish or upload artifacts.
 
 ## Use the app
 
