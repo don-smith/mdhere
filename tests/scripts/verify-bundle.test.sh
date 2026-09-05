@@ -3,14 +3,15 @@ set -eu
 root=$(mktemp -d)
 trap 'rm -rf "$root"' EXIT
 app="$root/mdhere.app"
+version=$(node -p "require('./package.json').version")
 mkdir -p "$app/Contents/MacOS" "$app/Contents/Resources/themes"
-cat > "$app/Contents/Info.plist" <<'PLIST'
+cat > "$app/Contents/Info.plist" <<PLIST
 <?xml version="1.0" encoding="UTF-8"?>
 <plist version="1.0"><dict>
 <key>CFBundleIdentifier</key><string>dev.mdhere.app</string>
 <key>CFBundleName</key><string>mdhere</string>
-<key>CFBundleShortVersionString</key><string>0.1.0</string>
-<key>CFBundleVersion</key><string>0.1.0</string>
+<key>CFBundleShortVersionString</key><string>$version</string>
+<key>CFBundleVersion</key><string>$version</string>
 <key>LSMinimumSystemVersion</key><string>13.0</string>
 <key>CFBundleExecutable</key><string>mdhere</string>
 </dict></plist>
@@ -50,7 +51,7 @@ fi
 mv "$renamed" "$app"
 
 cp "$app/Contents/Info.plist" "$root/Info.plist"
-perl -0pi -e 's/<string>0\.1\.0<\//<string>9.9.9<\//g' "$app/Contents/Info.plist"
+VERSION="$version" perl -0pi -e 's/<string>\Q$ENV{VERSION}\E<\//<string>9.9.9<\//g' "$app/Contents/Info.plist"
 if pnpm verify:bundle -- "$app"; then
   echo 'verify:bundle accepted stale application version metadata' >&2
   exit 1
