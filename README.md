@@ -35,7 +35,7 @@ pnpm tauri build --bundles app
 
 `pnpm verify` runs formatting, linting, TypeScript/Svelte checks, native checks, the production-license policy, and all automated tests. `pnpm verify:bundle -- "<path>/mdhere.app"` checks a built app’s name, identity, version, macOS minimum, bundled themes, font notices, and source capability policy.
 
-## Prepare release metadata
+## Release
 
 `package.json` is the application version authority. Prepare a version with the repository command so the package, Cargo manifest, and Cargo lock metadata stay aligned:
 
@@ -44,22 +44,59 @@ pnpm version:prepare -- 0.2.0 --dry-run
 pnpm version:prepare -- 0.2.0
 ```
 
-Review and commit those metadata changes before creating `v0.2.0`. CI must verify committed metadata; it must not prepare a version. After fetching `origin/main` and creating the tag locally, its preflight is:
+Review and commit those metadata changes on `main`; CI verifies committed metadata and never prepares a version. After the commit is on `origin/main`, create and preflight the exact annotated version tag before pushing it:
 
 ```sh
 git fetch origin main
+git tag -a v0.2.0 -m "mdhere 0.2.0"
 pnpm release:preflight -- refs/tags/v0.2.0
+git push origin v0.2.0
 ```
 
-The first release matrix uses only these explicit Tauri build arguments:
+Do not push a tag until its commit is present on `origin/main`. The preflight rejects noncanonical tags, version mismatches, inconsistent Cargo metadata, and tagged commits outside `origin/main`.
 
-| Platform        | Command               | Expected bundle               |
+The single [Verify and release workflow](.github/workflows/release.yml) runs `pnpm verify` for pull requests to `main`, pushes to `main`, and `v*.*.*` tag pushes. Ordinary pull requests and `main` pushes cannot create release state. A valid tag is serialized by tag name and follows this transaction:
+
+1. verify the repository and run tag/version/main-ancestry preflight;
+2. select the Apple signing mode, then create or reuse a draft release with generated notes;
+3. build all three platforms with a fail-fast-disabled matrix and upload to that draft; and
+4. confirm the draft contains exactly the three expected assets before publishing it.
+
+A failed check or build leaves the release as a draft and prevents publication. Use **Re-run failed jobs** in GitHub Actions after correcting a transient failure. A whole-workflow rerun reuses the existing draft, and the pinned Tauri action replaces same-named draft assets. Never publish a retained draft manually unless all three expected assets and every required job have been independently verified.
+
+Release jobs request only the permissions they need: verification has `contents: read`; draft creation, asset upload, and final publication have `contents: write`. The repository Actions token therefore needs permission to create releases, but no personal access token is required.
+
+The release matrix uses only these explicit Tauri build arguments and assets:
+
+| Platform        | Command               | Published asset               |
 | --------------- | --------------------- | ----------------------------- |
 | macOS universal | `pnpm bundle:macos`   | `mdhere_0.2.0_universal.dmg`  |
 | Linux x86-64    | `pnpm bundle:linux`   | `mdhere_0.2.0_amd64.AppImage` |
 | Windows x86-64  | `pnpm bundle:windows` | `mdhere_0.2.0_x64-setup.exe`  |
 
-Run each cross-platform command on its corresponding operating system. Release workflow and signing instructions are added separately; these commands do not publish or upload artifacts.
+Run a cross-platform command locally only on its corresponding operating system. These package commands build but do not publish or upload artifacts. Updater JSON, extra architectures, and additional installer formats are intentionally disabled.
+
+### Apple signing modes
+
+The workflow selects one of two macOS modes without printing secret values:
+
+- **Ad-hoc:** leave all six Apple secrets absent. The build sets `APPLE_SIGNING_IDENTITY=-`; it is not Developer ID signed or notarized.
+- **Developer ID:** configure all six secrets. The workflow imports the `.p12` into a temporary keychain, derives its `Developer ID Application` identity, signs, notarizes, and removes the certificate and keychain even after failure.
+
+A partial secret set is a configuration error. The preflight fails before draft creation and reports only the missing variable names:
+
+| Secret                       | Value                                          |
+| ---------------------------- | ---------------------------------------------- |
+| `APPLE_CERTIFICATE`          | Base64-encoded Developer ID Application `.p12` |
+| `APPLE_CERTIFICATE_PASSWORD` | Password used when exporting that `.p12`       |
+| `KEYCHAIN_PASSWORD`          | Random password for the temporary CI keychain  |
+| `APPLE_ID`                   | Apple developer account email                  |
+| `APPLE_PASSWORD`             | App-specific password for that Apple ID        |
+| `APPLE_TEAM_ID`              | Apple Developer team identifier                |
+
+An ad-hoc downloaded DMG will initially be blocked by Gatekeeper. Drag mdhere to Applications, attempt to open it once, then use **System Settings → Privacy & Security → Open Anyway** and confirm the prompt. Do not describe an ad-hoc build as Apple signed or notarized.
+
+Keep this warning until a tagged GitHub-hosted run uses `developer-id` mode, its macOS job reports successful signing and notarization, and the DMG downloaded from that release passes a real Gatekeeper launch check. Only after all of that evidence exists should the ad-hoc warning be removed in a separate documentation change.
 
 ## Use the app
 
@@ -115,4 +152,4 @@ mdhere includes light and dark themes, remembers the global choice, and supports
 
 ## v1 exclusions
 
-mdhere does not edit files, watch for filesystem changes, search, synchronize with Resonance, load remote content, support raw HTML or SVG, or ship signing, notarization, auto-update, App Store, Windows, or Linux distribution.
+mdhere does not edit files, watch for filesystem changes, search, synchronize with Resonance, load remote content, support raw HTML or SVG, auto-update, publish through an app store or package manager, or sign Windows and Linux downloads. Developer ID signing and notarization activate only when the complete Apple secret set is configured; otherwise the macOS release is explicitly ad-hoc signed.

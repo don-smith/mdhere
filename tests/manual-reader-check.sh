@@ -131,8 +131,18 @@ PPM
 sips -s format png -Z 240 "$fixture_root/images/cover.ppm" --out "$fixture_root/images/cover.png" >/dev/null
 rm "$fixture_root/images/cover.ppm"
 
-cat <<EOF
+cat <<'EOF'
 Launching mdhere with a temporary manual-check library.
+
+After the first controlled tag run, record the GitHub Actions URL and confirm the earlier pull-request or
+main-push verify run created no release. Confirm the tagged run passed verification and preflight before
+draft creation, all three matrix jobs completed, and final publication exposed exactly one universal DMG,
+one x86-64 AppImage, and one x86-64 NSIS setup executable. Record whether the run selected ad-hoc or
+Developer ID mode. Download the published DMG from GitHub rather than using a local build. In ad-hoc mode,
+confirm the release notice is present and approve the first blocked launch through System Settings →
+Privacy & Security → Open Anyway. If Developer ID mode is configured later, retain the warning until a
+tagged run reports successful signing and notarization and its downloaded DMG passes Gatekeeper. When
+Linux or Windows target machines are available, record recommended installation smoke-test results.
 
 Check that valid metadata starts collapsed and renders tags and nested values. Confirm Malformed.md
 shows an escaped warning, Over-limit.md reports truncated source, and Unclosed.md remains ordinary Markdown.
