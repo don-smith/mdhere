@@ -36,6 +36,10 @@ test('keeps reader chord state across events and reaches both document boundarie
   await document.click();
   const reader = page.getByTestId('reader');
   await expect(reader.locator('h1')).toHaveText('Reading a local field guide');
+  await expect(reader.locator('.mdhere-mermaid-diagram svg')).toBeVisible();
+  await expect
+    .poll(() => reader.evaluate((element) => element.scrollHeight - element.clientHeight))
+    .toBeGreaterThan(0);
   await reader.focus();
 
   await reader.evaluate((element) => {
@@ -47,9 +51,11 @@ test('keeps reader chord state across events and reaches both document boundarie
   expect(await reader.evaluate((element) => element.scrollTop)).toBe(0);
 
   await page.keyboard.press('Shift+G');
-  expect(await reader.evaluate((element) => element.scrollTop)).toBe(
-    await reader.evaluate((element) => element.scrollHeight - element.clientHeight)
-  );
+  const bottom = await reader.evaluate((element) => ({
+    maximum: element.scrollHeight - element.clientHeight,
+    position: element.scrollTop
+  }));
+  expect(bottom.position).toBe(bottom.maximum);
 });
 
 test('scrolls the reader with uppercase tree commands without moving tree state', async ({
