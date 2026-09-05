@@ -44,10 +44,12 @@ test('keeps reader chord state across events and reaches both document boundarie
   await expect.poll(() => reader.evaluate((element) => element.scrollTop)).toBeGreaterThan(0);
   await page.keyboard.press('g');
   await page.keyboard.press('g');
-  await expect.poll(() => reader.evaluate((element) => element.scrollTop)).toBe(0);
+  expect(await reader.evaluate((element) => element.scrollTop)).toBe(0);
 
   await page.keyboard.press('Shift+G');
-  await expect.poll(() => reader.evaluate((element) => element.scrollTop)).toBeGreaterThan(0);
+  expect(await reader.evaluate((element) => element.scrollTop)).toBe(
+    await reader.evaluate((element) => element.scrollHeight - element.clientHeight)
+  );
 });
 
 test('scrolls the reader with uppercase tree commands without moving tree state', async ({

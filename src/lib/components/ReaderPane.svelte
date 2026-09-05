@@ -257,14 +257,16 @@
 
   export function run(command: KeyboardCommand) {
     if (command.kind !== 'scroll-reader') return;
+    if (command.intent === 'top' || command.intent === 'bottom') {
+      host.scrollTo({ top: command.intent === 'top' ? 0 : host.scrollHeight });
+      return;
+    }
     const distance = Math.max(64, host.clientHeight * 0.45);
     const movement = {
       'line-up': -48,
       'line-down': 48,
       'page-up': -distance,
-      'page-down': distance,
-      top: -host.scrollTop,
-      bottom: host.scrollHeight
+      'page-down': distance
     }[command.intent];
     host.scrollBy({ top: movement, behavior: 'smooth' });
   }
