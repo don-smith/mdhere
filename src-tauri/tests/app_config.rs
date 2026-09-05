@@ -16,7 +16,16 @@ fn production_windows_are_created_by_the_coordinator_not_static_config() {
         config["bundle"]["icon"],
         serde_json::json!(["icons/icon.icns"])
     );
-    assert_eq!(config["bundle"]["resources"], serde_json::json!(["themes"]));
+    assert_eq!(
+        config["bundle"]["resources"],
+        serde_json::json!({
+            "themes": "themes",
+            "../THIRD_PARTY_LICENSES.md": "licenses/THIRD_PARTY_LICENSES.md",
+            "../src/assets/fonts/inventory.json": "licenses/fonts/inventory.json",
+            "../src/assets/fonts/LICENSE-Source-Sans-3.md": "licenses/fonts/LICENSE-Source-Sans-3.md",
+            "../src/assets/fonts/LICENSE-Source-Serif-4.md": "licenses/fonts/LICENSE-Source-Serif-4.md"
+        })
+    );
     assert_eq!(config["bundle"]["macOS"]["minimumSystemVersion"], "13.0");
     assert_eq!(config["app"]["macOSPrivateApi"], true);
 

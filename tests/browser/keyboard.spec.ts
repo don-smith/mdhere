@@ -12,7 +12,7 @@ test('supports keyboard-only tree navigation, pane switching, and shortcut help'
   const document = page.getByRole('treeitem', { name: 'Welcome.md' });
   await expect(document).toBeFocused();
   await page.keyboard.press('Enter');
-  await expect(page.getByTestId('reader').locator('h1')).toHaveText('Welcome');
+  await expect(page.getByTestId('reader').locator('h1')).toHaveText('Reading a local field guide');
 
   await page.keyboard.press('Tab');
   await expect(page.getByTestId('reader')).toBeFocused();
@@ -35,7 +35,7 @@ test('keeps reader chord state across events and reaches both document boundarie
   const document = page.getByRole('treeitem', { name: 'Welcome.md' });
   await document.click();
   const reader = page.getByTestId('reader');
-  await expect(reader.locator('h1')).toHaveText('Welcome');
+  await expect(reader.locator('h1')).toHaveText('Reading a local field guide');
   await reader.focus();
 
   await reader.evaluate((element) => {
@@ -60,7 +60,7 @@ test('scrolls the reader with uppercase tree commands without moving tree state'
   const document = page.getByRole('treeitem', { name: 'Welcome.md' });
   await document.click();
   const reader = page.getByTestId('reader');
-  await expect(reader.locator('h1')).toHaveText('Welcome');
+  await expect(reader.locator('h1')).toHaveText('Reading a local field guide');
   await reader.evaluate((element) => {
     element.scrollTop = 0;
   });
@@ -105,7 +105,7 @@ test('filters the local tree with Command-K and restores tree focus on Escape', 
   await page.keyboard.press('ArrowDown');
   await expect(document).toBeFocused();
   await page.keyboard.press('Enter');
-  await expect(page.getByTestId('reader').locator('h1')).toHaveText('Welcome');
+  await expect(page.getByTestId('reader').locator('h1')).toHaveText('Reading a local field guide');
 
   await filter.fill('missing');
   await expect(page.getByRole('status')).toHaveText('No matching documents.');

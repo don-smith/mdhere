@@ -8,5 +8,5 @@ test('offers scoped folder and refresh actions without granting webview filesyst
   await expect(page.getByRole('button', { name: 'Refresh' })).toBeVisible();
   await page.getByRole('treeitem', { name: 'Welcome.md' }).click();
   await page.getByRole('button', { name: 'Refresh' }).click();
-  await expect(page.getByTestId('reader').locator('h1')).toHaveText('Welcome');
+  await expect(page.getByTestId('reader').locator('h1')).toHaveText('Reading a local field guide');
 });

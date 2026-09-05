@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 import { execFileSync } from 'node:child_process';
+import { createHash } from 'node:crypto';
 import { readFileSync, writeFileSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { join, resolve } from 'node:path';
 
 const ALLOWED_LICENSES = new Set([
   '0BSD',
@@ -16,7 +17,21 @@ const ALLOWED_LICENSES = new Set([
   'Unlicense',
   'Zlib'
 ]);
-const OUTPUT = resolve(import.meta.dirname, '..', 'THIRD_PARTY_LICENSES.md');
+const ROOT = resolve(import.meta.dirname, '..');
+const OUTPUT = join(ROOT, 'THIRD_PARTY_LICENSES.md');
+const FONT_ROOT = join(ROOT, 'src', 'assets', 'fonts');
+const REQUIRED_FONTS = new Map([
+  ['SourceSans3VF-Italic.woff2', { family: 'Source Sans 3', style: 'italic', revision: '3.052R' }],
+  ['SourceSans3VF-Upright.woff2', { family: 'Source Sans 3', style: 'normal', revision: '3.052R' }],
+  [
+    'SourceSerif4Variable-Italic.woff2',
+    { family: 'Source Serif 4', style: 'italic', revision: '4.005R' }
+  ],
+  [
+    'SourceSerif4Variable-Roman.woff2',
+    { family: 'Source Serif 4', style: 'normal', revision: '4.005R' }
+  ]
+]);
 // khroma 2.1.0 publishes an MIT LICENSE file but omits license metadata from package.json.
 const NPM_LICENSE_OVERRIDES = new Map([['khroma@2.1.0', 'MIT']]);
 
@@ -144,6 +159,56 @@ function rustPackages() {
     }));
 }
 
+function sha256(path) {
+  return `sha256:${createHash('sha256').update(readFileSync(path)).digest('hex')}`;
+}
+
+function fontInventory() {
+  const inventoryPath = join(FONT_ROOT, 'inventory.json');
+  const inventory = JSON.parse(readFileSync(inventoryPath, 'utf8'));
+  if (inventory.schemaVersion !== 1 || !Array.isArray(inventory.fonts)) {
+    throw new Error(`${inventoryPath} must contain schemaVersion 1 and a fonts array`);
+  }
+  if (inventory.fonts.length !== REQUIRED_FONTS.size) {
+    throw new Error(`Expected ${REQUIRED_FONTS.size} vendored font files`);
+  }
+
+  const seen = new Set();
+  for (const font of inventory.fonts) {
+    const expected = REQUIRED_FONTS.get(font.file);
+    if (!expected || seen.has(font.file))
+      throw new Error(`Unexpected font inventory file: ${font.file}`);
+    seen.add(font.file);
+    for (const field of ['family', 'style', 'revision']) {
+      if (font[field] !== expected[field]) {
+        throw new Error(`${font.file} has stale ${field} metadata`);
+      }
+    }
+    if (font.weight !== '200 900' || font.license !== 'OFL-1.1') {
+      throw new Error(`${font.file} must declare variable weight 200 900 and OFL-1.1`);
+    }
+    for (const field of ['repository', 'release', 'sourceArchive', 'sourcePath', 'copyright']) {
+      if (typeof font[field] !== 'string' || !font[field].trim()) {
+        throw new Error(`${font.file} is missing ${field}`);
+      }
+    }
+    const fontPath = join(FONT_ROOT, font.file);
+    const licensePath = join(FONT_ROOT, font.licenseFile);
+    if (sha256(fontPath) !== font.sha256) throw new Error(`${font.file} checksum is stale`);
+    if (sha256(licensePath) !== font.licenseSha256) {
+      throw new Error(`${font.licenseFile} checksum is stale`);
+    }
+    const notice = readFileSync(licensePath, 'utf8');
+    if (
+      !notice.startsWith(font.copyright) ||
+      !notice.includes('SIL OPEN FONT LICENSE Version 1.1')
+    ) {
+      throw new Error(`${font.licenseFile} is missing its exact copyright or OFL-1.1 notice`);
+    }
+  }
+  return inventory.fonts;
+}
+
 function inventory() {
   const packages = [...javascriptPackages(), ...rustPackages()];
   const unique = new Map();
@@ -162,7 +227,7 @@ function inventory() {
   );
 }
 
-function markdown(packages) {
+function markdown(packages, fonts) {
   const headings = ['Ecosystem', 'Package', 'Version', 'SPDX license'];
   const rows = packages.map(({ ecosystem, name, version, license }) => [
     ecosystem,
@@ -185,7 +250,26 @@ function markdown(packages) {
     tableRow(headings),
     tableRow(widths.map((width) => '-'.repeat(width))),
     ...rows.map(tableRow),
-    ''
+    '',
+    '## Bundled font software',
+    '',
+    'The application includes the following unmodified Adobe variable fonts under OFL-1.1. Exact upstream copyright and license notices are distributed in the application bundle under `Contents/Resources/licenses/fonts/`.',
+    '',
+    '| Family | Style | Revision | File | SHA-256 | Upstream release |',
+    '| ------ | ----- | -------- | ---- | ------- | ---------------- |',
+    ...fonts.map(
+      (font) =>
+        `| ${font.family} | ${font.style} | ${font.revision} | \`${font.file}\` | \`${font.sha256.replace('sha256:', '')}\` | [Adobe release](${font.release}) |`
+    ),
+    '',
+    ...[...new Map(fonts.map((font) => [font.family, font])).values()].flatMap((font) => [
+      `### ${font.family}`,
+      '',
+      font.copyright,
+      '',
+      `License: OFL-1.1. Exact notice: \`${font.licenseFile}\` (SHA-256 \`${font.licenseSha256.replace('sha256:', '')}\`).`,
+      ''
+    ])
   ].join('\n');
 }
 
@@ -195,7 +279,7 @@ if (mode !== '--write' && mode !== '--check') {
   process.exitCode = 64;
 } else {
   try {
-    const content = markdown(inventory());
+    const content = markdown(inventory(), fontInventory());
     if (mode === '--write') {
       writeFileSync(OUTPUT, content);
     } else if (readFileSync(OUTPUT, 'utf8') !== content) {

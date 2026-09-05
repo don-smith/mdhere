@@ -18,6 +18,19 @@ describe('MarkdownRenderer', () => {
     expect(rendered.html).not.toContain('href="javascript:');
   });
 
+  it('adapts only already-confined image paths for the browser fixture', async () => {
+    const assetUrl = vi.fn((path: string) => `/fixture-assets/${path}`);
+    const renderer = await MarkdownRenderer.create(assetUrl);
+    const rendered = renderer.render(
+      '![local](images/cover.png) ![remote](https://example.com/cover.png) ![traversal](../../cover.png)',
+      'guides/guide.md'
+    );
+
+    expect(assetUrl).toHaveBeenCalledExactlyOnceWith('guides/images/cover.png');
+    expect(rendered.html).toContain('src="/fixture-assets/guides/images/cover.png"');
+    expect(rendered.html.match(/data-mdhere-image-unavailable="true"/g)).toHaveLength(2);
+  });
+
   it('rewrites local links and images without making the webview navigate', async () => {
     const renderer = await MarkdownRenderer.create();
     const rendered = renderer.render('[next](next.md#Part) ![cover](images/cover.png)', 'guide.md');

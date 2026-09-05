@@ -1,6 +1,14 @@
 # Themes
 
-mdhere includes Paper, Midnight, and Field Notes. Theme selection applies to every open window and is stored in:
+mdhere includes three intentionally distinct reading treatments:
+
+- **Paper** uses Source Serif 4 for calm editorial body text and Source Sans 3 for headings and metadata.
+- **Midnight** uses Source Sans 3 for screen-first dark reading, reserving Source Serif 4 for display headings and quotations.
+- **Field Notes** uses a warmer, stronger Source Serif 4 treatment with squared rules and Source Sans 3 for compact metadata.
+
+Both variable families are bundled locally under OFL-1.1; mdhere never requests a remote font. Their exact Adobe release revisions, checksums, copyrights, and license notices are recorded in `src/assets/fonts/inventory.json`, `THIRD_PARTY_LICENSES.md`, and the packaged application's `Contents/Resources/licenses/` directory.
+
+Theme selection applies to every open window and is stored in:
 
 ```text
 ~/Library/Application Support/dev.mdhere.app/themes
@@ -83,6 +91,8 @@ Unknown fields are ignored. mdhere rejects missing or malformed required fields 
 ## Reader CSS contract
 
 `reader.css` is adopted after mdhere's structural reader CSS. Package CSS owns reader presentation, while mdhere keeps overflow handling, image sizing, table mechanics, focus mechanics, task-list mechanics, and the framed page bounds.
+
+A theme may give prose and headings a narrower measure (the starter uses `68ch`) while allowing tables, fenced code, Mermaid diagrams, and images to use the structural page width. User themes may choose any local system font stack; the Source family names used by the built-ins are not part of the package contract and are not required by the starter.
 
 Use these stable hooks: `:host`, `.reader-page`, `.reader-content`, `.front-matter`, `.front-matter-summary`, `.front-matter-fields`, `.front-matter-field`, `.front-matter-key`, `.front-matter-value`, `.front-matter-map`, `.front-matter-list`, `.front-matter-tags`, `.front-matter-tag`, `.front-matter-warning`, `.mdhere-image-unavailable`, `.shiki`, `.task-list-item`, `.contains-task-list`, plus ordinary Markdown element selectors. Define every listed hook in `reader.css`; selectors may be grouped when they share a rule. The starter stylesheet is a complete readable implementation of this contract.
 

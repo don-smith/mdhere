@@ -454,3 +454,26 @@ This inventory contains production npm packages and normal (non-dev) Cargo depen
 | Cargo     | zlib-rs                       | 0.6.7            | Zlib                                |
 | Cargo     | zmij                          | 1.0.23           | MIT                                 |
 | npm       | zwitch                        | 2.0.4            | MIT                                 |
+
+## Bundled font software
+
+The application includes the following unmodified Adobe variable fonts under OFL-1.1. Exact upstream copyright and license notices are distributed in the application bundle under `Contents/Resources/licenses/fonts/`.
+
+| Family | Style | Revision | File | SHA-256 | Upstream release |
+| ------ | ----- | -------- | ---- | ------- | ---------------- |
+| Source Sans 3 | italic | 3.052R | `SourceSans3VF-Italic.woff2` | `b4959abc0569392f87c6c6ac612f90e3fe0104d283724189b7d8b6f61af347d3` | [Adobe release](https://github.com/adobe-fonts/source-sans/releases/tag/3.052R) |
+| Source Sans 3 | normal | 3.052R | `SourceSans3VF-Upright.woff2` | `5f16566f7a40d39b339ad26be151fa5a1ab1f0c2574c7a2e619765584a1acbd8` | [Adobe release](https://github.com/adobe-fonts/source-sans/releases/tag/3.052R) |
+| Source Serif 4 | italic | 4.005R | `SourceSerif4Variable-Italic.woff2` | `9d28b5749a1ad096a295cb607c521bd1af4cd9979b6f37332daf70143149fb44` | [Adobe release](https://github.com/adobe-fonts/source-serif/releases/tag/4.005R) |
+| Source Serif 4 | normal | 4.005R | `SourceSerif4Variable-Roman.woff2` | `940a76eda1388de39d38c8e7a79bf6ea058a387faee0a9f33c8d25c6ba05e1be` | [Adobe release](https://github.com/adobe-fonts/source-serif/releases/tag/4.005R) |
+
+### Source Sans 3
+
+Copyright 2010-2022 Adobe (http://www.adobe.com/), with Reserved Font Name 'Source'. All Rights Reserved. Source is a trademark of Adobe in the United States and/or other countries.
+
+License: OFL-1.1. Exact notice: `LICENSE-Source-Sans-3.md` (SHA-256 `89ad2c4f66dd29127527493e729c31e731f111cf10faf5774c3db9275ed0c22c`).
+
+### Source Serif 4
+
+Copyright 2014 - 2023 Adobe (http://www.adobe.com/), with Reserved Font Name ‘Source’. All Rights Reserved. Source is a trademark of Adobe in the United States and/or other countries.
+
+License: OFL-1.1. Exact notice: `LICENSE-Source-Serif-4.md` (SHA-256 `75784a295293a8992f5a8d99210566e0064a012e6dab6731305e3787f15896c7`).

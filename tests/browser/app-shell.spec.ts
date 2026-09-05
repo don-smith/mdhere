@@ -31,7 +31,7 @@ test('keeps Mermaid overflow confined to the reader pane', async ({ page }) => {
   await page.getByRole('treeitem', { name: 'Welcome.md' }).click();
 
   const reader = page.getByTestId('reader');
-  await expect(reader.locator('.mdhere-mermaid-diagram svg')).toHaveCount(3);
+  await expect(reader.locator('.mdhere-mermaid-diagram svg')).toHaveCount(4);
   const metrics = await page.evaluate(() => {
     const scrollingElement = document.scrollingElement;
     const navigation = document.querySelector<HTMLElement>('.library-navigation');

@@ -7,7 +7,7 @@
   import type { Theme } from '../themes/types';
   import baseReaderCss from '../markdown/base-reader.css?inline';
   import { mermaidRenderer } from '../markdown/mermaid';
-  import { MarkdownRenderer } from '../markdown/renderer';
+  import { MarkdownRenderer, type AssetUrl } from '../markdown/renderer';
   import type {
     FrontMatter,
     FrontMatterEntry,
@@ -25,6 +25,7 @@
     themeCss?: string;
     theme?: Theme;
     themeAppearance?: 'light' | 'dark';
+    assetUrl?: AssetUrl;
   }
 
   let {
@@ -36,7 +37,8 @@
     onFrontMatterToggle,
     themeCss = '',
     theme,
-    themeAppearance = 'light'
+    themeAppearance = 'light',
+    assetUrl
   }: Props = $props();
   let host: HTMLDivElement;
   let shadow: ShadowRoot | undefined;
@@ -86,7 +88,7 @@
   });
 
   async function loadRenderer() {
-    renderer = await MarkdownRenderer.create();
+    renderer = await MarkdownRenderer.create(assetUrl);
     await renderDocument();
   }
 

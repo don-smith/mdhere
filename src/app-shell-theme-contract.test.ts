@@ -105,8 +105,10 @@ describe('Reading desk shell theme contract', () => {
     );
 
     for (const css of themeCss) {
-      expect(css).toMatch(/\.front-matter\s*\{[\s\S]*?margin-bottom:\s*4rem/);
-      expect(css).toMatch(/\.front-matter-summary\s*\{[\s\S]*?font-weight:\s*normal/);
+      expect(css).toMatch(/\.front-matter\s*\{[\s\S]*?max-inline-size:\s*(?:65|67|70)ch/);
+      expect(css).toMatch(/\.front-matter\s*\{[\s\S]*?margin:\s*0 auto 3(?:\.\d+)?rem/);
+      expect(css).toMatch(/\.front-matter-summary\s*\{[\s\S]*?font-weight:\s*(?:650|700)/);
+      expect(css).toMatch(/\.front-matter-summary\s*\{[\s\S]*?text-transform:\s*uppercase/);
     }
   });
 });

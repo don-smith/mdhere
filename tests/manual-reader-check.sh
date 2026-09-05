@@ -20,10 +20,30 @@ context:
 ---
 # Reader check
 
-~~Strikethrough~~ and “typographic quotes”. Inline code such as `WaitingToSync`, `#general`, and `mdhere --refresh` must stay whole in a narrow reader.
+This longer fixture should read as one plausible field guide rather than a component catalogue. ~~Strikethrough~~ and “typographic quotes” remain visible. Inline code such as `WaitingToSync`, `#general`, and `mdhere --refresh` must stay whole in a narrow reader.
+
+## Field observations
+
+- morning light at the overlook
+- a repaired trail marker
+- notes stored beside their image
+
+### Review route
+
+1. Read once for continuity.
+2. Compare local evidence.
+3. Resize before approval.
+
+#### Work still visible
 
 - [x] completed task
 - [ ] open task
+
+##### Reading desk note
+
+> A useful reader makes structure visible, then gets out of the way.
+
+###### Technical appendix
 
 | Feature | Result |
 | --- | --- |
@@ -60,6 +80,7 @@ flowchart LR; Rejected --> Style; style Rejected fill:#ff0000
 
 ![Local image](images/cover.png)
 ![Missing image](images/missing.png)
+![Unavailable remote image](https://example.com/image.png)
 
 [Jump to second document](Second.md#second-section)
 [Open HTTPS](https://example.com)
@@ -115,10 +136,10 @@ Launching mdhere with a temporary manual-check library.
 
 Check that valid metadata starts collapsed and renders tags and nested values. Confirm Malformed.md
 shows an escaped warning, Over-limit.md reports truncated source, and Unclosed.md remains ordinary Markdown.
-Also check that tables, tasks, strikethrough, typography, code, the valid Mermaid diagrams, and the local image render.
+Also check that all six heading levels, prose, links, ordered and unordered lists, tasks, quotes, tables, strikethrough, typography, code, the valid Mermaid diagrams, and the local image render.
 Confirm the invalid Mermaid source remains visible with a clear reason. In Readme.md, edit `A[Refresh source]`
 to `A[Changed source]`, then use Refresh library and confirm the updated diagram appears. Repeat the diagram
-legibility check in Paper, Midnight, and Field Notes without reopening the document or library. In Midnight, check
+legibility check in Paper, Midnight, and Field Notes without reopening the document or library. At both 100 and 200 percent zoom, review body comfort, heading hierarchy, vertical rhythm, links, lists, quotes, code, tables, diagrams, metadata, the local image, and unavailable-image treatment. Narrow the packaged app window in every theme and confirm no structural clipping or unreadable contrast. Confirm Source Serif 4 and Source Sans 3 load locally and that the network inspector shows no unexpected requests. In Midnight, check
 that the diagram with the `%%{init: ...}%%` directive keeps readable app-controlled connectors instead of red ones.
 Confirm the diagram with the semicolon-separated `style` command retains its source with a clear style-override reason. Narrow the reader and
 confirm the inline code examples stay whole while prose and fenced code retain their current wrapping and overflow behavior. Confirm the missing image and traversal link fail safely; the HTTPS link opens externally;

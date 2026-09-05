@@ -29,7 +29,21 @@ for theme in mdhere-light mdhere-dark field-notes; do
 JSON
   printf '%b\n' "$contract_css" > "$package/reader.css"
 done
+if pnpm verify:bundle -- "$app"; then
+  echo 'verify:bundle accepted a bundle without font license notices' >&2
+  exit 1
+fi
+mkdir -p "$app/Contents/Resources/licenses/fonts"
+cp THIRD_PARTY_LICENSES.md "$app/Contents/Resources/licenses/THIRD_PARTY_LICENSES.md"
+cp src/assets/fonts/inventory.json src/assets/fonts/LICENSE-Source-Sans-3.md src/assets/fonts/LICENSE-Source-Serif-4.md "$app/Contents/Resources/licenses/fonts/"
 pnpm verify:bundle -- "$app"
+
+printf '\nstale\n' >> "$app/Contents/Resources/licenses/fonts/LICENSE-Source-Sans-3.md"
+if pnpm verify:bundle -- "$app"; then
+  echo 'verify:bundle accepted a stale font license notice' >&2
+  exit 1
+fi
+cp src/assets/fonts/LICENSE-Source-Sans-3.md "$app/Contents/Resources/licenses/fonts/"
 
 : > "$app/Contents/Resources/themes/field-notes/reader.css"
 if pnpm verify:bundle -- "$app"; then

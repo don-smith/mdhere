@@ -16,7 +16,8 @@
   color: #25334a;
   background: #ffffff;
   font:
-    1.05rem/1.75 Georgia,
+    1.05rem/1.75 ui-serif,
+    Georgia,
     'Times New Roman',
     serif;
 }
@@ -29,6 +30,12 @@
   color: #25334a;
 }
 
+/* Keep prose comfortable while structural content can use the full 96ch page. */
+.reader-content > :where(p, ul, ol, blockquote, h1, h2, h3, h4, h5, h6) {
+  max-inline-size: 68ch;
+  margin-inline: auto;
+}
+
 .reader-content h1,
 .reader-content h2,
 .reader-content h3,
@@ -37,7 +44,7 @@
 .reader-content h6 {
   margin: 2.25rem 0 0.8rem;
   color: #101827;
-  font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+  font-family: ui-sans-serif, system-ui, sans-serif;
   line-height: 1.2;
 }
 
@@ -89,6 +96,7 @@
 }
 
 .reader-content table {
+  width: 100%;
   margin: 1.25rem 0;
   border-collapse: collapse;
 }
@@ -105,6 +113,11 @@
   color: #101827;
 }
 
+.reader-content img,
+.mdhere-mermaid-diagram {
+  margin-block: 1.5rem;
+}
+
 .contains-task-list {
   margin: 1rem 0;
 }
@@ -114,7 +127,8 @@
 }
 
 .front-matter {
-  margin-bottom: 1.5rem;
+  max-inline-size: 68ch;
+  margin: 0 auto 2.5rem;
   border: 1px solid #d9dfea;
   border-radius: 0.6rem;
   background: #f8faff;
@@ -124,7 +138,7 @@
 .front-matter-summary {
   cursor: pointer;
   color: #101827;
-  font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+  font-family: ui-sans-serif, system-ui, sans-serif;
   font-weight: 650;
 }
 
@@ -148,7 +162,7 @@
 
 .front-matter-key {
   color: #5a6475;
-  font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+  font-family: ui-sans-serif, system-ui, sans-serif;
   font-size: 0.88em;
   font-weight: 650;
 }
@@ -171,8 +185,7 @@
   padding: 0.15rem 0.55rem;
   color: #195bbd;
   font:
-    0.82rem/1.4 Inter,
-    ui-sans-serif,
+    0.82rem/1.4 ui-sans-serif,
     system-ui,
     sans-serif;
 }
@@ -200,8 +213,7 @@
   padding: 0.7rem 0.9rem;
   color: #8d2f2f;
   font:
-    0.9rem/1.4 Inter,
-    ui-sans-serif,
+    0.9rem/1.4 ui-sans-serif,
     system-ui,
     sans-serif;
 }

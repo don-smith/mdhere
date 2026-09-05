@@ -1,10 +1,42 @@
 import { expect, test } from '@playwright/test';
 
-for (const theme of [
-  { id: 'mdhere-light', name: 'Paper', background: 'rgb(255, 255, 255)', appearance: 'light' },
-  { id: 'mdhere-dark', name: 'Midnight', background: 'rgb(24, 32, 45)', appearance: 'dark' },
-  { id: 'field-notes', name: 'Field Notes', background: 'rgb(255, 253, 247)', appearance: 'light' }
-]) {
+const themes = [
+  {
+    id: 'mdhere-light',
+    name: 'Paper',
+    background: 'rgb(255, 255, 255)',
+    appearance: 'light',
+    bodyFamily: 'Source Serif 4',
+    headingFamily: 'Source Sans 3'
+  },
+  {
+    id: 'mdhere-dark',
+    name: 'Midnight',
+    background: 'rgb(24, 32, 45)',
+    appearance: 'dark',
+    bodyFamily: 'Source Sans 3',
+    headingFamily: 'Source Serif 4'
+  },
+  {
+    id: 'field-notes',
+    name: 'Field Notes',
+    background: 'rgb(255, 253, 247)',
+    appearance: 'light',
+    bodyFamily: 'Source Serif 4',
+    headingFamily: 'Source Serif 4'
+  }
+] as const;
+
+async function selectFixtureTheme(page: import('@playwright/test').Page, name: string) {
+  await page.goto('/');
+  await page.getByRole('treeitem', { name: 'Welcome.md' }).click();
+  const trigger = page.getByTestId('document-toolbar').locator('.theme-trigger');
+  await trigger.click();
+  await page.getByRole('option', { name }).click();
+  return page.getByTestId('reader');
+}
+
+for (const theme of themes) {
   test(`captures the ${theme.name} full-shell reading desk from the presentation fixture`, async ({
     page
   }) => {
@@ -19,10 +51,34 @@ for (const theme of [
     await themeListbox.getByRole('option', { name: theme.name }).click();
 
     const reader = page.getByTestId('reader');
-    await expect(reader.locator('h1')).toHaveText('Welcome');
+    await expect(reader.locator('h1')).toHaveText('Reading a local field guide');
+    for (const level of [1, 2, 3, 4, 5, 6]) {
+      await expect(reader.locator(`h${level}`)).toHaveCount(1);
+    }
     await expect(reader.locator('table')).toBeVisible();
     await expect(reader.locator('.contains-task-list')).toBeVisible();
+    await expect(reader.locator('.mdhere-mermaid-diagram svg')).toHaveCount(1);
+    await expect(reader.locator('img[alt="A sunlit reading desk"]')).toBeVisible();
     await expect(reader.locator('[data-mdhere-image-unavailable="true"]')).toBeVisible();
+    const typography = await reader.evaluate((element) => {
+      const root = element.shadowRoot;
+      const article = root?.querySelector<HTMLElement>('.reader-content');
+      const heading = root?.querySelector<HTMLElement>('h1');
+      const paragraph = root?.querySelector<HTMLElement>('p');
+      const page = root?.querySelector<HTMLElement>('.reader-page');
+      if (!article || !heading || !paragraph || !page) throw new Error('Expected reader fixture');
+      return {
+        bodyFamily: getComputedStyle(article).fontFamily,
+        headingFamily: getComputedStyle(heading).fontFamily,
+        paragraphWidth: paragraph.getBoundingClientRect().width,
+        pageWidth: page.getBoundingClientRect().width,
+        pageOverflow: page.scrollWidth - page.clientWidth
+      };
+    });
+    expect(typography.bodyFamily).toContain(theme.bodyFamily);
+    expect(typography.headingFamily).toContain(theme.headingFamily);
+    expect(typography.paragraphWidth).toBeLessThan(typography.pageWidth);
+    expect(typography.pageOverflow).toBeLessThanOrEqual(1);
     await expect(reader).toHaveCSS('background-color', theme.background);
     await expect(reader).toHaveCSS('color-scheme', theme.appearance);
     await expect(page.locator('main')).toHaveCSS('color-scheme', theme.appearance);
@@ -87,6 +143,32 @@ for (const theme of [
 
     await page.goto(`/?scenario=empty&theme=${theme.id}`);
     await expect(page.locator('.shell-status[data-state="empty"]')).toBeVisible();
+  });
+
+  test(`keeps the ${theme.name} reader legible at narrow width and 200 percent zoom`, async ({
+    page
+  }) => {
+    await page.setViewportSize({ width: 420, height: 860 });
+    const reader = await selectFixtureTheme(page, theme.name);
+    await expect(reader.locator('.mdhere-mermaid-diagram svg')).toHaveCount(1);
+    await expect(reader).toHaveScreenshot(`${theme.id}-reader-narrow.png`, {
+      animations: 'disabled'
+    });
+
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.evaluate(() => {
+      document.documentElement.style.zoom = '2';
+    });
+    await expect(reader.locator('h1')).toBeVisible();
+    const overflow = await reader.evaluate((element) => {
+      const page = element.shadowRoot?.querySelector<HTMLElement>('.reader-page');
+      if (!page) throw new Error('Expected reader page');
+      return page.scrollWidth - page.clientWidth;
+    });
+    expect(overflow).toBeLessThanOrEqual(1);
+    await expect(page.getByTestId('reading-desk')).toHaveScreenshot(`${theme.id}-zoom-200.png`, {
+      animations: 'disabled'
+    });
   });
 }
 

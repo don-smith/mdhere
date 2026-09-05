@@ -5,3 +5,6 @@ src-tauri/gen/
 src-tauri/target/
 pnpm-lock.yaml
 Cargo.lock
+THIRD_PARTY_LICENSES.md
+src/assets/fonts/LICENSE-Source-Sans-3.md
+src/assets/fonts/LICENSE-Source-Serif-4.md

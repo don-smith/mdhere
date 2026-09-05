@@ -97,6 +97,32 @@ function verifyThemePackage(directory, expectedId) {
   }
 }
 
+function verifyFontLicenses(path) {
+  const source = join(root, 'src', 'assets', 'fonts');
+  const bundled = join(path, 'Contents', 'Resources', 'licenses', 'fonts');
+  for (const file of ['inventory.json', 'LICENSE-Source-Sans-3.md', 'LICENSE-Source-Serif-4.md']) {
+    const sourcePath = join(source, file);
+    const bundledPath = join(bundled, file);
+    requiredFile(sourcePath);
+    requiredFile(bundledPath);
+    if (!readFileSync(sourcePath).equals(readFileSync(bundledPath))) {
+      throw new Error(`${bundledPath} does not match the checked font notice`);
+    }
+  }
+  const sourceInventory = join(root, 'THIRD_PARTY_LICENSES.md');
+  const bundledInventory = join(
+    path,
+    'Contents',
+    'Resources',
+    'licenses',
+    'THIRD_PARTY_LICENSES.md'
+  );
+  requiredFile(bundledInventory);
+  if (!readFileSync(sourceInventory).equals(readFileSync(bundledInventory))) {
+    throw new Error(`${bundledInventory} does not match THIRD_PARTY_LICENSES.md`);
+  }
+}
+
 function verifyBundle(path) {
   if (!path.endsWith('.app') || !existsSync(path) || !statSync(path).isDirectory()) {
     throw new Error(`Expected a macOS .app bundle: ${path}`);
@@ -115,6 +141,7 @@ function verifyBundle(path) {
   for (const theme of bundledThemes) {
     verifyThemePackage(join(path, 'Contents', 'Resources', 'themes', theme), theme);
   }
+  verifyFontLicenses(path);
 }
 
 const arguments_ = process.argv.slice(2);

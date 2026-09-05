@@ -1,0 +1,69 @@
+{
+  "schemaVersion": 1,
+  "fonts": [
+    {
+      "family": "Source Sans 3",
+      "style": "italic",
+      "weight": "200 900",
+      "revision": "3.052R",
+      "repository": "https://github.com/adobe-fonts/source-sans",
+      "release": "https://github.com/adobe-fonts/source-sans/releases/tag/3.052R",
+      "sourceArchive": "https://github.com/adobe-fonts/source-sans/releases/download/3.052R/WOFF2-source-sans-3.052R.zip",
+      "sourcePath": "WOFF2/VF/SourceSans3VF-Italic.ttf.woff2",
+      "file": "SourceSans3VF-Italic.woff2",
+      "sha256": "sha256:b4959abc0569392f87c6c6ac612f90e3fe0104d283724189b7d8b6f61af347d3",
+      "copyright": "Copyright 2010-2022 Adobe (http://www.adobe.com/), with Reserved Font Name 'Source'. All Rights Reserved. Source is a trademark of Adobe in the United States and/or other countries.",
+      "license": "OFL-1.1",
+      "licenseFile": "LICENSE-Source-Sans-3.md",
+      "licenseSha256": "sha256:89ad2c4f66dd29127527493e729c31e731f111cf10faf5774c3db9275ed0c22c"
+    },
+    {
+      "family": "Source Sans 3",
+      "style": "normal",
+      "weight": "200 900",
+      "revision": "3.052R",
+      "repository": "https://github.com/adobe-fonts/source-sans",
+      "release": "https://github.com/adobe-fonts/source-sans/releases/tag/3.052R",
+      "sourceArchive": "https://github.com/adobe-fonts/source-sans/releases/download/3.052R/WOFF2-source-sans-3.052R.zip",
+      "sourcePath": "WOFF2/VF/SourceSans3VF-Upright.ttf.woff2",
+      "file": "SourceSans3VF-Upright.woff2",
+      "sha256": "sha256:5f16566f7a40d39b339ad26be151fa5a1ab1f0c2574c7a2e619765584a1acbd8",
+      "copyright": "Copyright 2010-2022 Adobe (http://www.adobe.com/), with Reserved Font Name 'Source'. All Rights Reserved. Source is a trademark of Adobe in the United States and/or other countries.",
+      "license": "OFL-1.1",
+      "licenseFile": "LICENSE-Source-Sans-3.md",
+      "licenseSha256": "sha256:89ad2c4f66dd29127527493e729c31e731f111cf10faf5774c3db9275ed0c22c"
+    },
+    {
+      "family": "Source Serif 4",
+      "style": "italic",
+      "weight": "200 900",
+      "revision": "4.005R",
+      "repository": "https://github.com/adobe-fonts/source-serif",
+      "release": "https://github.com/adobe-fonts/source-serif/releases/tag/4.005R",
+      "sourceArchive": "https://github.com/adobe-fonts/source-serif/releases/download/4.005R/source-serif-4.005_WOFF2.zip",
+      "sourcePath": "source-serif-4.005_WOFF2/VAR/SourceSerif4Variable-Italic.ttf.woff2",
+      "file": "SourceSerif4Variable-Italic.woff2",
+      "sha256": "sha256:9d28b5749a1ad096a295cb607c521bd1af4cd9979b6f37332daf70143149fb44",
+      "copyright": "Copyright 2014 - 2023 Adobe (http://www.adobe.com/), with Reserved Font Name ‘Source’. All Rights Reserved. Source is a trademark of Adobe in the United States and/or other countries.",
+      "license": "OFL-1.1",
+      "licenseFile": "LICENSE-Source-Serif-4.md",
+      "licenseSha256": "sha256:75784a295293a8992f5a8d99210566e0064a012e6dab6731305e3787f15896c7"
+    },
+    {
+      "family": "Source Serif 4",
+      "style": "normal",
+      "weight": "200 900",
+      "revision": "4.005R",
+      "repository": "https://github.com/adobe-fonts/source-serif",
+      "release": "https://github.com/adobe-fonts/source-serif/releases/tag/4.005R",
+      "sourceArchive": "https://github.com/adobe-fonts/source-serif/releases/download/4.005R/source-serif-4.005_WOFF2.zip",
+      "sourcePath": "source-serif-4.005_WOFF2/VAR/SourceSerif4Variable-Roman.ttf.woff2",
+      "file": "SourceSerif4Variable-Roman.woff2",
+      "sha256": "sha256:940a76eda1388de39d38c8e7a79bf6ea058a387faee0a9f33c8d25c6ba05e1be",
+      "copyright": "Copyright 2014 - 2023 Adobe (http://www.adobe.com/), with Reserved Font Name ‘Source’. All Rights Reserved. Source is a trademark of Adobe in the United States and/or other countries.",
+      "license": "OFL-1.1",
+      "licenseFile": "LICENSE-Source-Serif-4.md",
+      "licenseSha256": "sha256:75784a295293a8992f5a8d99210566e0064a012e6dab6731305e3787f15896c7"
+    }
+  ]
+}

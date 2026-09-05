@@ -1,5 +1,56 @@
 import { expect, test } from '@playwright/test';
 
+test('renders the representative fixture with one confined image and no network requests', async ({
+  page
+}) => {
+  const unexpectedRequests: string[] = [];
+  const fontResponses: Array<{ url: string; status: number }> = [];
+  page.on('request', (request) => {
+    const url = new URL(request.url());
+    if (!['127.0.0.1', 'localhost'].includes(url.hostname)) unexpectedRequests.push(request.url());
+  });
+  page.on('response', (response) => {
+    if (new URL(response.url()).pathname.endsWith('.woff2')) {
+      fontResponses.push({ url: response.url(), status: response.status() });
+    }
+  });
+
+  await page.goto('/');
+  await page.getByRole('treeitem', { name: 'Welcome.md' }).click();
+  const reader = page.getByTestId('reader');
+
+  await expect(reader.locator('h1')).toHaveText('Reading a local field guide');
+  await expect(reader.locator('ol li')).toHaveCount(3);
+  await expect(reader.locator('article > ul:not(.contains-task-list) > li')).toHaveCount(3);
+  await expect(reader.locator('.contains-task-list .task-list-item')).toHaveCount(2);
+  await expect(reader.locator('blockquote')).toContainText('A useful reader makes structure');
+  await expect(reader.locator('pre.shiki')).toBeVisible();
+  await expect(reader.locator('.mdhere-mermaid-diagram svg')).toHaveCount(1);
+  await expect(reader.locator('img[alt="A sunlit reading desk"]')).toBeVisible();
+  await expect(reader.locator('[data-mdhere-image-unavailable="true"]')).toHaveText(
+    'Image unavailable: Unavailable field photograph'
+  );
+  await page.evaluate(async () => {
+    await Promise.all([
+      document.fonts.load('400 16px "Source Serif 4"'),
+      document.fonts.load('italic 400 16px "Source Serif 4"'),
+      document.fonts.load('400 16px "Source Sans 3"'),
+      document.fonts.load('italic 400 16px "Source Sans 3"')
+    ]);
+  });
+  expect(new Set(fontResponses.map((response) => new URL(response.url).pathname)).size).toBe(4);
+  expect(fontResponses.every((response) => response.status === 200)).toBe(true);
+  await expect
+    .poll(() =>
+      reader.locator('img[alt="A sunlit reading desk"]').evaluate((image: HTMLImageElement) => ({
+        complete: image.complete,
+        width: image.naturalWidth
+      }))
+    )
+    .toEqual({ complete: true, width: 960 });
+  expect(unexpectedRequests).toEqual([]);
+});
+
 test('renders sanitized GFM inside the reader Shadow DOM', async ({ page }) => {
   await page.goto('/?scenario=mermaid');
   await page.getByRole('treeitem', { name: 'Welcome.md' }).click();
@@ -12,14 +63,14 @@ test('renders sanitized GFM inside the reader Shadow DOM', async ({ page }) => {
   await summary.click();
   await expect(disclosure).toHaveAttribute('open', '');
 
-  await expect(reader.locator('h1')).toHaveText('Welcome');
-  await expect(reader.locator('h1')).toHaveAttribute('id', 'welcome');
+  await expect(reader.locator('h1')).toHaveText('Reading a local field guide');
+  await expect(reader.locator('h1')).toHaveAttribute('id', 'reading-a-local-field-guide');
   await expect(reader.locator('del')).toHaveText('Rendered safely');
   await expect(reader.locator('[data-mdhere-image-unavailable="true"]')).toHaveText(
-    'Image unavailable: remote'
+    'Image unavailable: Unavailable field photograph'
   );
   await expect(reader.locator('script')).toHaveCount(0);
-  await expect(reader.locator('.mdhere-mermaid-diagram svg')).toHaveCount(3);
+  await expect(reader.locator('.mdhere-mermaid-diagram svg')).toHaveCount(4);
   await expect(
     reader
       .getByRole('alert')
@@ -53,7 +104,7 @@ test('rerenders visible Mermaid diagrams with the selected reader theme', async 
   await page.getByRole('treeitem', { name: 'Welcome.md' }).click();
 
   const reader = page.getByTestId('reader');
-  await expect(reader.locator('.mdhere-mermaid-diagram svg')).toHaveCount(3);
+  await expect(reader.locator('.mdhere-mermaid-diagram svg')).toHaveCount(4);
   const paperSvg = await reader
     .locator('.mdhere-mermaid-diagram svg')
     .first()
@@ -162,7 +213,7 @@ test('keeps a 1440px reader bounded while its tables use available width or scro
   await page.getByRole('treeitem', { name: 'Welcome.md' }).click();
 
   const reader = page.getByTestId('reader');
-  await expect(reader.locator('h1')).toHaveText('Welcome');
+  await expect(reader.locator('h1')).toHaveText('Reading a local field guide');
   const metrics = await reader.evaluate((element) => {
     const shadow = element.shadowRoot;
     const article = shadow?.querySelector<HTMLElement>('article.reader-content');
@@ -197,11 +248,12 @@ test('keeps a 1440px reader bounded while its tables use available width or scro
     };
   });
 
-  expect(metrics.articleWidth).toBeGreaterThanOrEqual(915);
+  expect(metrics.articleWidth).toBeGreaterThanOrEqual(760);
+  expect(metrics.articleWidth).toBeGreaterThan(metrics.readerWidth * 0.65);
   expect(metrics.pageWidth).toBeLessThan(metrics.readerWidth);
   expect(Math.abs(metrics.leftContentMargin - metrics.rightContentMargin)).toBeLessThanOrEqual(2);
-  expect(metrics.leftContentMargin).toBeGreaterThanOrEqual(96);
-  expect(metrics.leftContentMargin).toBeLessThanOrEqual(108);
+  expect(metrics.leftContentMargin).toBeGreaterThanOrEqual(150);
+  expect(metrics.leftContentMargin).toBeLessThanOrEqual(175);
   expect(metrics.unequalWidth).toBeGreaterThanOrEqual(metrics.articleWidth - 1);
   expect(metrics.columnWidths[2]).toBeGreaterThan((metrics.columnWidths[0] ?? 0) * 2);
   expect(metrics.unbreakableScrollWidth).toBeGreaterThan(metrics.unbreakableClientWidth);

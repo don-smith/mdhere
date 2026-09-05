@@ -13,10 +13,16 @@ const highlighter = createHighlighter({
   langs: ['text', 'bash', 'css', 'html', 'javascript', 'json', 'markdown', 'rust', 'typescript']
 });
 
+export type AssetUrl = (confinedPath: string) => string;
+
+function nativeAssetUrl(path: string): string {
+  return `mdhere-asset://localhost/${path.split('/').map(encodeURIComponent).join('/')}`;
+}
+
 export class MarkdownRenderer {
   private constructor(private readonly parser: InstanceType<typeof MarkdownIt>) {}
 
-  static async create(): Promise<MarkdownRenderer> {
+  static async create(assetUrl: AssetUrl = nativeAssetUrl): Promise<MarkdownRenderer> {
     const syntaxHighlighter = await highlighter;
     const parser = new MarkdownIt({ html: false, linkify: true, typographer: true }).use(
       taskLists,
@@ -76,10 +82,7 @@ export class MarkdownRenderer {
         String(token.attrGet('src') ?? '')
       );
       if (destination.kind === 'asset') {
-        token.attrSet(
-          'src',
-          `mdhere-asset://localhost/${destination.path.split('/').map(encodeURIComponent).join('/')}`
-        );
+        token.attrSet('src', assetUrl(destination.path));
       } else {
         const alternative = parser.utils.escapeHtml(token.content || 'Image');
         return `<span class="mdhere-image-unavailable" data-mdhere-image-unavailable="true" role="img" aria-label="Image unavailable: ${alternative}">Image unavailable: ${alternative}</span>`;

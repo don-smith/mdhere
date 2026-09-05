@@ -20,6 +20,11 @@
   import { KeyboardController } from './lib/keyboard/controller';
   import type { KeyboardState, Pane } from './lib/keyboard/types';
   import { InMemoryLibraryClient } from './lib/in-memory-library-client';
+  import {
+    browserFixtureAssetUrl,
+    representativeDocuments,
+    representativeLibrarySnapshot
+  } from './lib/fixtures/representative-reader';
   import { filterTree } from './lib/tree/filter-tree';
   import type { LibraryClient } from './lib/library-client';
   import { TauriLibraryClient } from './lib/tauri-library-client';
@@ -29,36 +34,8 @@
     presentationApi?: PresentationApi;
   }
 
-  const demoSnapshot: LibrarySnapshot = {
-    rootName: 'Example library',
-    diagnostics: [],
-    tree: [
-      {
-        kind: 'folder',
-        name: 'guides',
-        path: 'guides',
-        children: [
-          { kind: 'document', name: 'Welcome.md', path: 'guides/Welcome.md' },
-          { kind: 'document', name: 'Second.md', path: 'guides/Second.md' }
-        ]
-      }
-    ]
-  };
-  const demoDocuments: Record<string, Document> = {
-    'guides/Welcome.md': {
-      path: 'guides/Welcome.md',
-      title: 'Welcome',
-      content:
-        "---\ntitle: Welcome\ntags: [reader, safe, local, ignored]\nsummary: A rendered fixture\ncontext:\n  author: mdhere\n---\n# Welcome\n\n~~Rendered safely~~. [Read next](Second.md#second-section) [Web](https://example.com) ![remote](https://example.com/image.png)\n\n## Reader coverage\n\n- [x] Themed task\n- [ ] Open task\n\n| Surface | Result |\n| --- | --- |\n| Table | Themed |\n\n```typescript\nconst theme = 'dark';\n```\n\n<scr" +
-        'ipt>alert(1)</scr' +
-        'ipt>'
-    },
-    'guides/Second.md': {
-      path: 'guides/Second.md',
-      title: 'Second',
-      content: '# Second section\n\nThis document was selected by a confined local link.'
-    }
-  };
+  const demoSnapshot = representativeLibrarySnapshot;
+  const demoDocuments = representativeDocuments;
   const mermaidDocuments: Record<string, Document> = {
     ...demoDocuments,
     'guides/Welcome.md': {
@@ -622,6 +599,7 @@
             themeCss={presentation?.selected.css}
             theme={presentation?.selected}
             themeAppearance={presentation?.selected.appearance}
+            assetUrl={import.meta.env.MODE === 'test' ? browserFixtureAssetUrl : undefined}
           />
         </div>
 
