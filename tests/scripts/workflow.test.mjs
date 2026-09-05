@@ -151,6 +151,16 @@ test('Apple signing handles ad-hoc and Developer ID modes and always cleans up',
   assert.match(certificate.run, /security create-keychain/);
   assert.match(certificate.run, /security import/);
   assert.match(certificate.run, /Developer ID Application/);
+  for (const name of ['APPLE_ID', 'APPLE_PASSWORD', 'APPLE_TEAM_ID']) {
+    assert.equal(certificate.env[name], `\${{ secrets.${name} }}`);
+    assert.match(certificate.run, new RegExp(`printf '${name}=%s\\\\n'`));
+  }
+  assert.match(certificate.run, /}\s*>> "\$GITHUB_ENV"/);
+
+  const tauri = stepNamed(build, 'Build and upload release asset');
+  for (const name of ['APPLE_ID', 'APPLE_PASSWORD', 'APPLE_TEAM_ID']) {
+    assert.equal(Object.hasOwn(tauri.env, name), false);
+  }
 
   const cleanup = stepNamed(build, 'Clean temporary signing material');
   assert.match(cleanup.if, /always\(\)/);

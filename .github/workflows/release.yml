@@ -205,6 +205,9 @@ jobs:
           APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
           APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
           KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         run: |
           certificate_path="$RUNNER_TEMP/apple-certificate.p12"
           keychain_path="$RUNNER_TEMP/mdhere-signing.keychain-db"
@@ -217,14 +220,16 @@ jobs:
           security list-keychains -d user -s "$keychain_path"
           identity="$(security find-identity -v -p codesigning "$keychain_path" | sed -n 's/.*"\(Developer ID Application[^\"]*\)".*/\1/p' | head -n 1)"
           test -n "$identity"
-          echo "APPLE_SIGNING_IDENTITY=$identity" >> "$GITHUB_ENV"
+          {
+            printf 'APPLE_SIGNING_IDENTITY=%s\n' "$identity"
+            printf 'APPLE_ID=%s\n' "$APPLE_ID"
+            printf 'APPLE_PASSWORD=%s\n' "$APPLE_PASSWORD"
+            printf 'APPLE_TEAM_ID=%s\n' "$APPLE_TEAM_ID"
+          } >> "$GITHUB_ENV"
       - name: Build and upload release asset
         uses: tauri-apps/tauri-action@1deb371b0cd8bd54025b384f1cd735e725c4060f # v1.0.0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          APPLE_ID: ${{ matrix.platform == 'macos' && needs.prepare-release.outputs.signing-mode == 'developer-id' && secrets.APPLE_ID || '' }}
-          APPLE_PASSWORD: ${{ matrix.platform == 'macos' && needs.prepare-release.outputs.signing-mode == 'developer-id' && secrets.APPLE_PASSWORD || '' }}
-          APPLE_TEAM_ID: ${{ matrix.platform == 'macos' && needs.prepare-release.outputs.signing-mode == 'developer-id' && secrets.APPLE_TEAM_ID || '' }}
         with:
           tauriScript: pnpm tauri
           args: --target ${{ matrix.target }} --bundles ${{ matrix.bundles }}
