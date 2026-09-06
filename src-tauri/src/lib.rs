@@ -8,7 +8,7 @@ pub mod themes;
 use std::{
     ffi::OsString,
     path::{Path, PathBuf},
-    sync::atomic::{AtomicU64, Ordering},
+    sync::Mutex,
 };
 
 use assets::AssetProtocol;
@@ -123,7 +123,7 @@ fn apply_zoom(
     snapshot: &presentation::PresentationSnapshot,
 ) -> Result<(), String> {
     for window in app.webview_windows().values() {
-        if window.label().starts_with("mdhere-") {
+        if window.label() == MAIN_WINDOW_LABEL {
             window
                 .set_zoom(snapshot.zoom)
                 .map_err(|error| error.to_string())?;
@@ -156,7 +156,37 @@ fn open_themes_folder(presentation: tauri::State<'_, PresentationManager>) -> Re
         .map_err(|error| error.to_string())
 }
 
-static NEXT_WINDOW_LABEL: AtomicU64 = AtomicU64::new(1);
+const MAIN_WINDOW_LABEL: &str = "mdhere";
+const LAUNCH_UPDATE_EVENT: &str = "launch-update";
+
+#[derive(Clone, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+struct LaunchUpdate {
+    snapshot: LibrarySnapshot,
+    document: Option<Document>,
+}
+
+#[derive(Default)]
+struct PendingLaunchUpdate(Mutex<Option<LaunchUpdate>>);
+
+impl PendingLaunchUpdate {
+    fn replace(&self, update: LaunchUpdate) -> Result<(), String> {
+        *self
+            .0
+            .lock()
+            .map_err(|_| "pending launch update lock was poisoned".to_owned())? = Some(update);
+        Ok(())
+    }
+
+    fn take(&self) -> Result<Option<LaunchUpdate>, String> {
+        let update = self
+            .0
+            .lock()
+            .map_err(|_| "pending launch update lock was poisoned".to_owned())?
+            .take();
+        Ok(update)
+    }
+}
 
 #[derive(Clone, serde::Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -194,31 +224,19 @@ fn request_folder(app: AppHandle, window: tauri::WebviewWindow) {
     });
 }
 
-fn create_window(app: &AppHandle, root: Option<PathBuf>) -> Result<(), String> {
-    let label = format!(
-        "mdhere-{}",
-        NEXT_WINDOW_LABEL.fetch_add(1, Ordering::Relaxed)
-    );
-    if let Some(root) = root {
-        app.state::<LibraryRegistry>()
-            .register_root(&label, root)
-            .map_err(|error| error.to_string())?;
-    }
-    let window = WebviewWindowBuilder::new(app, &label, WebviewUrl::App("index.html".into()))
-        .title("mdhere")
-        .inner_size(1180.0, 760.0)
-        .min_inner_size(800.0, 500.0)
-        .visible(true);
+fn create_window(app: &AppHandle) -> Result<(), String> {
+    let window =
+        WebviewWindowBuilder::new(app, MAIN_WINDOW_LABEL, WebviewUrl::App("index.html".into()))
+            .title("mdhere")
+            .inner_size(1180.0, 760.0)
+            .min_inner_size(800.0, 500.0)
+            .visible(true);
     #[cfg(target_os = "macos")]
     let window = window.title_bar_style(TitleBarStyle::Transparent);
-    let window = window.build().map_err(|error| {
-        app.state::<LibraryRegistry>().unregister(&label);
-        error.to_string()
-    })?;
+    let window = window.build().map_err(|error| error.to_string())?;
     let snapshot = app.state::<PresentationManager>().snapshot();
     if let Err(error) = window.set_zoom(snapshot.zoom) {
         let _ = window.close();
-        app.state::<LibraryRegistry>().unregister(&label);
         return Err(error.to_string());
     }
     #[cfg(target_os = "macos")]
@@ -230,15 +248,53 @@ fn create_window(app: &AppHandle, root: Option<PathBuf>) -> Result<(), String> {
     Ok(())
 }
 
+fn prepare_launch(
+    registry: &LibraryRegistry,
+    request: LaunchRequest,
+) -> Result<(LaunchUpdate, library::PreparedLibrary), String> {
+    let prepared = registry
+        .prepare(request.root, request.document.as_deref())
+        .map_err(|error| error.to_string())?;
+    let update = LaunchUpdate {
+        snapshot: prepared.snapshot.clone(),
+        document: prepared.document.clone(),
+    };
+    Ok((update, prepared))
+}
+
+fn focus_main_window(app: &AppHandle) -> Result<tauri::WebviewWindow, String> {
+    let window = app
+        .get_webview_window(MAIN_WINDOW_LABEL)
+        .ok_or_else(|| "mdhere window is not available".to_owned())?;
+    let _ = window.unminimize();
+    window.show().map_err(|error| error.to_string())?;
+    window.set_focus().map_err(|error| error.to_string())?;
+    Ok(window)
+}
+
+fn apply_launch(app: &AppHandle, request: LaunchRequest) -> Result<(), String> {
+    let registry = app.state::<LibraryRegistry>();
+    let (update, prepared) = prepare_launch(&registry, request)?;
+    let window = focus_main_window(app)?;
+    registry
+        .commit(MAIN_WINDOW_LABEL, &prepared)
+        .map_err(|error| error.to_string())?;
+    window
+        .emit(LAUNCH_UPDATE_EVENT, update)
+        .map_err(|error| error.to_string())
+}
+
+#[tauri::command]
+fn take_launch_update(
+    pending: tauri::State<'_, PendingLaunchUpdate>,
+) -> Result<Option<LaunchUpdate>, String> {
+    pending.take()
+}
+
 #[tauri::command]
 fn open_folder(window: tauri::WebviewWindow, app: tauri::AppHandle) -> Result<(), String> {
     request_folder(app, window);
     Ok(())
-}
-
-#[tauri::command]
-fn new_window(app: tauri::AppHandle) -> Result<(), String> {
-    create_window(&app, None)
 }
 
 pub fn run() {
@@ -248,16 +304,18 @@ pub fn run() {
     );
     tauri::Builder::default()
         .plugin(tauri_plugin_single_instance::init(|app, arguments, cwd| {
-            if let Ok(request) = LaunchRequest::parse(
+            let request = LaunchRequest::parse(
                 arguments.into_iter().skip(1).map(OsString::from),
                 Path::new(&cwd),
-            ) {
-                let _ = create_window(app, request.root);
+            );
+            if let Ok(request) = request {
+                let _ = apply_launch(app, request);
             }
         }))
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_opener::init())
         .manage(LibraryRegistry::new())
+        .manage(PendingLaunchUpdate::default())
         .register_uri_scheme_protocol("mdhere-asset", |context, request| {
             let response = AssetProtocol::serve(
                 &context.app_handle().state::<LibraryRegistry>(),
@@ -286,16 +344,26 @@ pub fn run() {
             );
             let request = startup
                 .as_ref()
+                .map_err(|error| std::io::Error::other(error.to_string()))?
+                .clone();
+            let registry = app.state::<LibraryRegistry>();
+            let (update, prepared) =
+                prepare_launch(&registry, request).map_err(std::io::Error::other)?;
+            create_window(app.handle()).map_err(std::io::Error::other)?;
+            registry
+                .commit(MAIN_WINDOW_LABEL, &prepared)
                 .map_err(|error| std::io::Error::other(error.to_string()))?;
-            create_window(app.handle(), request.root.clone()).map_err(std::io::Error::other)?;
+            app.state::<PendingLaunchUpdate>()
+                .replace(update)
+                .map_err(std::io::Error::other)?;
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
             library_snapshot,
             read_document,
             refresh_library,
+            take_launch_update,
             open_folder,
-            new_window,
             open_external_link,
             presentation_snapshot,
             select_theme,

@@ -30,7 +30,6 @@ describe('App', () => {
       readDocument: () => Promise.reject(new Error('not used')),
       refresh: () => Promise.reject(new Error('not used')),
       openFolder,
-      newWindow: () => Promise.resolve(),
       openExternalLink: () => Promise.resolve()
     };
     render(App, { client });
@@ -54,7 +53,6 @@ describe('App', () => {
       readDocument: () => Promise.resolve({ path: 'Guide.md', title: 'Guide', content: '# Guide' }),
       refresh: () => Promise.reject(new Error('not used')),
       openFolder: () => Promise.resolve(undefined),
-      newWindow: () => Promise.resolve(),
       openExternalLink: () => Promise.resolve()
     };
     const { container } = render(App, { client });
@@ -136,7 +134,6 @@ describe('App', () => {
       readDocument: () => Promise.resolve({ path: 'Guide.md', title: 'Guide', content: '# Guide' }),
       refresh: () => Promise.resolve({ rootName: 'Library', diagnostics: [], tree: [] }),
       openFolder: () => Promise.resolve(undefined),
-      newWindow: () => Promise.resolve(),
       openExternalLink: () => Promise.resolve()
     };
     const onlyTheme = structuredClone(presentationFixture.selected);
@@ -207,7 +204,6 @@ describe('App', () => {
         }),
       refresh: () => Promise.reject(new Error('not used')),
       openFolder: () => Promise.resolve(undefined),
-      newWindow: () => Promise.resolve(),
       openExternalLink: () => Promise.resolve()
     };
     const { container } = render(App, { client, presentationApi });
@@ -254,7 +250,6 @@ describe('App', () => {
       readDocument,
       refresh,
       openFolder: vi.fn(),
-      newWindow: vi.fn(),
       openExternalLink: vi.fn()
     };
     render(App, { client });
@@ -283,7 +278,6 @@ describe('App', () => {
           resolveRefresh = resolve;
         }),
       openFolder: () => Promise.resolve(undefined),
-      newWindow: () => Promise.resolve(),
       openExternalLink: () => Promise.resolve()
     };
     const { container } = render(App, { client });
@@ -332,7 +326,6 @@ describe('App', () => {
             });
       },
       openFolder: () => Promise.resolve(undefined),
-      newWindow: () => Promise.resolve(),
       openExternalLink: () => Promise.resolve()
     };
     render(App, { client });
@@ -360,7 +353,6 @@ describe('App', () => {
       readDocument: () => Promise.resolve({ path: 'Guide.md', title: 'Guide', content: '# Guide' }),
       refresh: () => Promise.reject(new Error('not used')),
       openFolder,
-      newWindow: () => Promise.resolve(),
       openExternalLink: () => Promise.resolve()
     };
     const presentationApi = createFixturePresentationApi();
@@ -423,26 +415,72 @@ describe('App', () => {
     await waitFor(() => expect(setZoom).toHaveBeenLastCalledWith(1.1));
   });
 
-  it('opens a native window with Command-N', async () => {
-    const newWindow = vi.fn().mockResolvedValue(undefined);
+  it('replaces an active reader when a native launch update arrives', async () => {
+    let receiveUpdate:
+      | ((update: {
+          snapshot: LibrarySnapshot;
+          document: { path: string; title: string; content: string } | null;
+        }) => void)
+      | undefined;
     const client: LibraryClient = {
       snapshot: () =>
         Promise.resolve({
-          rootName: 'Library',
+          rootName: 'Initial library',
           diagnostics: [],
-          tree: [{ kind: 'document', name: 'Guide.md', path: 'Guide.md' }]
+          tree: [{ kind: 'document', name: 'Initial.md', path: 'Initial.md' }]
         }),
-      readDocument: () => Promise.reject(new Error('not used')),
-      refresh: () => Promise.reject(new Error('not used')),
-      openFolder: () => Promise.resolve(undefined),
-      newWindow,
-      openExternalLink: () => Promise.resolve()
+      readDocument: vi.fn(),
+      refresh: vi.fn(),
+      openFolder: vi.fn(),
+      consumeLaunchUpdate: () => Promise.resolve(undefined),
+      onLaunchUpdate: async (handler) => {
+        receiveUpdate = handler;
+        return () => undefined;
+      },
+      openExternalLink: vi.fn()
     };
     render(App, { client });
-    await screen.findByRole('treeitem', { name: 'Guide.md' });
+    await screen.findByRole('treeitem', { name: 'Initial.md' });
 
-    await fireEvent.keyDown(window, { key: 'n', metaKey: true });
+    receiveUpdate?.({
+      snapshot: {
+        rootName: 'Replacement library',
+        diagnostics: [],
+        tree: [{ kind: 'document', name: 'Welcome.md', path: 'guides/Welcome.md' }]
+      },
+      document: { path: 'guides/Welcome.md', title: 'Welcome', content: '# Welcome' }
+    });
 
-    await waitFor(() => expect(newWindow).toHaveBeenCalledOnce());
+    await waitFor(() =>
+      expect(screen.getByTestId('document-toolbar')).toHaveTextContent('Welcome')
+    );
+    expect(client.readDocument).not.toHaveBeenCalled();
+  });
+
+  it('applies an initial native launch update without rereading the selected document', async () => {
+    const consumeLaunchUpdate = vi.fn().mockResolvedValue({
+      snapshot: {
+        rootName: 'Other library',
+        diagnostics: [],
+        tree: [{ kind: 'document', name: 'Welcome.md', path: 'guides/Welcome.md' }]
+      },
+      document: { path: 'guides/Welcome.md', title: 'Welcome', content: '# Welcome' }
+    });
+    const client: LibraryClient = {
+      snapshot: vi.fn(),
+      readDocument: vi.fn(),
+      refresh: vi.fn(),
+      openFolder: vi.fn(),
+      consumeLaunchUpdate,
+      openExternalLink: vi.fn()
+    };
+    render(App, { client });
+
+    await waitFor(() =>
+      expect(screen.getByTestId('document-toolbar')).toHaveTextContent('Welcome')
+    );
+    expect(consumeLaunchUpdate).toHaveBeenCalledOnce();
+    expect(client.snapshot).not.toHaveBeenCalled();
+    expect(client.readDocument).not.toHaveBeenCalled();
   });
 });

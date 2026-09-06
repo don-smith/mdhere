@@ -2,7 +2,7 @@ import { invoke } from '@tauri-apps/api/core';
 import { listen } from '@tauri-apps/api/event';
 
 import type { Document, LibrarySnapshot } from './contracts';
-import type { LibraryClient } from './library-client';
+import type { LaunchUpdate, LibraryClient, Unlisten } from './library-client';
 
 interface FolderPickResult {
   snapshot: LibrarySnapshot | null;
@@ -41,8 +41,12 @@ export class TauriLibraryClient implements LibraryClient {
     }
   }
 
-  newWindow(): Promise<void> {
-    return invoke('new_window');
+  consumeLaunchUpdate(): Promise<LaunchUpdate | undefined> {
+    return invoke<LaunchUpdate | null>('take_launch_update').then((update) => update ?? undefined);
+  }
+
+  onLaunchUpdate(handler: (update: LaunchUpdate) => void): Promise<Unlisten> {
+    return listen<LaunchUpdate>('launch-update', (event) => handler(event.payload));
   }
 
   openExternalLink(url: string): Promise<void> {

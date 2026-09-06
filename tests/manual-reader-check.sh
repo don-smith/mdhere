@@ -169,13 +169,13 @@ tree and l still expands or opens its current item. Move focus to the reader, th
 top and Shift+G reaches the bottom.
 
 Use Command+=, Command++, Command+-, and Command+0 and confirm the entire application follows the
-80, 90, 100, 110, 125, 150, 175, and 200 percent sequence without a second native zoom action. Open a
-second window and confirm a zoom change reaches both windows, then open another window and confirm it
-starts at the saved zoom. Close and relaunch mdhere and confirm the saved zoom is restored. Confirm zoom
-shortcuts do not take over while focus is in the filter input, theme controls, or a dialog.
+80, 90, 100, 110, 125, 150, 175, and 200 percent sequence without a second native zoom action. In another
+terminal, run `mdhere "$fixture_root" "Readme.md"` and confirm the same reader window is focused and displays
+Readme.md rather than opening another window. Close and relaunch mdhere and confirm the saved zoom is restored.
+Confirm zoom shortcuts do not take over while focus is in the filter input, theme controls, or a dialog.
 
 Close the development app to remove the temporary library.
 EOF
 
 cd "$repo_root"
-pnpm tauri dev -- -- --root "$fixture_root"
+pnpm tauri dev -- -- "$fixture_root"

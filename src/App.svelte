@@ -26,7 +26,7 @@
     representativeLibrarySnapshot
   } from './lib/fixtures/representative-reader';
   import { filterTree } from './lib/tree/filter-tree';
-  import type { LibraryClient } from './lib/library-client';
+  import type { LaunchUpdate, LibraryClient } from './lib/library-client';
   import { TauriLibraryClient } from './lib/tauri-library-client';
 
   interface Props {
@@ -72,7 +72,6 @@
         readDocument: () => Promise.reject(new Error('not used')),
         refresh: () => Promise.reject(new Error('not used')),
         openFolder: () => Promise.resolve(undefined),
-        newWindow: () => Promise.resolve(),
         openExternalLink: () => Promise.resolve()
       };
     }
@@ -99,7 +98,6 @@
         readDocument: (path) => client.readDocument(path),
         refresh: () => client.refresh(),
         openFolder: () => client.openFolder(),
-        newWindow: () => client.newWindow(),
         openExternalLink: () => client.openExternalLink()
       };
     }
@@ -112,7 +110,6 @@
           return client.refresh();
         },
         openFolder: () => client.openFolder(),
-        newWindow: () => client.newWindow(),
         openExternalLink: () => client.openExternalLink()
       };
     }
@@ -170,9 +167,34 @@
 
   onMount(() => {
     presentationStore = new PresentationStore(presentationApi, (value) => (presentation = value));
-    void loadSnapshot();
+    let disposed = false;
+    let unlisten: (() => void) | undefined;
+    void (async () => {
+      try {
+        let receivedLiveUpdate = false;
+        if (client.onLaunchUpdate) {
+          unlisten = await client.onLaunchUpdate((update) => {
+            receivedLiveUpdate = true;
+            applyLaunchUpdate(update);
+          });
+          if (disposed) {
+            unlisten();
+            return;
+          }
+        }
+        const update = await client.consumeLaunchUpdate?.();
+        if (!disposed && !receivedLiveUpdate && update) applyLaunchUpdate(update);
+        else if (!disposed && !receivedLiveUpdate) void loadSnapshot();
+      } catch {
+        if (!disposed) void loadSnapshot();
+      }
+    })();
     void presentationStore.load();
-    return () => presentationStore?.dispose();
+    return () => {
+      disposed = true;
+      unlisten?.();
+      presentationStore?.dispose();
+    };
   });
 
   async function loadSnapshot() {
@@ -191,6 +213,18 @@
     } finally {
       if (operation === libraryOperation) loading = false;
     }
+  }
+
+  function applyLaunchUpdate(update: LaunchUpdate) {
+    ++libraryOperation;
+    ++selectionOperation;
+    snapshot = update.snapshot;
+    selectedDocument = update.document ?? undefined;
+    error = undefined;
+    fragment = undefined;
+    filterQuery = '';
+    needsFolder = false;
+    loading = false;
   }
 
   async function refreshLibrary() {
@@ -265,11 +299,6 @@
   }
 
   function handleKeydown(event: KeyboardEvent) {
-    if (event.metaKey && !event.altKey && !event.ctrlKey && event.key.toLowerCase() === 'n') {
-      event.preventDefault();
-      void client.newWindow().catch((reason) => (error = messageFor(reason)));
-      return;
-    }
     if (event.metaKey && !event.altKey && !event.ctrlKey && event.key.toLowerCase() === 'k') {
       event.preventDefault();
       filterInput?.focus();

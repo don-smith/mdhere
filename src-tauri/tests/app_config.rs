@@ -39,7 +39,7 @@ fn production_windows_are_created_by_the_coordinator_not_static_config() {
 
     let capabilities: Value =
         serde_json::from_str(include_str!("../capabilities/default.json")).unwrap();
-    assert_eq!(capabilities["windows"], serde_json::json!(["mdhere-*"]));
+    assert_eq!(capabilities["windows"], serde_json::json!(["mdhere"]));
     assert_eq!(
         capabilities["permissions"],
         serde_json::json!(["core:default"])

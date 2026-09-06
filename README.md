@@ -1,6 +1,6 @@
 # mdhere
 
-mdhere is a read-only, macOS-first Markdown reader for an existing local folder. It opens one confined library per window, renders safe GitHub-flavored Markdown, and keeps local files under Rust’s authority rather than granting the webview filesystem access.
+mdhere is a read-only, macOS-first Markdown reader for an existing local folder. It keeps one confined library in its single reader window, renders safe GitHub-flavored Markdown, and keeps local files under Rust’s authority rather than granting the webview filesystem access.
 
 ## Requirements
 
@@ -20,10 +20,10 @@ pnpm exec playwright install chromium
 Open the fixture library in a Tauri development window:
 
 ```sh
-pnpm tauri dev -- -- --root "$(git rev-parse --show-toplevel)/tests/fixtures/library"
+pnpm tauri dev -- -- "$(git rev-parse --show-toplevel)/tests/fixtures/library"
 ```
 
-The extra `--` forwards `--root` past Cargo. To open without a root, omit everything after `dev`; mdhere presents the native folder picker.
+The extra `--` forwards the positional folder past Cargo. With no positional folder, mdhere uses the development command’s current directory.
 
 Useful checks:
 
@@ -102,9 +102,8 @@ Keep this warning until a tagged GitHub-hosted run uses `developer-id` mode, its
 
 - **Open Folder** replaces the current window’s root only. Cancelling keeps its current root.
 - **Refresh** rescans the current root and retains the selected document when possible.
-- **⌘N** opens a new window and asks for a folder.
-- **⌘+=**, **⌘++**, **⌘-**, and **⌘0** adjust or reset whole-application zoom on macOS. Use Control instead of Command on Windows and Linux. The zoom level is shared by all windows and restored after restart.
-- Launching `mdhere [folder]` opens a separate window for that directory; no argument uses the shell’s current directory.
+- **⌘+=**, **⌘++**, **⌘-**, and **⌘0** adjust or reset application zoom on macOS. Use Control instead of Command on Windows and Linux. The zoom level is restored after restart.
+- Launching `mdhere` uses the shell’s current directory in the sole reader window. `mdhere <folder>` retargets that window to a folder. `mdhere <folder> <relative-file>` retargets it and displays that Markdown file relative to the supplied folder. A subsequent invocation focuses the existing window instead of opening another.
 
 ### Keyboard controls
 

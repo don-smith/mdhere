@@ -34,11 +34,27 @@ describe('TauriLibraryClient', () => {
     expect(unlisten).toHaveBeenCalledOnce();
   });
 
-  it('invokes the narrow native new-window command', async () => {
-    tauri.invoke.mockResolvedValue(undefined);
+  it('consumes the pending native launch update', async () => {
+    const update = { snapshot, document: null };
+    tauri.invoke.mockResolvedValue(update);
 
-    await expect(new TauriLibraryClient().newWindow()).resolves.toBeUndefined();
-    expect(tauri.invoke).toHaveBeenCalledWith('new_window');
+    await expect(new TauriLibraryClient().consumeLaunchUpdate()).resolves.toEqual(update);
+    expect(tauri.invoke).toHaveBeenCalledWith('take_launch_update');
+  });
+
+  it('subscribes to native launch updates', async () => {
+    let received:
+      ((event: { payload: { snapshot: typeof snapshot; document: null } }) => void) | undefined;
+    const unlisten = vi.fn();
+    tauri.listen.mockImplementation(async (_event, handler) => {
+      received = handler;
+      return unlisten;
+    });
+    const handler = vi.fn();
+
+    await expect(new TauriLibraryClient().onLaunchUpdate(handler)).resolves.toBe(unlisten);
+    received?.({ payload: { snapshot, document: null } });
+    expect(handler).toHaveBeenCalledWith({ snapshot, document: null });
   });
 
   it('keeps the current library when the native folder picker is cancelled', async () => {

@@ -15,8 +15,8 @@ impl PathGuard {
         Self { root }
     }
 
-    pub fn resolve(&self, relative_path: &str) -> Result<PathBuf, LibraryError> {
-        let relative = Path::new(relative_path);
+    pub fn resolve(&self, relative_path: impl AsRef<Path>) -> Result<PathBuf, LibraryError> {
+        let relative = relative_path.as_ref();
         if relative.is_absolute()
             || relative
                 .components()

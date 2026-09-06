@@ -7,25 +7,35 @@ fn args(values: &[&str]) -> Vec<OsString> {
 }
 
 #[test]
-fn parses_no_root_absolute_relative_and_spaced_roots() {
+fn parses_cwd_root_and_root_relative_document_requests() {
     let temp = tempdir().unwrap();
     let spaced = temp.path().join("folder with spaces");
     fs::create_dir(&spaced).unwrap();
+
     assert_eq!(
-        LaunchRequest::parse(args(&[]), temp.path()).unwrap().root,
-        None
+        LaunchRequest::parse(args(&[]), temp.path()).unwrap(),
+        LaunchRequest {
+            root: temp.path().to_path_buf(),
+            document: None,
+        }
     );
     assert_eq!(
-        LaunchRequest::parse(args(&["--root", spaced.to_str().unwrap()]), temp.path())
-            .unwrap()
-            .root,
-        Some(spaced.clone())
+        LaunchRequest::parse(args(&["folder with spaces"]), temp.path()).unwrap(),
+        LaunchRequest {
+            root: spaced.clone(),
+            document: None,
+        }
     );
     assert_eq!(
-        LaunchRequest::parse(args(&["folder with spaces"]), temp.path())
-            .unwrap()
-            .root,
-        Some(spaced)
+        LaunchRequest::parse(
+            args(&["folder with spaces", "guides/Welcome.md"]),
+            temp.path()
+        )
+        .unwrap(),
+        LaunchRequest {
+            root: spaced,
+            document: Some(PathBuf::from("guides/Welcome.md")),
+        }
     );
 }
 
@@ -34,14 +44,10 @@ fn rejects_bad_launch_arguments() {
     let temp = tempdir().unwrap();
     assert_eq!(
         LaunchRequest::parse(args(&["--root"]), temp.path()),
-        Err(LaunchError::MissingRoot)
-    );
-    assert_eq!(
-        LaunchRequest::parse(args(&["--wat"]), temp.path()),
         Err(LaunchError::Usage)
     );
     assert_eq!(
-        LaunchRequest::parse(args(&["one", "two"]), temp.path()),
+        LaunchRequest::parse(args(&["one", "two", "three"]), temp.path()),
         Err(LaunchError::Usage)
     );
     assert_eq!(

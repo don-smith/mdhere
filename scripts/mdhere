@@ -1,9 +1,16 @@
 #!/bin/sh
 set -eu
-usage() { echo "usage: mdhere [folder]" >&2; exit 64; }
-[ "$#" -le 1 ] || usage
+usage() { echo "usage: mdhere [folder [relative-file]]" >&2; exit 64; }
+[ "$#" -le 2 ] || usage
 root=${1:-"$PWD"}
 [ -d "$root" ] || { echo "mdhere: not a directory: $root" >&2; exit 66; }
 root=$(cd "$root" && pwd)
+if [ "$#" -eq 2 ]; then
+  file=$2
+  [ -f "$root/$file" ] || { echo "mdhere: not a file below root: $file" >&2; exit 66; }
+fi
 app=${MDHERE_APP:-"/Applications/mdhere.app/Contents/MacOS/mdhere"}
-exec "$app" --root "$root"
+if [ "$#" -eq 2 ]; then
+  exec "$app" "$root" "$file"
+fi
+exec "$app" "$root"

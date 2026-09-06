@@ -1,73 +1,67 @@
-use mdhere_lib::{
-    launch::{LaunchRequest, WindowCoordinator, WindowFactory},
-    library::LibraryRegistry,
-};
-use std::{
-    path::PathBuf,
-    sync::{Arc, Mutex},
-};
+use mdhere_lib::library::{LibraryError, LibraryRegistry};
+use std::{fs, path::Path};
 use tempfile::tempdir;
 
-#[derive(Default)]
-struct FakeFactory {
-    calls: Mutex<Vec<(String, bool)>>,
-    fail: bool,
-}
-impl WindowFactory for FakeFactory {
-    fn build(&self, label: &str, visible: bool) -> Result<(), String> {
-        assert!(
-            visible,
-            "windows must be visible before an explicit folder choice"
-        );
-        self.calls.lock().unwrap().push((label.into(), visible));
-        if self.fail {
-            Err("build failed".into())
-        } else {
-            Ok(())
-        }
-    }
+fn write(root: &Path, relative_path: &str, contents: &str) {
+    let path = root.join(relative_path);
+    fs::create_dir_all(path.parent().unwrap()).unwrap();
+    fs::write(path, contents).unwrap();
 }
 
 #[test]
-fn allocates_unique_windows_and_registers_roots_before_build() {
-    let root = tempdir().unwrap();
-    let registry = Arc::new(LibraryRegistry::new());
-    let coordinator = WindowCoordinator::new(registry.clone(), FakeFactory::default());
-    let first = coordinator
-        .open(LaunchRequest {
-            root: Some(root.path().to_path_buf()),
-        })
+fn rejected_prepared_document_does_not_replace_the_active_root() {
+    let current = tempdir().unwrap();
+    let candidate = tempdir().unwrap();
+    write(current.path(), "current.md", "# current");
+    write(candidate.path(), "candidate.md", "# candidate");
+    write(candidate.path(), "plain.txt", "not markdown");
+    let registry = LibraryRegistry::new();
+    registry
+        .register_root("mdhere", current.path().to_path_buf())
         .unwrap();
-    let second = coordinator.open(LaunchRequest { root: None }).unwrap();
-    assert_ne!(first, second);
-    assert!(registry.snapshot(&first).is_ok());
-    assert!(registry.snapshot(&second).is_err());
+
+    assert!(matches!(
+        registry.prepare(candidate.path().to_path_buf(), Some(Path::new("plain.txt"))),
+        Err(LibraryError::NotMarkdown)
+    ));
+    assert_eq!(
+        registry
+            .read_document("mdhere", "current.md")
+            .unwrap()
+            .content,
+        "# current"
+    );
 }
+
 #[test]
-fn removes_registration_when_build_fails_and_on_close() {
-    let root = tempdir().unwrap();
-    let registry = Arc::new(LibraryRegistry::new());
-    let failing = WindowCoordinator::new(
-        registry.clone(),
-        FakeFactory {
-            fail: true,
-            ..Default::default()
-        },
-    );
-    assert!(
-        failing
-            .open(LaunchRequest {
-                root: Some(root.path().to_path_buf())
-            })
-            .is_err()
-    );
-    assert!(registry.snapshot("mdhere-1").is_err());
-    let coordinator = WindowCoordinator::new(registry.clone(), FakeFactory::default());
-    let label = coordinator
-        .open(LaunchRequest {
-            root: Some(PathBuf::from(root.path())),
-        })
+fn prepared_library_commits_a_root_and_root_relative_document_together() {
+    let current = tempdir().unwrap();
+    let candidate = tempdir().unwrap();
+    write(current.path(), "current.md", "# current");
+    write(candidate.path(), "guides/Welcome.md", "# welcome");
+    let registry = LibraryRegistry::new();
+    registry
+        .register_root("mdhere", current.path().to_path_buf())
         .unwrap();
-    coordinator.close(&label);
-    assert!(registry.snapshot(&label).is_err());
+
+    let prepared = registry
+        .prepare(
+            candidate.path().to_path_buf(),
+            Some(Path::new("guides/Welcome.md")),
+        )
+        .unwrap();
+    assert_eq!(
+        prepared.document.as_ref().unwrap().path,
+        "guides/Welcome.md"
+    );
+    registry.commit("mdhere", &prepared).unwrap();
+
+    assert!(registry.read_document("mdhere", "current.md").is_err());
+    assert_eq!(
+        registry
+            .read_document("mdhere", "guides/Welcome.md")
+            .unwrap()
+            .content,
+        "# welcome"
+    );
 }
