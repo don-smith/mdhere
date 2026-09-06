@@ -7,6 +7,17 @@ root=${1:-"$PWD"}
 root=$(cd "$root" && pwd)
 if [ "$#" -eq 2 ]; then
   file=$2
+  case "$file" in
+    /* | .. | ../* | */.. | */../*)
+      echo "mdhere: file must be relative to root: $file" >&2
+      exit 66
+      ;;
+    *.md | *.MD | *.markdown | *.MARKDOWN) ;;
+    *)
+      echo "mdhere: not a Markdown file: $file" >&2
+      exit 66
+      ;;
+  esac
   [ -f "$root/$file" ] || { echo "mdhere: not a file below root: $file" >&2; exit 66; }
 fi
 app=${MDHERE_APP:-"/Applications/mdhere.app/Contents/MacOS/mdhere"}

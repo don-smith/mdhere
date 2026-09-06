@@ -58,6 +58,13 @@ fn production_windows_are_created_by_the_coordinator_not_static_config() {
     assert!(!app_source.contains("zoom_hotkeys_enabled"));
     assert!(app_source.contains("window.set_zoom(snapshot.zoom)"));
     assert!(app_source.contains("app.webview_windows()"));
+    assert_eq!(
+        app_source.matches("create_window(").count(),
+        2,
+        "only setup may create the fixed reader window"
+    );
+    assert!(app_source.contains("focus_main_window(app)"));
+    assert!(app_source.contains(".emit(LAUNCH_UPDATE_EVENT, update)"));
     let manifest = include_str!("../Cargo.toml");
     assert!(manifest.contains("objc2-app-kit"));
 
