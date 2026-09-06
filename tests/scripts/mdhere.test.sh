@@ -54,3 +54,20 @@ MDHERE_LOG="$log" MDHERE_DELAY=1 "$installed" "$root/space folder" "guide.md"
 [ ! -e "$log" ] || { echo "installed launcher waited for the app" >&2; exit 1; }
 wait_for_log "$log"
 grep "guide.md" "$log"
+
+# An installed launcher must not retain a relative path to the selected app bundle.
+# It must work when invoked from an unrelated directory.
+mkdir "$root/relative-home"
+installer="$(cd "$(dirname "$0")/../.." && pwd)/scripts/install-local.sh"
+(
+  cd "$root"
+  HOME="$root/relative-home" "$installer" "mdhere.app" >/dev/null
+)
+installed="$root/relative-home/.local/bin/mdhere"
+log="$root/relative-install.log"
+(
+  cd /
+  MDHERE_LOG="$log" MDHERE_DELAY=1 "$installed" "$root/space folder" "guide.md"
+)
+wait_for_log "$log"
+grep "guide.md" "$log"
