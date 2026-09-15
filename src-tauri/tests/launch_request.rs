@@ -7,7 +7,7 @@ fn args(values: &[&str]) -> Vec<OsString> {
 }
 
 #[test]
-fn parses_cwd_root_and_root_relative_document_requests() {
+fn parses_no_root_explicit_root_and_root_relative_document_requests() {
     let temp = tempdir().unwrap();
     let spaced = temp.path().join("folder with spaces");
     fs::create_dir(&spaced).unwrap();
@@ -15,14 +15,14 @@ fn parses_cwd_root_and_root_relative_document_requests() {
     assert_eq!(
         LaunchRequest::parse(args(&[]), temp.path()).unwrap(),
         LaunchRequest {
-            root: temp.path().to_path_buf(),
+            root: None,
             document: None,
         }
     );
     assert_eq!(
         LaunchRequest::parse(args(&["folder with spaces"]), temp.path()).unwrap(),
         LaunchRequest {
-            root: spaced.clone(),
+            root: Some(spaced.clone()),
             document: None,
         }
     );
@@ -33,7 +33,7 @@ fn parses_cwd_root_and_root_relative_document_requests() {
         )
         .unwrap(),
         LaunchRequest {
-            root: spaced,
+            root: Some(spaced),
             document: Some(PathBuf::from("guides/Welcome.md")),
         }
     );

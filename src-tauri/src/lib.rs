@@ -251,15 +251,18 @@ fn create_window(app: &AppHandle) -> Result<(), String> {
 fn prepare_launch(
     registry: &LibraryRegistry,
     request: LaunchRequest,
-) -> Result<(LaunchUpdate, library::PreparedLibrary), String> {
+) -> Result<Option<(LaunchUpdate, library::PreparedLibrary)>, String> {
+    let Some(root) = request.root else {
+        return Ok(None);
+    };
     let prepared = registry
-        .prepare(request.root, request.document.as_deref())
+        .prepare(root, request.document.as_deref())
         .map_err(|error| error.to_string())?;
     let update = LaunchUpdate {
         snapshot: prepared.snapshot.clone(),
         document: prepared.document.clone(),
     };
-    Ok((update, prepared))
+    Ok(Some((update, prepared)))
 }
 
 fn focus_main_window(app: &AppHandle) -> Result<tauri::WebviewWindow, String> {
@@ -274,14 +277,17 @@ fn focus_main_window(app: &AppHandle) -> Result<tauri::WebviewWindow, String> {
 
 fn apply_launch(app: &AppHandle, request: LaunchRequest) -> Result<(), String> {
     let registry = app.state::<LibraryRegistry>();
-    let (update, prepared) = prepare_launch(&registry, request)?;
+    let prepared = prepare_launch(&registry, request)?;
     let window = focus_main_window(app)?;
-    registry
-        .commit(MAIN_WINDOW_LABEL, &prepared)
-        .map_err(|error| error.to_string())?;
-    window
-        .emit(LAUNCH_UPDATE_EVENT, update)
-        .map_err(|error| error.to_string())
+    if let Some((update, prepared)) = prepared {
+        registry
+            .commit(MAIN_WINDOW_LABEL, &prepared)
+            .map_err(|error| error.to_string())?;
+        window
+            .emit(LAUNCH_UPDATE_EVENT, update)
+            .map_err(|error| error.to_string())?;
+    }
+    Ok(())
 }
 
 #[tauri::command]
@@ -347,15 +353,16 @@ pub fn run() {
                 .map_err(|error| std::io::Error::other(error.to_string()))?
                 .clone();
             let registry = app.state::<LibraryRegistry>();
-            let (update, prepared) =
-                prepare_launch(&registry, request).map_err(std::io::Error::other)?;
+            let prepared = prepare_launch(&registry, request).map_err(std::io::Error::other)?;
             create_window(app.handle()).map_err(std::io::Error::other)?;
-            registry
-                .commit(MAIN_WINDOW_LABEL, &prepared)
-                .map_err(|error| std::io::Error::other(error.to_string()))?;
-            app.state::<PendingLaunchUpdate>()
-                .replace(update)
-                .map_err(std::io::Error::other)?;
+            if let Some((update, prepared)) = prepared {
+                registry
+                    .commit(MAIN_WINDOW_LABEL, &prepared)
+                    .map_err(|error| std::io::Error::other(error.to_string()))?;
+                app.state::<PendingLaunchUpdate>()
+                    .replace(update)
+                    .map_err(std::io::Error::other)?;
+            }
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![

@@ -5,7 +5,7 @@ use std::{
 
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct LaunchRequest {
-    pub root: PathBuf,
+    pub root: Option<PathBuf>,
     pub document: Option<PathBuf>,
 }
 
@@ -24,24 +24,32 @@ impl LaunchRequest {
     ) -> Result<Self, LaunchError> {
         let arguments = arguments.into_iter().collect::<Vec<_>>();
         let (root, document) = match arguments.as_slice() {
-            [] => (cwd.to_path_buf(), None),
-            [root] if !root.to_string_lossy().starts_with('-') => (root.into(), None),
+            [] => (None, None),
+            [root] if !root.to_string_lossy().starts_with('-') => (Some(root.into()), None),
             [root, document]
                 if !root.to_string_lossy().starts_with('-')
                     && !document.to_string_lossy().starts_with('-') =>
             {
-                (root.into(), Some(document.into()))
+                (Some(root.into()), Some(document.into()))
             }
             _ => return Err(LaunchError::Usage),
         };
-        let root = if root.is_absolute() {
-            root
-        } else {
-            cwd.join(root)
-        };
-        if !root.is_dir() {
-            return Err(LaunchError::InvalidRoot(root));
-        }
+        let root = root
+            .map(|root: PathBuf| {
+                if root.is_absolute() {
+                    root
+                } else {
+                    cwd.join(root)
+                }
+            })
+            .map(|root| {
+                if root.is_dir() {
+                    Ok(root)
+                } else {
+                    Err(LaunchError::InvalidRoot(root))
+                }
+            })
+            .transpose()?;
         Ok(Self { root, document })
     }
 }
