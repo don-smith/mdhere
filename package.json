@@ -9,6 +9,7 @@
   },
   "scripts": {
     "dev": "vite",
+    "dev:app": "tauri dev -- -- ../tests/fixtures/library",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "lint": "eslint .",

@@ -5,13 +5,20 @@ mdhere is a read-only, macOS-first Markdown reader for an existing local folder.
 ## Requirements
 
 - macOS 13 or later
-- Node 24.20.x (`corepack` enabled)
+- Node 24.20.x
+- pnpm 10.20.x
 - Rust 1.98.0
 
-Install dependencies and the browser used by the in-memory browser suite:
+If you use [mise](https://mise.jdx.dev/), install the Node and pnpm versions pinned in `.mise.toml`:
 
 ```sh
-corepack pnpm install
+mise install
+```
+
+Then install the project dependencies and the browser used by the in-memory browser suite:
+
+```sh
+pnpm install
 pnpm exec playwright install chromium
 ```
 
@@ -20,10 +27,10 @@ pnpm exec playwright install chromium
 Open the fixture library in a Tauri development window:
 
 ```sh
-pnpm tauri dev -- -- "$(git rev-parse --show-toplevel)/tests/fixtures/library"
+pnpm dev:app
 ```
 
-The extra `--` forwards the positional folder past Cargo. With no positional folder, mdhere uses the development command’s current directory.
+Starting the app executable without a folder opens the folder chooser; the `mdhere` shell launcher passes its current directory explicitly.
 
 Useful checks:
 
