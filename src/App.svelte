@@ -593,9 +593,18 @@
             <h1>{selectedDocument?.title ?? 'Select a document'}</h1>
           </div>
           <div class="toolbar-controls">
+            {#if presentation}
+              <ThemeChooser
+                themes={presentation.themes}
+                selectedId={presentation.selected.id}
+                onSelect={selectTheme}
+                onReload={reloadThemes}
+                onOpenFolder={openThemesFolder}
+              />
+            {/if}
             {#if selectedDocument}
               <button
-                class="toolbar-action"
+                class="toolbar-action section-toggle"
                 data-state="resting"
                 type="button"
                 aria-label="Collapse all sections"
@@ -616,7 +625,7 @@
                 </svg>
               </button>
               <button
-                class="toolbar-action"
+                class="toolbar-action section-toggle"
                 data-state="resting"
                 type="button"
                 aria-label="Expand all sections"
@@ -636,15 +645,6 @@
                   <path d="M6 4l6 6 6-6" />
                 </svg>
               </button>
-            {/if}
-            {#if presentation}
-              <ThemeChooser
-                themes={presentation.themes}
-                selectedId={presentation.selected.id}
-                onSelect={selectTheme}
-                onReload={reloadThemes}
-                onOpenFolder={openThemesFolder}
-              />
             {/if}
             <button
               class="toolbar-action"

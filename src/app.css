@@ -576,6 +576,10 @@ select {
   font-size: 0.9rem;
 }
 
+.toolbar-action.section-toggle svg {
+  width: 1rem;
+  height: 1rem;
+}
 .toolbar-action[data-state='loading'],
 .toolbar-action:disabled {
   cursor: wait;
