@@ -12,6 +12,8 @@ export type KeyboardCommand =
       intent: 'line-up' | 'line-down' | 'page-up' | 'page-down' | 'top' | 'bottom';
     }
   | { kind: 'focus-tree' }
+  | { kind: 'collapse-sections' }
+  | { kind: 'expand-sections' }
   | { kind: 'toggle-help' };
 
 export interface KeyboardState {

@@ -25,7 +25,11 @@ describe('KeyboardController', () => {
     ['reader', 'J', { kind: 'scroll-reader', intent: 'line-down' }],
     ['reader', 'K', { kind: 'scroll-reader', intent: 'line-up' }],
     ['reader', 'h', undefined],
-    ['reader', 'l', undefined]
+    ['reader', 'l', undefined],
+    ['reader', 'H', { kind: 'collapse-sections' }],
+    ['reader', 'L', { kind: 'expand-sections' }],
+    ['tree', 'H', undefined],
+    ['tree', 'L', undefined]
   ] as const)('%s %s maps to the settled command', (pane, key, command) => {
     expect(transition(pane, key)).toEqual(command);
   });

@@ -22,6 +22,18 @@ export class KeyboardController {
         command: { kind: 'scroll-reader', intent: key === 'J' ? 'line-down' : 'line-up' }
       };
     }
+    if (key === 'H' && state.pane === 'reader') {
+      return {
+        state: { ...state, pending: undefined },
+        command: { kind: 'collapse-sections' }
+      };
+    }
+    if (key === 'L' && state.pane === 'reader') {
+      return {
+        state: { ...state, pending: undefined },
+        command: { kind: 'expand-sections' }
+      };
+    }
     if (key === 'g') {
       if (state.pending === 'g') {
         return this.withPaneCommand(

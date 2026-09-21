@@ -343,7 +343,11 @@
       documentTree?.focus();
     } else if (result.command.kind === 'focus-pane') {
       result.command.pane === 'tree' ? documentTree?.focus() : readerPane?.focus();
-    } else if (result.command.kind === 'scroll-reader') {
+    } else if (
+      result.command.kind === 'scroll-reader' ||
+      result.command.kind === 'collapse-sections' ||
+      result.command.kind === 'expand-sections'
+    ) {
       readerPane?.run(result.command);
     } else {
       documentTree?.run(result.command);
@@ -589,6 +593,50 @@
             <h1>{selectedDocument?.title ?? 'Select a document'}</h1>
           </div>
           <div class="toolbar-controls">
+            {#if selectedDocument}
+              <button
+                class="toolbar-action"
+                data-state="resting"
+                type="button"
+                aria-label="Collapse all sections"
+                title="Collapse all sections (H)"
+                onclick={() => readerPane?.run({ kind: 'collapse-sections' })}
+              >
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  aria-hidden="true"
+                >
+                  <path d="M6 15l6-6 6 6" />
+                  <path d="M6 20l6-6 6 6" />
+                </svg>
+              </button>
+              <button
+                class="toolbar-action"
+                data-state="resting"
+                type="button"
+                aria-label="Expand all sections"
+                title="Expand all sections (L)"
+                onclick={() => readerPane?.run({ kind: 'expand-sections' })}
+              >
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  aria-hidden="true"
+                >
+                  <path d="M6 9l6 6 6-6" />
+                  <path d="M6 4l6 6 6-6" />
+                </svg>
+              </button>
+            {/if}
             {#if presentation}
               <ThemeChooser
                 themes={presentation.themes}

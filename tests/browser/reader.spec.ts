@@ -21,7 +21,7 @@ test('renders the representative fixture with one confined image and no network 
 
   await expect(reader.locator('h1')).toHaveText('Reading a local field guide');
   await expect(reader.locator('ol li')).toHaveCount(3);
-  await expect(reader.locator('article > ul:not(.contains-task-list) > li')).toHaveCount(3);
+  await expect(reader.locator('article ul:not(.contains-task-list) > li')).toHaveCount(3);
   await expect(reader.locator('.contains-task-list .task-list-item')).toHaveCount(2);
   await expect(reader.locator('blockquote')).toContainText('A useful reader makes structure');
   await expect(reader.locator('pre.shiki')).toBeVisible();

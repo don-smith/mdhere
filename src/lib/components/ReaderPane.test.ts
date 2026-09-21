@@ -278,4 +278,93 @@ nested:
     expect(onDocumentLink).toHaveBeenCalledWith('next.md', 'part');
     expect(onExternalLink).toHaveBeenCalledWith('https://example.com/');
   });
+
+  it('wraps headings into collapsible sections and toggles them on click', async () => {
+    const { container } = render(ReaderPane, {
+      document: {
+        path: 'guide.md',
+        title: 'Guide',
+        content: '# Guide\n\nIntro\n\n## One\n\nAlpha\n\n### Deep\n\nDetail\n\n## Two\n\nBeta'
+      }
+    });
+    const reader = await readerElement(container);
+    const sections = reader.shadowRoot?.querySelectorAll('section[data-mdhere-section]') ?? [];
+    expect(sections).toHaveLength(4);
+
+    const oneHeading = reader.shadowRoot?.querySelector('h2#one');
+    if (!oneHeading) throw new Error('Expected the One heading');
+    await fireEvent.click(oneHeading);
+
+    const oneSection = oneHeading.closest('section[data-mdhere-section]');
+    expect(oneSection?.getAttribute('data-mdhere-collapsed')).toBe('true');
+    expect(oneHeading.getAttribute('aria-expanded')).toBe('false');
+
+    await fireEvent.click(oneHeading);
+    expect(oneSection?.getAttribute('data-mdhere-collapsed')).toBe('false');
+    expect(oneHeading.getAttribute('aria-expanded')).toBe('true');
+  });
+
+  it('keeps heading links clickable instead of toggling the section', async () => {
+    const onDocumentLink = vi.fn();
+    const { container } = render(ReaderPane, {
+      document: { path: 'guide.md', title: 'Guide', content: '## [Target](other.md)\n\nBody' },
+      onDocumentLink
+    });
+    const reader = await readerElement(container);
+    const link = reader.shadowRoot?.querySelector('h2 a');
+    if (!link) throw new Error('Expected a heading link');
+
+    await fireEvent.click(link);
+
+    expect(onDocumentLink).toHaveBeenCalledWith('other.md', undefined);
+    const section = link.closest('section[data-mdhere-section]');
+    expect(section?.getAttribute('data-mdhere-collapsed')).toBeNull();
+  });
+
+  it('collapses and expands all sections and remembers state per document', async () => {
+    const content = '# Guide\n\nIntro\n\n## One\n\nAlpha\n\n## Two\n\nBeta';
+    const { container, component, rerender } = render(ReaderPane, {
+      document: { path: 'guide.md', title: 'Guide', content }
+    });
+    const reader = await readerElement(container);
+
+    component.run({ kind: 'collapse-sections' });
+    await waitFor(() => {
+      const sections = reader.shadowRoot?.querySelectorAll('section[data-mdhere-section]') ?? [];
+      expect(sections.length).toBeGreaterThan(0);
+      expect(
+        [...sections].every((section) => section.getAttribute('data-mdhere-collapsed') === 'true')
+      ).toBe(true);
+    });
+
+    await rerender({
+      document: { path: 'other.md', title: 'Other', content: '# Other\n\n## Sub\n\nX' }
+    });
+    await waitFor(() => {
+      expect(reader.shadowRoot?.querySelector('h2#sub')?.textContent).toContain('Sub');
+      const collapsed = reader.shadowRoot?.querySelectorAll(
+        'section[data-mdhere-collapsed="true"]'
+      );
+      expect(collapsed?.length).toBe(0);
+    });
+
+    await rerender({ document: { path: 'guide.md', title: 'Guide', content } });
+    await waitFor(() =>
+      expect(reader.shadowRoot?.querySelector('h2#one')?.textContent).toContain('One')
+    );
+    await waitFor(() => {
+      const collapsed = reader.shadowRoot?.querySelectorAll(
+        'section[data-mdhere-collapsed="true"]'
+      );
+      expect(collapsed?.length).toBe(3);
+    });
+
+    component.run({ kind: 'expand-sections' });
+    await waitFor(() => {
+      const collapsed = reader.shadowRoot?.querySelectorAll(
+        'section[data-mdhere-collapsed="true"]'
+      );
+      expect(collapsed?.length).toBe(0);
+    });
+  });
 });

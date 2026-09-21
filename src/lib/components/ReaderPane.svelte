@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onMount, untrack } from 'svelte';
-  import { SvelteMap } from 'svelte/reactivity';
+  import { SvelteMap, SvelteSet } from 'svelte/reactivity';
 
   import type { Document } from '../contracts';
   import type { KeyboardCommand } from '../keyboard/types';
@@ -8,6 +8,15 @@
   import baseReaderCss from '../markdown/base-reader.css?inline';
   import { mermaidRenderer } from '../markdown/mermaid';
   import { MarkdownRenderer, type AssetUrl } from '../markdown/renderer';
+  import {
+    SECTION_SELECTOR,
+    SECTION_TOGGLE_SELECTOR,
+    isSectionCollapsed,
+    revealAncestors,
+    sectionHeading,
+    sectionize,
+    setSectionCollapsed
+  } from '../markdown/sections';
   import type {
     FrontMatter,
     FrontMatterEntry,
@@ -49,6 +58,7 @@
   let appliedThemeSignature: string | undefined;
   let renderGeneration = 0;
   const scrollPositions = new SvelteMap<string, number>();
+  const collapsedSections = new SvelteMap<string, Set<string>>();
 
   onMount(() => {
     shadow = host.attachShadow({ mode: 'open' });
@@ -115,6 +125,8 @@
     article.className = 'reader-content';
     // Sanitized Markdown is the sole HTML string admitted to the reader DOM.
     article.innerHTML = rendered.html;
+    sectionize(article);
+    applyCollapsedSections(article, currentDocument.path);
     page.replaceChildren(
       ...(rendered.frontMatter ? [frontMatterElement(rendered.frontMatter), article] : [article])
     );
@@ -125,8 +137,44 @@
     host.scrollTop = scrollPositions.get(currentDocument.path) ?? 0;
     if (currentFragment) {
       const target = shadow.querySelector<HTMLElement>(`[id="${CSS.escape(currentFragment)}"]`);
-      target?.focus();
+      if (target) {
+        revealAncestors(target);
+        target.focus();
+      }
     }
+  }
+
+  function applyCollapsedSections(article: HTMLElement, path: string) {
+    const collapsed = collapsedSections.get(path);
+    if (!collapsed?.size) return;
+    for (const section of article.querySelectorAll(SECTION_SELECTOR)) {
+      const heading = sectionHeading(section);
+      if (heading?.id && collapsed.has(heading.id)) setSectionCollapsed(section, true);
+    }
+  }
+
+  function toggleSection(heading: Element) {
+    const section = heading.closest(SECTION_SELECTOR);
+    if (!section || !document) return;
+    const collapsed = !isSectionCollapsed(section);
+    setSectionCollapsed(section, collapsed);
+    if (!heading.id) return;
+    const collapsedIds = collapsedSections.get(document.path) ?? new SvelteSet<string>();
+    if (collapsed) collapsedIds.add(heading.id);
+    else collapsedIds.delete(heading.id);
+    collapsedSections.set(document.path, collapsedIds);
+  }
+
+  function setAllSectionsCollapsed(collapsed: boolean) {
+    const article = shadow?.querySelector<HTMLElement>('article.reader-content');
+    if (!article || !document) return;
+    const collapsedIds = new SvelteSet<string>();
+    for (const section of article.querySelectorAll(SECTION_SELECTOR)) {
+      setSectionCollapsed(section, collapsed);
+      const heading = sectionHeading(section);
+      if (collapsed && heading?.id) collapsedIds.add(heading.id);
+    }
+    collapsedSections.set(document.path, collapsedIds);
   }
 
   function frontMatterElement(frontMatter: FrontMatter): HTMLDetailsElement {
@@ -256,6 +304,14 @@
   }
 
   export function run(command: KeyboardCommand) {
+    if (command.kind === 'collapse-sections') {
+      setAllSectionsCollapsed(true);
+      return;
+    }
+    if (command.kind === 'expand-sections') {
+      setAllSectionsCollapsed(false);
+      return;
+    }
     if (command.kind !== 'scroll-reader') return;
     if (command.intent === 'top' || command.intent === 'bottom') {
       host.scrollTo({ top: command.intent === 'top' ? 0 : host.scrollHeight });
@@ -319,14 +375,19 @@
   }
 
   function onClick(event: Event) {
-    const link = (event.target as Element | null)?.closest<HTMLAnchorElement>('a');
-    if (!link) return;
-    const path = link.dataset.mdherePath;
-    const external = link.dataset.mdhereExternal;
-    if (!path && !external) return;
-    event.preventDefault();
-    if (path) onDocumentLink?.call(undefined, path, link.dataset.mdhereFragment);
-    if (external) void onExternalLink?.call(undefined, external);
+    const target = event.target as Element | null;
+    const link = target?.closest<HTMLAnchorElement>('a');
+    if (link) {
+      const path = link.dataset.mdherePath;
+      const external = link.dataset.mdhereExternal;
+      if (!path && !external) return;
+      event.preventDefault();
+      if (path) onDocumentLink?.call(undefined, path, link.dataset.mdhereFragment);
+      if (external) void onExternalLink?.call(undefined, external);
+      return;
+    }
+    const heading = target?.closest(SECTION_TOGGLE_SELECTOR);
+    if (heading) toggleSection(heading);
   }
 </script>
 

@@ -35,6 +35,31 @@ img {
   overflow-x: auto;
 }
 
+section[data-mdhere-section] > [data-mdhere-section-toggle] {
+  cursor: pointer;
+}
+
+[data-mdhere-section-toggle]::before {
+  content: '▸';
+  display: inline-block;
+  margin-inline-end: 0.45em;
+  font-size: 0.65em;
+  vertical-align: middle;
+  transition: transform 0.15s ease;
+}
+
+section[data-mdhere-section] > [data-mdhere-section-toggle]::before {
+  transform: rotate(90deg);
+}
+
+section[data-mdhere-collapsed='true'] > [data-mdhere-section-toggle]::before {
+  transform: rotate(0deg);
+}
+
+section[data-mdhere-collapsed='true'] > :not([data-mdhere-section-toggle]) {
+  display: none;
+}
+
 .mdhere-mermaid-diagram svg {
   display: block;
 }
