@@ -27,6 +27,12 @@ fn parses_no_root_explicit_root_and_root_relative_document_requests() {
         }
     );
     assert_eq!(
+        LaunchRequest::parse(args(&["folder with spaces", "Story.html"]), temp.path())
+            .unwrap()
+            .document,
+        Some(PathBuf::from("Story.html"))
+    );
+    assert_eq!(
         LaunchRequest::parse(
             args(&["folder with spaces", "guides/Welcome.md"]),
             temp.path()

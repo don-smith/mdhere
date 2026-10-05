@@ -14,13 +14,13 @@ pub enum LibraryError {
     NotRegistered(String),
     #[error("The requested path is outside the selected folder")]
     OutsideRoot,
-    #[error("The requested file is not a Markdown document")]
-    NotMarkdown,
+    #[error("The requested file is not a Markdown or HTML document")]
+    NotDocument,
     #[error("The document is not valid UTF-8")]
     InvalidUtf8,
     #[error("The document exceeds the 10 MiB limit")]
     DocumentTooLarge,
-    #[error("The library contains more than 25,000 Markdown documents")]
+    #[error("The library contains more than 25,000 documents")]
     SnapshotLimit,
     #[error("Filesystem operation failed: {0}")]
     Io(String),

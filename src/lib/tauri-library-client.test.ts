@@ -13,7 +13,14 @@ import { TauriLibraryClient } from './tauri-library-client';
 const snapshot = {
   rootName: 'replacement',
   diagnostics: [],
-  tree: [{ kind: 'document' as const, name: 'Replacement.md', path: 'Replacement.md' }]
+  tree: [
+    {
+      kind: 'document' as const,
+      documentKind: 'markdown' as const,
+      name: 'Replacement.md',
+      path: 'Replacement.md'
+    }
+  ]
 };
 
 describe('TauriLibraryClient', () => {
@@ -32,6 +39,13 @@ describe('TauriLibraryClient', () => {
 
     await expect(new TauriLibraryClient().openFolder()).resolves.toEqual(snapshot);
     expect(unlisten).toHaveBeenCalledOnce();
+  });
+
+  it('passes through HTML read metadata without manufacturing markup', async () => {
+    const html = { kind: 'html', path: 'Story.html', title: 'Story' };
+    tauri.invoke.mockResolvedValue(html);
+    await expect(new TauriLibraryClient().readDocument('Story.html')).resolves.toEqual(html);
+    expect(tauri.invoke).toHaveBeenCalledWith('read_document', { path: 'Story.html' });
   });
 
   it('consumes the pending native launch update', async () => {

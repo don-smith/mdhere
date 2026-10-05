@@ -19,15 +19,29 @@ pub enum TreeNode {
     Document {
         name: String,
         path: String,
+        document_kind: DocumentKind,
     },
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
-pub struct Document {
-    pub path: String,
-    pub title: String,
-    pub content: String,
+pub enum DocumentKind {
+    Markdown,
+    Html,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[serde(tag = "kind", rename_all = "camelCase")]
+pub enum Document {
+    Markdown {
+        path: String,
+        title: String,
+        content: String,
+    },
+    Html {
+        path: String,
+        title: String,
+    },
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]

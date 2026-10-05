@@ -1,6 +1,7 @@
-import type { Document, LibrarySnapshot } from '../contracts';
+import type { Document, LibrarySnapshot, MarkdownDocument } from '../contracts';
 
-export const representativeReaderDocument: Document = {
+export const representativeReaderDocument: MarkdownDocument = {
+  kind: 'markdown',
   path: 'guides/Welcome.md',
   title: 'Reading a local field guide',
   content: `---
@@ -106,8 +107,13 @@ export const representativeLibrarySnapshot: LibrarySnapshot = {
       name: 'guides',
       path: 'guides',
       children: [
-        { kind: 'document', name: 'Welcome.md', path: 'guides/Welcome.md' },
-        { kind: 'document', name: 'Second.md', path: 'guides/Second.md' }
+        {
+          kind: 'document',
+          documentKind: 'markdown',
+          name: 'Welcome.md',
+          path: 'guides/Welcome.md'
+        },
+        { kind: 'document', documentKind: 'markdown', name: 'Second.md', path: 'guides/Second.md' }
       ]
     }
   ]
@@ -116,6 +122,7 @@ export const representativeLibrarySnapshot: LibrarySnapshot = {
 export const representativeDocuments: Record<string, Document> = {
   [representativeReaderDocument.path]: representativeReaderDocument,
   'guides/Second.md': {
+    kind: 'markdown',
     path: 'guides/Second.md',
     title: 'Second',
     content: '# Second section\n\nThis document was selected by a confined local link.'

@@ -9,12 +9,24 @@ const tree: TreeNode[] = [
     name: 'Guides',
     path: 'guides',
     children: [
-      { kind: 'document', name: 'Welcome.md', path: 'guides/Welcome.md' },
+      {
+        kind: 'document',
+        documentKind: 'markdown' as const,
+        name: 'Welcome.md',
+        path: 'guides/Welcome.md'
+      },
       {
         kind: 'folder',
         name: 'Advanced',
         path: 'guides/advanced',
-        children: [{ kind: 'document', name: 'Deep Dive.md', path: 'guides/advanced/Deep Dive.md' }]
+        children: [
+          {
+            kind: 'document',
+            documentKind: 'markdown' as const,
+            name: 'Deep Dive.md',
+            path: 'guides/advanced/Deep Dive.md'
+          }
+        ]
       }
     ]
   },
@@ -22,7 +34,14 @@ const tree: TreeNode[] = [
     kind: 'folder',
     name: 'Reference',
     path: 'reference',
-    children: [{ kind: 'document', name: 'API.md', path: 'reference/API.md' }]
+    children: [
+      {
+        kind: 'document',
+        documentKind: 'markdown' as const,
+        name: 'API.md',
+        path: 'reference/API.md'
+      }
+    ]
   }
 ];
 
@@ -33,7 +52,14 @@ describe('filterTree', () => {
         kind: 'folder',
         name: 'Guides',
         path: 'guides',
-        children: [{ kind: 'document', name: 'Welcome.md', path: 'guides/Welcome.md' }]
+        children: [
+          {
+            kind: 'document',
+            documentKind: 'markdown' as const,
+            name: 'Welcome.md',
+            path: 'guides/Welcome.md'
+          }
+        ]
       }
     ]);
     expect(filterTree(tree, 'ADVANCED/deep')).toEqual([
@@ -47,7 +73,12 @@ describe('filterTree', () => {
             name: 'Advanced',
             path: 'guides/advanced',
             children: [
-              { kind: 'document', name: 'Deep Dive.md', path: 'guides/advanced/Deep Dive.md' }
+              {
+                kind: 'document',
+                documentKind: 'markdown' as const,
+                name: 'Deep Dive.md',
+                path: 'guides/advanced/Deep Dive.md'
+              }
             ]
           }
         ]
@@ -73,7 +104,14 @@ describe('filterTree', () => {
         kind: 'folder',
         name: 'Guides',
         path: 'collection',
-        children: [{ kind: 'document', name: 'Welcome.md', path: 'collection/Welcome.md' }]
+        children: [
+          {
+            kind: 'document',
+            documentKind: 'markdown' as const,
+            name: 'Welcome.md',
+            path: 'collection/Welcome.md'
+          }
+        ]
       }
     ];
 

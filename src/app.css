@@ -594,6 +594,13 @@ select {
   background: var(--shell-background);
 }
 
+.html-placeholder {
+  margin: auto;
+  padding: 2rem;
+  color: var(--shell-muted);
+  text-align: center;
+}
+
 .reader-pane {
   min-width: 0;
   flex: 1;

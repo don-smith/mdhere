@@ -5,7 +5,7 @@ use ignore::WalkBuilder;
 use super::{
     error::LibraryError,
     path_guard::PathGuard,
-    types::{Diagnostic, LibrarySnapshot, TreeNode},
+    types::{Diagnostic, DocumentKind, LibrarySnapshot, TreeNode},
 };
 
 const MAX_DOCUMENTS: usize = 25_000;
@@ -15,7 +15,7 @@ struct Folder {
     name: String,
     path: String,
     folders: Vec<Folder>,
-    documents: Vec<(String, String)>,
+    documents: Vec<(String, String, DocumentKind)>,
 }
 
 pub fn scan(root: &Path) -> Result<LibrarySnapshot, LibraryError> {
@@ -42,9 +42,12 @@ pub fn scan(root: &Path) -> Result<LibrarySnapshot, LibraryError> {
             }
             Err(error) => return Err(LibraryError::Io(error.to_string())),
         };
-        if metadata.is_dir() || !metadata.is_file() || !is_markdown(path) {
+        if metadata.is_dir() || !metadata.is_file() {
             continue;
         }
+        let Some(kind) = document_kind(path) else {
+            continue;
+        };
 
         let relative = path
             .strip_prefix(root)
@@ -63,7 +66,7 @@ pub fn scan(root: &Path) -> Result<LibrarySnapshot, LibraryError> {
         if count > MAX_DOCUMENTS {
             return Err(LibraryError::SnapshotLimit);
         }
-        insert_document(&mut tree, relative, &relative_string);
+        insert_document(&mut tree, relative, &relative_string, kind);
     }
 
     Ok(LibrarySnapshot {
@@ -77,12 +80,15 @@ pub fn scan(root: &Path) -> Result<LibrarySnapshot, LibraryError> {
     })
 }
 
-pub fn is_markdown(path: &Path) -> bool {
-    path.extension()
-        .and_then(|extension| extension.to_str())
-        .is_some_and(|extension| {
-            extension.eq_ignore_ascii_case("md") || extension.eq_ignore_ascii_case("markdown")
-        })
+pub fn document_kind(path: &Path) -> Option<DocumentKind> {
+    let extension = path.extension()?.to_str()?;
+    if extension.eq_ignore_ascii_case("md") || extension.eq_ignore_ascii_case("markdown") {
+        Some(DocumentKind::Markdown)
+    } else if extension.eq_ignore_ascii_case("html") {
+        Some(DocumentKind::Html)
+    } else {
+        None
+    }
 }
 
 fn has_vcs_component(path: &Path) -> bool {
@@ -101,7 +107,7 @@ fn display_path(path: &Path) -> String {
         .join("/")
 }
 
-fn insert_document(folder: &mut Folder, relative: &Path, full_path: &str) {
+fn insert_document(folder: &mut Folder, relative: &Path, full_path: &str, kind: DocumentKind) {
     let components: Vec<String> = relative
         .components()
         .filter_map(|component| match component {
@@ -133,7 +139,9 @@ fn insert_document(folder: &mut Folder, relative: &Path, full_path: &str) {
             });
         current = &mut current.folders[index];
     }
-    current.documents.push((file.clone(), full_path.to_owned()));
+    current
+        .documents
+        .push((file.clone(), full_path.to_owned(), kind));
 }
 
 impl Folder {
@@ -168,7 +176,11 @@ impl Folder {
         nodes.extend(
             self.documents
                 .into_iter()
-                .map(|(name, path)| TreeNode::Document { name, path }),
+                .map(|(name, path, document_kind)| TreeNode::Document {
+                    name,
+                    path,
+                    document_kind,
+                }),
         );
         nodes
     }

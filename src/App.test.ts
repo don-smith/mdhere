@@ -12,6 +12,41 @@ import type { PresentationSnapshot } from './lib/themes/types';
 import App from './App.svelte';
 
 describe('App', () => {
+  it('selects mixed documents without passing HTML markup to ReaderPane', async () => {
+    const snapshot: LibrarySnapshot = {
+      rootName: 'Mixed library',
+      diagnostics: [],
+      tree: [
+        { kind: 'document', documentKind: 'markdown', name: 'Guide.md', path: 'Guide.md' },
+        { kind: 'document', documentKind: 'html', name: 'Story.html', path: 'Story.html' }
+      ]
+    };
+    const client: LibraryClient = {
+      snapshot: () => Promise.resolve(snapshot),
+      readDocument: (path) =>
+        Promise.resolve(
+          path === 'Story.html'
+            ? { kind: 'html', path, title: 'Story' }
+            : { kind: 'markdown', path, title: 'Guide', content: '# Guide' }
+        ),
+      refresh: () => Promise.resolve(snapshot),
+      openFolder: () => Promise.resolve(undefined),
+      openExternalLink: () => Promise.resolve()
+    };
+    const { container } = render(App, { client });
+    await fireEvent.click(await screen.findByRole('treeitem', { name: 'Guide.md' }));
+    await waitFor(() =>
+      expect(container.querySelector('[data-testid="reader"]')?.shadowRoot?.textContent).toContain(
+        'Guide'
+      )
+    );
+    await fireEvent.click(screen.getByRole('treeitem', { name: 'Story.html' }));
+    expect(await screen.findByText('HTML stories are not available yet.')).toBeInTheDocument();
+    expect(screen.queryByTestId('reader')).not.toBeInTheDocument();
+    expect(screen.getByTestId('status-strip')).toHaveTextContent('HTML');
+    expect(screen.getByTestId('document-toolbar')).toHaveTextContent('Story');
+  });
+
   afterEach(() => {
     cleanup();
     vi.restoreAllMocks();
@@ -48,9 +83,17 @@ describe('App', () => {
         Promise.resolve({
           rootName: 'Library',
           diagnostics: [],
-          tree: [{ kind: 'document', name: 'Guide.md', path: 'Guide.md' }]
+          tree: [
+            {
+              kind: 'document',
+              documentKind: 'markdown' as const,
+              name: 'Guide.md',
+              path: 'Guide.md'
+            }
+          ]
         }),
-      readDocument: () => Promise.resolve({ path: 'Guide.md', title: 'Guide', content: '# Guide' }),
+      readDocument: () =>
+        Promise.resolve({ kind: 'markdown', path: 'Guide.md', title: 'Guide', content: '# Guide' }),
       refresh: () => Promise.reject(new Error('not used')),
       openFolder: () => Promise.resolve(undefined),
       openExternalLink: () => Promise.resolve()
@@ -129,9 +172,17 @@ describe('App', () => {
         Promise.resolve({
           rootName: 'Library',
           diagnostics: [],
-          tree: [{ kind: 'document', name: 'Guide.md', path: 'Guide.md' }]
+          tree: [
+            {
+              kind: 'document',
+              documentKind: 'markdown' as const,
+              name: 'Guide.md',
+              path: 'Guide.md'
+            }
+          ]
         }),
-      readDocument: () => Promise.resolve({ path: 'Guide.md', title: 'Guide', content: '# Guide' }),
+      readDocument: () =>
+        Promise.resolve({ kind: 'markdown', path: 'Guide.md', title: 'Guide', content: '# Guide' }),
       refresh: () => Promise.resolve({ rootName: 'Library', diagnostics: [], tree: [] }),
       openFolder: () => Promise.resolve(undefined),
       openExternalLink: () => Promise.resolve()
@@ -194,10 +245,18 @@ describe('App', () => {
         Promise.resolve({
           rootName: 'Library',
           diagnostics: [],
-          tree: [{ kind: 'document', name: 'Guide.md', path: 'Guide.md' }]
+          tree: [
+            {
+              kind: 'document',
+              documentKind: 'markdown' as const,
+              name: 'Guide.md',
+              path: 'Guide.md'
+            }
+          ]
         }),
       readDocument: () =>
         Promise.resolve({
+          kind: 'markdown',
           path: 'Guide.md',
           title: 'Guide',
           content: '---\ntitle: Guide\n---\n# Guide'
@@ -239,7 +298,14 @@ describe('App', () => {
           kind: 'folder' as const,
           name: 'Guides',
           path: 'guides',
-          children: [{ kind: 'document' as const, name: 'Welcome.md', path: 'guides/Welcome.md' }]
+          children: [
+            {
+              kind: 'document' as const,
+              documentKind: 'markdown' as const,
+              name: 'Welcome.md',
+              path: 'guides/Welcome.md'
+            }
+          ]
         }
       ]
     });
@@ -268,7 +334,14 @@ describe('App', () => {
     const library: LibrarySnapshot = {
       rootName: 'Library',
       diagnostics: [],
-      tree: [{ kind: 'document' as const, name: 'Guide.md', path: 'Guide.md' }]
+      tree: [
+        {
+          kind: 'document' as const,
+          documentKind: 'markdown' as const,
+          name: 'Guide.md',
+          path: 'Guide.md'
+        }
+      ]
     };
     const client: LibraryClient = {
       snapshot: () => Promise.resolve(library),
@@ -305,12 +378,22 @@ describe('App', () => {
       rootName: 'Library',
       diagnostics: [],
       tree: [
-        { kind: 'document', name: 'Guide.md', path: 'Guide.md' },
-        { kind: 'document', name: 'Other.md', path: 'Other.md' }
+        { kind: 'document', documentKind: 'markdown' as const, name: 'Guide.md', path: 'Guide.md' },
+        { kind: 'document', documentKind: 'markdown' as const, name: 'Other.md', path: 'Other.md' }
       ]
     };
-    const guide = { path: 'Guide.md', title: 'Guide', content: '# Guide' };
-    const other = { path: 'Other.md', title: 'Other', content: '# Other' };
+    const guide = {
+      kind: 'markdown' as const,
+      path: 'Guide.md',
+      title: 'Guide',
+      content: '# Guide'
+    };
+    const other = {
+      kind: 'markdown' as const,
+      path: 'Other.md',
+      title: 'Other',
+      content: '# Other'
+    };
     let guideReads = 0;
     let resolveRefreshedGuide: ((document: typeof guide) => void) | undefined;
     const client: LibraryClient = {
@@ -348,9 +431,17 @@ describe('App', () => {
         Promise.resolve({
           rootName: 'Library',
           diagnostics: [],
-          tree: [{ kind: 'document', name: 'Guide.md', path: 'Guide.md' }]
+          tree: [
+            {
+              kind: 'document',
+              documentKind: 'markdown' as const,
+              name: 'Guide.md',
+              path: 'Guide.md'
+            }
+          ]
         }),
-      readDocument: () => Promise.resolve({ path: 'Guide.md', title: 'Guide', content: '# Guide' }),
+      readDocument: () =>
+        Promise.resolve({ kind: 'markdown', path: 'Guide.md', title: 'Guide', content: '# Guide' }),
       refresh: () => Promise.reject(new Error('not used')),
       openFolder,
       openExternalLink: () => Promise.resolve()
@@ -419,7 +510,7 @@ describe('App', () => {
     let receiveUpdate:
       | ((update: {
           snapshot: LibrarySnapshot;
-          document: { path: string; title: string; content: string } | null;
+          document: { kind: 'markdown'; path: string; title: string; content: string } | null;
         }) => void)
       | undefined;
     const client: LibraryClient = {
@@ -427,7 +518,14 @@ describe('App', () => {
         Promise.resolve({
           rootName: 'Initial library',
           diagnostics: [],
-          tree: [{ kind: 'document', name: 'Initial.md', path: 'Initial.md' }]
+          tree: [
+            {
+              kind: 'document',
+              documentKind: 'markdown' as const,
+              name: 'Initial.md',
+              path: 'Initial.md'
+            }
+          ]
         }),
       readDocument: vi.fn(),
       refresh: vi.fn(),
@@ -446,9 +544,21 @@ describe('App', () => {
       snapshot: {
         rootName: 'Replacement library',
         diagnostics: [],
-        tree: [{ kind: 'document', name: 'Welcome.md', path: 'guides/Welcome.md' }]
+        tree: [
+          {
+            kind: 'document',
+            documentKind: 'markdown' as const,
+            name: 'Welcome.md',
+            path: 'guides/Welcome.md'
+          }
+        ]
       },
-      document: { path: 'guides/Welcome.md', title: 'Welcome', content: '# Welcome' }
+      document: {
+        kind: 'markdown',
+        path: 'guides/Welcome.md',
+        title: 'Welcome',
+        content: '# Welcome'
+      }
     });
 
     await waitFor(() =>
@@ -457,14 +567,51 @@ describe('App', () => {
     expect(client.readDocument).not.toHaveBeenCalled();
   });
 
+  it('opens an HTML launch as metadata without mounting the Markdown reader', async () => {
+    const client: LibraryClient = {
+      snapshot: vi.fn(),
+      readDocument: vi.fn(),
+      refresh: vi.fn(),
+      openFolder: vi.fn(),
+      openExternalLink: vi.fn(),
+      consumeLaunchUpdate: () =>
+        Promise.resolve({
+          snapshot: {
+            rootName: 'Library',
+            diagnostics: [],
+            tree: [
+              { kind: 'document', documentKind: 'html', name: 'Story.html', path: 'Story.html' }
+            ]
+          },
+          document: { kind: 'html', path: 'Story.html', title: 'Story' }
+        })
+    };
+    render(App, { client });
+    expect(await screen.findByText('HTML stories are not available yet.')).toBeInTheDocument();
+    expect(screen.queryByTestId('reader')).not.toBeInTheDocument();
+    expect(client.readDocument).not.toHaveBeenCalled();
+  });
+
   it('applies an initial native launch update without rereading the selected document', async () => {
     const consumeLaunchUpdate = vi.fn().mockResolvedValue({
       snapshot: {
         rootName: 'Other library',
         diagnostics: [],
-        tree: [{ kind: 'document', name: 'Welcome.md', path: 'guides/Welcome.md' }]
+        tree: [
+          {
+            kind: 'document',
+            documentKind: 'markdown' as const,
+            name: 'Welcome.md',
+            path: 'guides/Welcome.md'
+          }
+        ]
       },
-      document: { path: 'guides/Welcome.md', title: 'Welcome', content: '# Welcome' }
+      document: {
+        kind: 'markdown',
+        path: 'guides/Welcome.md',
+        title: 'Welcome',
+        content: '# Welcome'
+      }
     });
     const client: LibraryClient = {
       snapshot: vi.fn(),

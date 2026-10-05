@@ -2,7 +2,7 @@
   import { onMount, untrack } from 'svelte';
   import { SvelteMap, SvelteSet } from 'svelte/reactivity';
 
-  import type { Document } from '../contracts';
+  import type { MarkdownDocument } from '../contracts';
   import type { KeyboardCommand } from '../keyboard/types';
   import type { Theme } from '../themes/types';
   import baseReaderCss from '../markdown/base-reader.css?inline';
@@ -25,7 +25,7 @@
   } from '../markdown/types';
 
   interface Props {
-    document?: Document;
+    document?: MarkdownDocument;
     fragment?: string;
     onDocumentLink?: Function;
     onExternalLink?: Function;

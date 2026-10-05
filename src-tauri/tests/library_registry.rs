@@ -1,6 +1,6 @@
 use std::{fs, path::Path};
 
-use mdhere_lib::library::{LibraryError, LibraryRegistry, TreeNode};
+use mdhere_lib::library::{Document, DocumentKind, LibraryError, LibraryRegistry, TreeNode};
 use tempfile::tempdir;
 
 fn write(root: &Path, relative_path: &str, contents: &[u8]) {
@@ -20,9 +20,10 @@ fn document_paths(nodes: &[TreeNode]) -> Vec<String> {
 }
 
 #[test]
-fn snapshot_keeps_only_markdown_documents_and_their_ancestors() {
+fn snapshot_keeps_both_document_kinds_and_their_ancestors() {
     let root = tempdir().unwrap();
     write(root.path(), "docs/Guide.MD", b"# guide");
+    write(root.path(), "docs/Story.HTML", b"<h1>story</h1>");
     write(root.path(), "docs/nested/notes.markdown", b"# notes");
     write(root.path(), "docs/image.png", b"png");
     write(root.path(), "empty/ignored.txt", b"ignored");
@@ -35,8 +36,17 @@ fn snapshot_keeps_only_markdown_documents_and_their_ancestors() {
     let snapshot = registry.snapshot("window").unwrap();
     assert_eq!(
         document_paths(&snapshot.tree),
-        ["docs/nested/notes.markdown", "docs/Guide.MD"]
+        [
+            "docs/nested/notes.markdown",
+            "docs/Guide.MD",
+            "docs/Story.HTML"
+        ]
     );
+    let nodes = &snapshot.tree;
+    let TreeNode::Folder { children, .. } = &nodes[0] else {
+        panic!("expected docs folder")
+    };
+    assert!(children.iter().any(|node| matches!(node, TreeNode::Document { path, document_kind: DocumentKind::Html, .. } if path == "docs/Story.HTML")));
 }
 
 #[test]
@@ -128,23 +138,27 @@ fn rejects_missing_and_non_directory_roots() {
 }
 
 #[test]
-fn read_is_confined_to_registered_root_and_markdown() {
+fn read_is_confined_to_registered_root_and_supported_documents() {
     let root = tempdir().unwrap();
     let outside = tempdir().unwrap();
     write(root.path(), "docs/inside.md", b"# inside");
     write(root.path(), "docs/plain.txt", b"plain");
+    write(
+        root.path(),
+        "docs/Story.HTML",
+        b"<script>window.story = true</script>",
+    );
     write(outside.path(), "outside.md", b"# outside");
     let registry = LibraryRegistry::new();
     registry
         .register_root("window", root.path().to_path_buf())
         .unwrap();
 
-    assert_eq!(
-        registry
-            .read_document("window", "docs/inside.md")
-            .unwrap()
-            .content,
-        "# inside"
+    assert!(
+        matches!(registry.read_document("window", "docs/inside.md"), Ok(Document::Markdown { content, .. }) if content == "# inside")
+    );
+    assert!(
+        matches!(registry.read_document("window", "docs/Story.HTML"), Ok(Document::Html { path, title }) if path == "docs/Story.HTML" && title == "Story")
     );
     assert!(matches!(
         registry.read_document("window", "../outside.md"),
@@ -152,7 +166,7 @@ fn read_is_confined_to_registered_root_and_markdown() {
     ));
     assert!(matches!(
         registry.read_document("window", "docs/plain.txt"),
-        Err(LibraryError::NotMarkdown)
+        Err(LibraryError::NotDocument)
     ));
 }
 
@@ -166,6 +180,12 @@ fn skips_directory_symlinks_and_symlinks_that_escape_the_root() {
     write(root.path(), "inside.md", b"inside");
     write(root.path(), "real/kept.md", b"kept");
     write(outside.path(), "outside.md", b"outside");
+    write(outside.path(), "outside.html", b"outside");
+    symlink(
+        outside.path().join("outside.html"),
+        root.path().join("escaped.html"),
+    )
+    .unwrap();
     symlink(
         root.path().join("real"),
         root.path().join("linked-directory"),
@@ -185,6 +205,10 @@ fn skips_directory_symlinks_and_symlinks_that_escape_the_root() {
         document_paths(&registry.snapshot("window").unwrap().tree),
         ["real/kept.md", "inside.md"]
     );
+    assert!(matches!(
+        registry.read_document("window", "escaped.html"),
+        Err(LibraryError::OutsideRoot)
+    ));
 }
 
 #[cfg(unix)]
@@ -212,6 +236,8 @@ fn snapshot_ignores_broken_symlinks_outside_markdown_files() {
 fn rejects_invalid_utf8_and_documents_over_ten_mebibytes() {
     let root = tempdir().unwrap();
     write(root.path(), "broken.md", &[0xff, 0xfe]);
+    write(root.path(), "broken.html", &[0xff, 0xfe]);
+    write(root.path(), "large.html", &vec![b'x'; 10 * 1024 * 1024 + 1]);
     write(root.path(), "large.md", &vec![b'x'; 10 * 1024 * 1024 + 1]);
     let registry = LibraryRegistry::new();
     registry
@@ -224,6 +250,14 @@ fn rejects_invalid_utf8_and_documents_over_ten_mebibytes() {
     ));
     assert!(matches!(
         registry.read_document("window", "large.md"),
+        Err(LibraryError::DocumentTooLarge)
+    ));
+    assert!(matches!(
+        registry.read_document("window", "broken.html"),
+        Err(LibraryError::InvalidUtf8)
+    ));
+    assert!(matches!(
+        registry.read_document("window", "large.html"),
         Err(LibraryError::DocumentTooLarge)
     ));
 }

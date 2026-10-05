@@ -23,6 +23,7 @@
   import {
     browserFixtureAssetUrl,
     representativeDocuments,
+    representativeReaderDocument,
     representativeLibrarySnapshot
   } from './lib/fixtures/representative-reader';
   import { filterTree } from './lib/tree/filter-tree';
@@ -39,9 +40,9 @@
   const mermaidDocuments: Record<string, Document> = {
     ...demoDocuments,
     'guides/Welcome.md': {
-      ...demoDocuments['guides/Welcome.md'],
+      ...representativeReaderDocument,
       content:
-        demoDocuments['guides/Welcome.md'].content +
+        representativeReaderDocument.content +
         '\n\n```mermaid\nflowchart LR\n  A --> B\n```\n\n```mmd\nflowchart LR\n  C --> D\n```\n\n```mermaid\n%%{init: {"theme": "dark", "themeVariables": {"lineColor": "#ff0000"}} }%%\nflowchart LR\n  E --> F\n```\n\n```mermaid\nflowchart LR; G --> H; style G fill:#ff0000\n```'
     }
   };
@@ -81,6 +82,7 @@
           ...demoSnapshot,
           tree: Array.from({ length: 48 }, (_, index) => ({
             kind: 'document' as const,
+            documentKind: 'markdown' as const,
             name: `Chapter ${index + 1}.md`,
             path: `chapters/Chapter ${index + 1}.md`
           }))
@@ -160,7 +162,9 @@
   let filterActive = $derived(filterQuery.trim().length > 0);
   let filteredTree = $derived(snapshot ? filterTree(snapshot.tree, filterQuery) : []);
   let selectedLineCount = $derived(
-    selectedDocument ? selectedDocument.content.split(/\r?\n/).length : undefined
+    selectedDocument?.kind === 'markdown'
+      ? selectedDocument.content.split(/\r?\n/).length
+      : undefined
   );
   let libraryOperation = 0;
   let selectionOperation = 0;
@@ -474,7 +478,7 @@
   {:else if needsFolder}
     <section class="shell-status" data-state="empty">
       <h1>Choose a folder</h1>
-      <p>Select a folder containing Markdown documents to start reading.</p>
+      <p>Select a folder containing Markdown or HTML documents to start reading.</p>
       <button class="status-action" data-state="resting" onclick={openFolder}>Open Folder</button>
     </section>
   {:else if error}
@@ -488,8 +492,8 @@
     </section>
   {:else if snapshot && flattenedDocuments(snapshot.tree).length === 0}
     <section class="shell-status" data-state="empty">
-      <h1>No Markdown documents found</h1>
-      <p>Choose another folder or add a .md file.</p>
+      <h1>No Markdown or HTML documents found</h1>
+      <p>Choose another folder or add a .md or .html file.</p>
       <button class="status-action" data-state="resting" onclick={openFolder}>Open Folder</button>
     </section>
   {:else if snapshot}
@@ -602,7 +606,7 @@
                 onOpenFolder={openThemesFolder}
               />
             {/if}
-            {#if selectedDocument}
+            {#if selectedDocument?.kind === 'markdown'}
               <button
                 class="toolbar-action section-toggle"
                 data-state="resting"
@@ -665,23 +669,27 @@
         </header>
 
         <div class="desk-reader">
-          <ReaderPane
-            bind:this={readerPane}
-            document={selectedDocument}
-            {fragment}
-            onDocumentLink={selectDocument}
-            onExternalLink={(url: string) => client.openExternalLink(url)}
-            frontMatterExpanded={presentation?.frontMatterExpanded ?? false}
-            onFrontMatterToggle={setFrontMatterExpanded}
-            themeCss={presentation?.selected.css}
-            theme={presentation?.selected}
-            themeAppearance={presentation?.selected.appearance}
-            assetUrl={import.meta.env.MODE === 'test' ? browserFixtureAssetUrl : undefined}
-          />
+          {#if selectedDocument?.kind !== 'html'}
+            <ReaderPane
+              bind:this={readerPane}
+              document={selectedDocument?.kind === 'markdown' ? selectedDocument : undefined}
+              {fragment}
+              onDocumentLink={selectDocument}
+              onExternalLink={(url: string) => client.openExternalLink(url)}
+              frontMatterExpanded={presentation?.frontMatterExpanded ?? false}
+              onFrontMatterToggle={setFrontMatterExpanded}
+              themeCss={presentation?.selected.css}
+              theme={presentation?.selected}
+              themeAppearance={presentation?.selected.appearance}
+              assetUrl={import.meta.env.MODE === 'test' ? browserFixtureAssetUrl : undefined}
+            />
+          {:else}
+            <div class="html-placeholder" role="status">HTML stories are not available yet.</div>
+          {/if}
         </div>
 
         <footer class="desk-status-strip" data-testid="status-strip">
-          <span>Markdown</span>
+          <span>{selectedDocument?.kind === 'html' ? 'HTML' : 'Markdown'}</span>
           {#if selectedLineCount}<span>{selectedLineCount} lines</span>{/if}
           <span>UTF-8</span>
         </footer>

@@ -16,7 +16,12 @@ describe('ReaderPane', () => {
 
   it('renders sanitized Markdown inside an isolated Shadow DOM', async () => {
     const { container } = render(ReaderPane, {
-      document: { path: 'guide.md', title: 'Guide', content: '~~done~~ <script>alert(1)</script>' }
+      document: {
+        kind: 'markdown',
+        path: 'guide.md',
+        title: 'Guide',
+        content: '~~done~~ <script>alert(1)</script>'
+      }
     });
     const reader = await readerElement(container);
 
@@ -27,7 +32,7 @@ describe('ReaderPane', () => {
 
   it('keeps theme CSS inside the reader Shadow DOM', async () => {
     const { container } = render(ReaderPane, {
-      document: { path: 'guide.md', title: 'Guide', content: '# Guide' },
+      document: { kind: 'markdown', path: 'guide.md', title: 'Guide', content: '# Guide' },
       themeCss: ':host { background: rebeccapurple; }'
     });
     const reader = await readerElement(container);
@@ -37,7 +42,12 @@ describe('ReaderPane', () => {
 
   it('replaces a missing local image with an accessible placeholder', async () => {
     const { container } = render(ReaderPane, {
-      document: { path: 'guide.md', title: 'Guide', content: '![cover](images/missing.png)' }
+      document: {
+        kind: 'markdown',
+        path: 'guide.md',
+        title: 'Guide',
+        content: '![cover](images/missing.png)'
+      }
     });
     const reader = await readerElement(container);
     const image = reader.shadowRoot?.querySelector('img');
@@ -52,6 +62,7 @@ describe('ReaderPane', () => {
   it('renders ordered, semantic front matter with safe text and three tag chips', async () => {
     const { container } = render(ReaderPane, {
       document: {
+        kind: 'markdown',
         path: 'guide.md',
         title: 'Guide',
         content: `---
@@ -92,6 +103,7 @@ nested:
   it('uses a native disclosure, reapplies the global state, and suppresses setup toggles', async () => {
     const onFrontMatterToggle = vi.fn();
     const firstDocument = {
+      kind: 'markdown' as const,
       path: 'first.md',
       title: 'First',
       content: '---\ntitle: First\n---\n# First'
@@ -111,6 +123,7 @@ nested:
 
     await rerender({
       document: {
+        kind: 'markdown',
         path: 'second.md',
         title: 'Second',
         content: '---\ntitle: Second\n---\n# Second'
@@ -133,6 +146,7 @@ nested:
   it('shows escaped malformed front matter in an initially open warning disclosure', async () => {
     const { container } = render(ReaderPane, {
       document: {
+        kind: 'markdown',
         path: 'broken.md',
         title: 'Broken',
         content: '---\ntitle: <script>alert(1)</script>\nlist: [\n---\n# Body'
@@ -154,6 +168,7 @@ nested:
   it('reports truncated warning source without inserting it as HTML', async () => {
     const { container } = render(ReaderPane, {
       document: {
+        kind: 'markdown',
         path: 'large.md',
         title: 'Large',
         content: `---\nnotes: ${'x'.repeat(64 * 1024)}\n---\n# Large`
@@ -168,13 +183,18 @@ nested:
 
   it('omits disclosures for absent and empty front matter', async () => {
     const { container, rerender } = render(ReaderPane, {
-      document: { path: 'plain.md', title: 'Plain', content: '# Plain' }
+      document: { kind: 'markdown', path: 'plain.md', title: 'Plain', content: '# Plain' }
     });
     const reader = await readerElement(container);
     expect(reader.shadowRoot?.querySelector('details.front-matter')).toBeNull();
 
     await rerender({
-      document: { path: 'empty.md', title: 'Empty', content: '---\n\n---\n# Empty' }
+      document: {
+        kind: 'markdown',
+        path: 'empty.md',
+        title: 'Empty',
+        content: '---\n\n---\n# Empty'
+      }
     });
     await waitFor(() =>
       expect(reader.shadowRoot?.querySelector('details.front-matter')).toBeNull()
@@ -186,6 +206,7 @@ nested:
     const { container, rerender } = render(ReaderPane, {
       theme,
       document: {
+        kind: 'markdown',
         path: 'diagram.md',
         title: 'Diagram',
         content: '```mermaid\nnot a diagram\n```'
@@ -201,6 +222,7 @@ nested:
 
     await rerender({
       document: {
+        kind: 'markdown',
         path: 'diagram.md',
         title: 'Diagram',
         content: '```mmd\nthis is different invalid source\n```'
@@ -218,6 +240,7 @@ nested:
 
   it('rebuilds the current article when the selected theme changes', async () => {
     const document = {
+      kind: 'markdown' as const,
       path: 'diagram.md',
       title: 'Diagram',
       content: '```mermaid\nnot a diagram\n```'
@@ -261,6 +284,7 @@ nested:
     const onExternalLink = vi.fn();
     const { container } = render(ReaderPane, {
       document: {
+        kind: 'markdown',
         path: 'guide.md',
         title: 'Guide',
         content: '[next](next.md#part) [web](https://example.com)'
@@ -282,6 +306,7 @@ nested:
   it('wraps headings into collapsible sections and toggles them on click', async () => {
     const { container } = render(ReaderPane, {
       document: {
+        kind: 'markdown',
         path: 'guide.md',
         title: 'Guide',
         content: '# Guide\n\nIntro\n\n## One\n\nAlpha\n\n### Deep\n\nDetail\n\n## Two\n\nBeta'
@@ -307,7 +332,12 @@ nested:
   it('keeps heading links clickable instead of toggling the section', async () => {
     const onDocumentLink = vi.fn();
     const { container } = render(ReaderPane, {
-      document: { path: 'guide.md', title: 'Guide', content: '## [Target](other.md)\n\nBody' },
+      document: {
+        kind: 'markdown',
+        path: 'guide.md',
+        title: 'Guide',
+        content: '## [Target](other.md)\n\nBody'
+      },
       onDocumentLink
     });
     const reader = await readerElement(container);
@@ -324,7 +354,7 @@ nested:
   it('collapses and expands all sections and remembers state per document', async () => {
     const content = '# Guide\n\nIntro\n\n## One\n\nAlpha\n\n## Two\n\nBeta';
     const { container, component, rerender } = render(ReaderPane, {
-      document: { path: 'guide.md', title: 'Guide', content }
+      document: { kind: 'markdown', path: 'guide.md', title: 'Guide', content }
     });
     const reader = await readerElement(container);
 
@@ -338,7 +368,12 @@ nested:
     });
 
     await rerender({
-      document: { path: 'other.md', title: 'Other', content: '# Other\n\n## Sub\n\nX' }
+      document: {
+        kind: 'markdown',
+        path: 'other.md',
+        title: 'Other',
+        content: '# Other\n\n## Sub\n\nX'
+      }
     });
     await waitFor(() => {
       expect(reader.shadowRoot?.querySelector('h2#sub')?.textContent).toContain('Sub');
@@ -348,7 +383,7 @@ nested:
       expect(collapsed?.length).toBe(0);
     });
 
-    await rerender({ document: { path: 'guide.md', title: 'Guide', content } });
+    await rerender({ document: { kind: 'markdown', path: 'guide.md', title: 'Guide', content } });
     await waitFor(() =>
       expect(reader.shadowRoot?.querySelector('h2#one')?.textContent).toContain('One')
     );

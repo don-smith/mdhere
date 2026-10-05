@@ -188,6 +188,7 @@
         : undefined}
       tabindex={cursorPath === item.node.path ? 0 : -1}
       data-tree-path={item.node.path}
+      data-document-kind={item.node.kind === 'document' ? item.node.documentKind : undefined}
       style:padding-left={`${0.45 + (item.level - 1) * 1.15}rem`}
       onclick={() => {
         cursorPath = item.node.path;

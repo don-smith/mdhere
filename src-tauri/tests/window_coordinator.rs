@@ -1,4 +1,4 @@
-use mdhere_lib::library::{LibraryError, LibraryRegistry};
+use mdhere_lib::library::{Document, LibraryError, LibraryRegistry};
 use std::{fs, path::Path};
 use tempfile::tempdir;
 
@@ -22,14 +22,10 @@ fn rejected_prepared_document_does_not_replace_the_active_root() {
 
     assert!(matches!(
         registry.prepare(candidate.path().to_path_buf(), Some(Path::new("plain.txt"))),
-        Err(LibraryError::NotMarkdown)
+        Err(LibraryError::NotDocument)
     ));
-    assert_eq!(
-        registry
-            .read_document("mdhere", "current.md")
-            .unwrap()
-            .content,
-        "# current"
+    assert!(
+        matches!(registry.read_document("mdhere", "current.md"), Ok(Document::Markdown { content, .. }) if content == "# current")
     );
 }
 
@@ -39,6 +35,7 @@ fn prepared_library_commits_a_root_and_root_relative_document_together() {
     let candidate = tempdir().unwrap();
     write(current.path(), "current.md", "# current");
     write(candidate.path(), "guides/Welcome.md", "# welcome");
+    write(candidate.path(), "guides/Story.html", "<h1>Story</h1>");
     let registry = LibraryRegistry::new();
     registry
         .register_root("mdhere", current.path().to_path_buf())
@@ -50,18 +47,22 @@ fn prepared_library_commits_a_root_and_root_relative_document_together() {
             Some(Path::new("guides/Welcome.md")),
         )
         .unwrap();
-    assert_eq!(
-        prepared.document.as_ref().unwrap().path,
-        "guides/Welcome.md"
+    assert!(
+        matches!(prepared.document.as_ref(), Some(Document::Markdown { path, .. }) if path == "guides/Welcome.md")
+    );
+    let html = registry
+        .prepare(
+            candidate.path().to_path_buf(),
+            Some(Path::new("guides/Story.html")),
+        )
+        .unwrap();
+    assert!(
+        matches!(html.document, Some(Document::Html { path, title }) if path == "guides/Story.html" && title == "Story")
     );
     registry.commit("mdhere", &prepared).unwrap();
 
     assert!(registry.read_document("mdhere", "current.md").is_err());
-    assert_eq!(
-        registry
-            .read_document("mdhere", "guides/Welcome.md")
-            .unwrap()
-            .content,
-        "# welcome"
+    assert!(
+        matches!(registry.read_document("mdhere", "guides/Welcome.md"), Ok(Document::Markdown { content, .. }) if content == "# welcome")
     );
 }

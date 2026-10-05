@@ -12,9 +12,12 @@ if [ "$#" -eq 2 ]; then
       echo "mdhere: file must be relative to root: $file" >&2
       exit 66
       ;;
-    *.md | *.MD | *.markdown | *.MARKDOWN) ;;
+  esac
+  extension=$(printf '%s' "${file##*.}" | tr '[:upper:]' '[:lower:]')
+  case "$extension" in
+    md | markdown | html) ;;
     *)
-      echo "mdhere: not a Markdown file: $file" >&2
+      echo "mdhere: not a Markdown or HTML file: $file" >&2
       exit 66
       ;;
   esac

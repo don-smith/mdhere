@@ -4,6 +4,7 @@ root=$(mktemp -d)
 trap 'rm -rf "$root"' EXIT
 mkdir "$root/space folder"
 printf '# guide\n' > "$root/space folder/guide.md"
+printf '<h1>Story</h1>\n' > "$root/space folder/story.html"
 printf 'plain\n' > "$root/space folder/plain.txt"
 printf '# outside\n' > "$root/outside.md"
 app="$root/app"
@@ -39,6 +40,8 @@ launch "$root/folder.log" "$root/space folder"
 grep "$root/space folder" "$root/folder.log"
 launch "$root/file.log" "$root/space folder" "guide.md"
 grep "guide.md" "$root/file.log"
+launch "$root/html.log" "$root/space folder" "story.html"
+grep "story.html" "$root/html.log"
 if MDHERE_APP="$app" "$launcher" "$root/missing"; then exit 1; fi
 if MDHERE_APP="$app" "$launcher" "$root/space folder" "missing.md"; then exit 1; fi
 if MDHERE_APP="$app" "$launcher" "$root/space folder" "plain.txt"; then exit 1; fi

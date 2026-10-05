@@ -9,6 +9,7 @@ export interface FolderNode {
 
 export interface DocumentNode {
   kind: 'document';
+  documentKind: 'markdown' | 'html';
   name: string;
   path: string;
 }
@@ -23,18 +24,16 @@ export interface LibrarySnapshot {
   diagnostics: Diagnostic[];
 }
 
-export interface Document {
-  path: string;
-  title: string;
-  content: string;
-}
+export type MarkdownDocument = { kind: 'markdown'; path: string; title: string; content: string };
+export type HtmlDocument = { kind: 'html'; path: string; title: string };
+export type Document = MarkdownDocument | HtmlDocument;
 
 export type LibraryErrorKind =
   | 'rootMissing'
   | 'invalidRoot'
   | 'notRegistered'
   | 'outsideRoot'
-  | 'notMarkdown'
+  | 'notDocument'
   | 'invalidUtf8'
   | 'documentTooLarge'
   | 'snapshotLimit'

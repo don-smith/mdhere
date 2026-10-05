@@ -8,7 +8,14 @@ const tree = [
     kind: 'folder' as const,
     name: 'Guides',
     path: 'guides',
-    children: [{ kind: 'document' as const, name: 'Welcome.md', path: 'guides/Welcome.md' }]
+    children: [
+      {
+        kind: 'document' as const,
+        documentKind: 'markdown' as const,
+        name: 'Welcome.md',
+        path: 'guides/Welcome.md'
+      }
+    ]
   }
 ];
 
@@ -37,6 +44,25 @@ describe('DocumentTree', () => {
     expect(onSelect).toHaveBeenCalledWith('guides/Welcome.md');
   });
 
+  it('marks both document kinds in a mixed tree and selects HTML paths', async () => {
+    const onSelect = vi.fn();
+    render(DocumentTree, {
+      tree: [
+        { kind: 'document', documentKind: 'html', name: 'Story.html', path: 'Story.html' },
+        ...tree
+      ],
+      onSelect
+    });
+    const story = screen.getByRole('treeitem', { name: 'Story.html' });
+    expect(story).toHaveAttribute('data-document-kind', 'html');
+    expect(screen.getByRole('treeitem', { name: 'Welcome.md' })).toHaveAttribute(
+      'data-document-kind',
+      'markdown'
+    );
+    await fireEvent.click(story);
+    expect(onSelect).toHaveBeenCalledWith('Story.html');
+  });
+
   it('renders folder sections and filename-only document rows from the library snapshot', () => {
     render(DocumentTree, { tree, onSelect: vi.fn() });
 
@@ -61,7 +87,14 @@ describe('DocumentTree', () => {
           kind: 'folder',
           name: 'Guides',
           path: 'guides',
-          children: [{ kind: 'document', name: 'Welcome.md', path: 'guides/Welcome.md' }]
+          children: [
+            {
+              kind: 'document',
+              documentKind: 'markdown' as const,
+              name: 'Welcome.md',
+              path: 'guides/Welcome.md'
+            }
+          ]
         }
       ],
       filterActive: true
@@ -86,13 +119,27 @@ describe('DocumentTree', () => {
         kind: 'folder' as const,
         name: 'First',
         path: 'first',
-        children: [{ kind: 'document' as const, name: 'One.md', path: 'first/One.md' }]
+        children: [
+          {
+            kind: 'document' as const,
+            documentKind: 'markdown' as const,
+            name: 'One.md',
+            path: 'first/One.md'
+          }
+        ]
       },
       {
         kind: 'folder' as const,
         name: 'Second',
         path: 'second',
-        children: [{ kind: 'document' as const, name: 'Two.md', path: 'second/Two.md' }]
+        children: [
+          {
+            kind: 'document' as const,
+            documentKind: 'markdown' as const,
+            name: 'Two.md',
+            path: 'second/Two.md'
+          }
+        ]
       }
     ];
     const { rerender } = render(DocumentTree, {
@@ -115,13 +162,27 @@ describe('DocumentTree', () => {
         kind: 'folder' as const,
         name: 'First',
         path: 'first',
-        children: [{ kind: 'document' as const, name: 'One.md', path: 'first/One.md' }]
+        children: [
+          {
+            kind: 'document' as const,
+            documentKind: 'markdown' as const,
+            name: 'One.md',
+            path: 'first/One.md'
+          }
+        ]
       },
       {
         kind: 'folder' as const,
         name: 'Second',
         path: 'second',
-        children: [{ kind: 'document' as const, name: 'Two.md', path: 'second/Two.md' }]
+        children: [
+          {
+            kind: 'document' as const,
+            documentKind: 'markdown' as const,
+            name: 'Two.md',
+            path: 'second/Two.md'
+          }
+        ]
       }
     ];
     render(DocumentTree, { tree: twoFolders, selectedPath: 'second/Two.md', onSelect: vi.fn() });

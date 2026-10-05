@@ -11,7 +11,7 @@ use std::{
 };
 
 pub use error::LibraryError;
-pub use types::{Diagnostic, Document, LibrarySnapshot, TreeNode};
+pub use types::{Diagnostic, Document, DocumentKind, LibrarySnapshot, TreeNode};
 
 use path_guard::PathGuard;
 
@@ -123,9 +123,7 @@ fn canonical_root(root: PathBuf) -> Result<PathBuf, LibraryError> {
 fn read_document_from_root(root: &Path, relative_path: &Path) -> Result<Document, LibraryError> {
     let guard = PathGuard::new(root.to_path_buf());
     let path = guard.resolve(relative_path)?;
-    if !scanner::is_markdown(&path) {
-        return Err(LibraryError::NotMarkdown);
-    }
+    let kind = scanner::document_kind(&path).ok_or(LibraryError::NotDocument)?;
     let metadata = fs::metadata(&path).map_err(|error| LibraryError::Io(error.to_string()))?;
     if metadata.len() > MAX_DOCUMENT_BYTES {
         return Err(LibraryError::DocumentTooLarge);
@@ -135,17 +133,22 @@ fn read_document_from_root(root: &Path, relative_path: &Path) -> Result<Document
     let relative = path
         .strip_prefix(guard.root())
         .map_err(|_| LibraryError::OutsideRoot)?;
-    Ok(Document {
-        path: relative
-            .components()
-            .filter_map(|component| component.as_os_str().to_str())
-            .collect::<Vec<_>>()
-            .join("/"),
-        title: path
-            .file_stem()
-            .and_then(|name| name.to_str())
-            .unwrap_or("Document")
-            .to_owned(),
-        content,
+    let title = path
+        .file_stem()
+        .and_then(|name| name.to_str())
+        .unwrap_or("Document")
+        .to_owned();
+    let path = relative
+        .components()
+        .filter_map(|component| component.as_os_str().to_str())
+        .collect::<Vec<_>>()
+        .join("/");
+    Ok(match kind {
+        DocumentKind::Markdown => Document::Markdown {
+            path,
+            title,
+            content,
+        },
+        DocumentKind::Html => Document::Html { path, title },
     })
 }

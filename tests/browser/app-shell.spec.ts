@@ -129,7 +129,7 @@ test('renders named loading, empty, error, warning, overlay, and dialog states',
 
   await page.goto('/?scenario=empty');
   await expect(page.locator('.shell-status[data-state="empty"]')).toContainText(
-    'No Markdown documents found'
+    'No Markdown or HTML documents found'
   );
 
   await page.goto('/?scenario=error');
