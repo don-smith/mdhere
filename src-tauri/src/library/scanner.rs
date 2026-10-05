@@ -32,7 +32,16 @@ pub fn scan(root: &Path) -> Result<LibrarySnapshot, LibraryError> {
         if path == root || has_vcs_component(path.strip_prefix(root).unwrap_or(path)) {
             continue;
         }
-        let metadata = fs::metadata(path).map_err(|error| LibraryError::Io(error.to_string()))?;
+        let metadata = match fs::metadata(path) {
+            Ok(metadata) => metadata,
+            Err(error)
+                if error.kind() == std::io::ErrorKind::NotFound
+                    && entry.file_type().is_some_and(|kind| kind.is_symlink()) =>
+            {
+                continue;
+            }
+            Err(error) => return Err(LibraryError::Io(error.to_string())),
+        };
         if metadata.is_dir() || !metadata.is_file() || !is_markdown(path) {
             continue;
         }

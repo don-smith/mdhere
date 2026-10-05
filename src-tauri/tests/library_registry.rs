@@ -187,6 +187,27 @@ fn skips_directory_symlinks_and_symlinks_that_escape_the_root() {
     );
 }
 
+#[cfg(unix)]
+#[test]
+fn snapshot_ignores_broken_symlinks_outside_markdown_files() {
+    use std::os::unix::fs::symlink;
+
+    let root = tempdir().unwrap();
+    write(root.path(), "kept.md", b"# kept");
+    symlink("missing-python", root.path().join("python3")).unwrap();
+    symlink("missing-document.md", root.path().join("broken.md")).unwrap();
+
+    let registry = LibraryRegistry::new();
+    registry
+        .register_root("window", root.path().to_path_buf())
+        .unwrap();
+
+    assert_eq!(
+        document_paths(&registry.snapshot("window").unwrap().tree),
+        ["kept.md"]
+    );
+}
+
 #[test]
 fn rejects_invalid_utf8_and_documents_over_ten_mebibytes() {
     let root = tempdir().unwrap();
