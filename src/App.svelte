@@ -30,6 +30,7 @@
   import { filterTree } from './lib/tree/filter-tree';
   import type { LaunchUpdate, LibraryClient } from './lib/library-client';
   import { TauriLibraryClient } from './lib/tauri-library-client';
+  import type { StoryDestination } from './lib/story/navigation';
 
   interface Props {
     client?: LibraryClient;
@@ -79,12 +80,19 @@
               documentKind: 'html',
               name: 'Story.html',
               path: 'guides/Story.html'
+            },
+            {
+              kind: 'document',
+              documentKind: 'html',
+              name: 'Next.html',
+              path: 'guides/Next.html'
             }
           ]
         },
         {
           ...demoDocuments,
-          'guides/Story.html': { kind: 'html', path: 'guides/Story.html', title: 'Story' }
+          'guides/Story.html': { kind: 'html', path: 'guides/Story.html', title: 'Story' },
+          'guides/Next.html': { kind: 'html', path: 'guides/Next.html', title: 'Next story' }
         }
       );
     }
@@ -154,6 +162,7 @@
   let snapshot = $state<LibrarySnapshot | undefined>();
   let selectedDocument = $state<Document | undefined>();
   let error = $state<string | undefined>();
+  let selectionError = $state<string | undefined>();
   let needsFolder = $state(false);
   let fragment = $state<string | undefined>();
   let loading = $state(true);
@@ -248,6 +257,7 @@
     snapshot = update.snapshot;
     selectedDocument = update.document ?? undefined;
     error = undefined;
+    selectionError = undefined;
     fragment = undefined;
     filterQuery = '';
     needsFolder = false;
@@ -294,6 +304,7 @@
         ++selectionOperation;
         snapshot = nextSnapshot;
         selectedDocument = undefined;
+        selectionError = undefined;
         fragment = undefined;
         needsFolder = false;
       }
@@ -302,16 +313,39 @@
     }
   }
 
-  async function selectDocument(path: string, nextFragment?: string) {
+  async function selectDocument(
+    path: string,
+    nextFragment?: string,
+    expectedKind?: 'html' | 'markdown'
+  ) {
     const operation = ++selectionOperation;
-    error = undefined;
-    fragment = nextFragment;
+    selectionError = undefined;
     try {
       const nextDocument = await client.readDocument(path);
-      if (operation === selectionOperation) selectedDocument = nextDocument;
+      if (operation !== selectionOperation) return;
+      if (nextDocument.path !== path || (expectedKind && nextDocument.kind !== expectedKind)) {
+        selectionError = 'The linked document is not available as requested.';
+        return;
+      }
+      fragment = nextFragment;
+      selectedDocument = nextDocument;
     } catch (reason) {
-      if (operation === selectionOperation) error = messageFor(reason);
+      if (operation === selectionOperation) selectionError = messageFor(reason);
     }
+  }
+
+  function navigateFromStory(
+    destination: StoryDestination,
+    currentPath: string,
+    currentEpoch: number
+  ) {
+    if (
+      selectedDocument?.kind !== 'html' ||
+      selectedDocument.path !== currentPath ||
+      storyEpoch !== currentEpoch
+    )
+      return;
+    void selectDocument(destination.path, destination.fragment, destination.kind);
   }
 
   function messageFor(reason: unknown): string {
@@ -695,6 +729,7 @@
           </div>
         </header>
 
+        {#if selectionError}<p role="alert">{selectionError}</p>{/if}
         <div class="desk-reader">
           {#if selectedDocument?.kind !== 'html'}
             <ReaderPane
@@ -711,8 +746,15 @@
               assetUrl={import.meta.env.MODE === 'test' ? browserFixtureAssetUrl : undefined}
             />
           {:else}
-            {#key `${storyEpoch}/${selectedDocument.path}`}
-              <StoryPane path={selectedDocument.path} />
+            {@const storyPath = selectedDocument.path}
+            {@const epoch = storyEpoch}
+            {#key `${epoch}/${storyPath}`}
+              <StoryPane
+                path={storyPath}
+                {fragment}
+                onNavigate={(destination: StoryDestination) =>
+                  navigateFromStory(destination, storyPath, epoch)}
+              />
             {/key}
           {/if}
         </div>

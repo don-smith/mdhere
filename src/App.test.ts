@@ -47,6 +47,53 @@ describe('App', () => {
     expect(screen.getByTestId('document-toolbar')).toHaveTextContent('Story');
   });
 
+  it('ignores forged and stale story messages and keeps the view when native read fails', async () => {
+    const library: LibrarySnapshot = {
+      rootName: 'Story library',
+      diagnostics: [],
+      tree: [
+        { kind: 'document', documentKind: 'html', name: 'Story.html', path: 'guides/Story.html' }
+      ]
+    };
+    const readDocument = vi
+      .fn()
+      .mockImplementation((path: string) =>
+        path === 'guides/Story.html'
+          ? Promise.resolve({ kind: 'html', path, title: 'Story' })
+          : Promise.reject(new Error('Missing document'))
+      );
+    const client: LibraryClient = {
+      snapshot: () => Promise.resolve(library),
+      readDocument,
+      refresh: () => Promise.resolve(library),
+      openFolder: () => Promise.resolve({ ...library, tree: [] }),
+      openExternalLink: () => Promise.resolve()
+    };
+    render(App, { client });
+    await fireEvent.click(await screen.findByRole('treeitem', { name: 'Story.html' }));
+    const frame = await screen.findByTestId<HTMLIFrameElement>('story-frame');
+    const message = {
+      type: 'mdhere:story-navigation',
+      href: 'Missing.md',
+      kind: 'markdown',
+      path: 'guides/Missing.md'
+    };
+    window.dispatchEvent(new MessageEvent('message', { data: message, source: window }));
+    expect(readDocument).toHaveBeenCalledOnce();
+    window.dispatchEvent(
+      new MessageEvent('message', { data: message, source: frame.contentWindow })
+    );
+    await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent('Missing document'));
+    expect(screen.getByTestId('story-frame')).toBeInTheDocument();
+    expect(screen.getByTestId('document-toolbar')).toHaveTextContent('Story');
+    await fireEvent.click(screen.getByRole('button', { name: 'Open Folder' }));
+    await waitFor(() => expect(screen.queryByTestId('story-frame')).not.toBeInTheDocument());
+    window.dispatchEvent(
+      new MessageEvent('message', { data: message, source: frame.contentWindow })
+    );
+    expect(readDocument).toHaveBeenCalledTimes(2);
+  });
+
   afterEach(() => {
     cleanup();
     vi.restoreAllMocks();
