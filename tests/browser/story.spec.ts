@@ -48,6 +48,59 @@ test('routes ordinary story links to rendered Markdown and another HTML story', 
   await expect(page.getByTestId('story-frame')).toHaveCount(0);
 });
 
+test('Back restores mixed tree and link navigation, scroll and fragments without Forward', async ({
+  page
+}) => {
+  await page.addInitScript({ content: bridge });
+  await page.goto('/?scenario=story');
+  const back = page.getByRole('button', { name: 'Back' });
+  await expect(back).toBeDisabled();
+  await page.getByRole('treeitem', { name: 'Story.html' }).click();
+  const story = page.frameLocator('[data-testid="story-frame"]');
+  await expect(story.getByRole('heading', { name: 'Local story' })).toBeVisible();
+  await story.locator('body').evaluate((body) => {
+    body.style.minHeight = '2400px';
+    const next = [...body.querySelectorAll('a')].find((a) => a.textContent === 'Next story');
+    if (next) {
+      next.style.position = 'fixed';
+      next.style.top = '10px';
+    }
+    window.scrollTo(0, 300);
+  });
+  await expect.poll(() => story.locator('body').evaluate(() => window.scrollY)).toBeGreaterThan(0);
+  await story.getByRole('link', { name: 'Next story' }).click();
+  await expect(page.getByTestId('document-toolbar')).toContainText('Next story');
+  await expect(back).toBeEnabled();
+  await back.click();
+  await expect(page.getByTestId('document-toolbar')).toContainText('Story');
+  await expect.poll(() => story.locator('body').evaluate(() => window.scrollY)).toBeGreaterThan(0);
+  await story.getByRole('link', { name: 'Read Markdown' }).click();
+  await expect(page.getByTestId('status-strip')).toContainText('Markdown');
+  await expect(page.getByRole('button', { name: 'Collapse all sections' })).toBeVisible();
+  await back.click();
+  await expect(page.getByTestId('status-strip')).toContainText('HTML');
+  await expect(page.getByRole('button', { name: 'Collapse all sections' })).toHaveCount(0);
+  await expect(back).toBeDisabled();
+  await page.getByRole('button', { name: 'Refresh library' }).click();
+  await expect(back).toBeDisabled();
+});
+
+test('restores Markdown scroll when returning from a tree-selected story', async ({ page }) => {
+  await page.goto('/?scenario=story');
+  await page.getByRole('treeitem', { name: 'Welcome.md' }).click();
+  const reader = page.getByTestId('reader');
+  await expect(reader.locator('h1')).toBeVisible();
+  await reader.evaluate((element) => {
+    element.scrollTop = 320;
+  });
+  await expect.poll(() => reader.evaluate((element) => element.scrollTop)).toBeGreaterThan(0);
+  await page.getByRole('treeitem', { name: 'Story.html' }).click();
+  await page.getByRole('button', { name: 'Back' }).click();
+  await expect(reader.locator('h1')).toBeVisible();
+  await expect.poll(() => reader.evaluate((element) => element.scrollTop)).toBeGreaterThan(0);
+  await expect(page.getByRole('button', { name: 'Back' })).toBeDisabled();
+});
+
 test('isolates a local HTML story, loads its resources and tears it down on Markdown selection', async ({
   page
 }) => {

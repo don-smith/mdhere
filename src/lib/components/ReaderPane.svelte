@@ -4,6 +4,7 @@
 
   import type { MarkdownDocument } from '../contracts';
   import type { KeyboardCommand } from '../keyboard/types';
+  import type { MarkdownPositionHandler } from '../navigation/coordinator';
   import type { Theme } from '../themes/types';
   import baseReaderCss from '../markdown/base-reader.css?inline';
   import { mermaidRenderer } from '../markdown/mermaid';
@@ -27,6 +28,8 @@
   interface Props {
     document?: MarkdownDocument;
     fragment?: string;
+    scroll?: number;
+    onPosition?: MarkdownPositionHandler;
     onDocumentLink?: Function;
     onExternalLink?: Function;
     frontMatterExpanded?: boolean;
@@ -40,6 +43,8 @@
   let {
     document,
     fragment,
+    scroll = 0,
+    onPosition,
     onDocumentLink,
     onExternalLink,
     frontMatterExpanded = false,
@@ -57,7 +62,6 @@
   let appliedThemeCss: string | undefined;
   let appliedThemeSignature: string | undefined;
   let renderGeneration = 0;
-  const scrollPositions = new SvelteMap<string, number>();
   const collapsedSections = new SvelteMap<string, Set<string>>();
 
   onMount(() => {
@@ -132,9 +136,9 @@
     );
     content.replaceChildren(page);
     await mermaidRenderer.render(article, currentTheme);
-    if (generation !== renderGeneration) return;
+    if (generation !== renderGeneration || !host?.isConnected) return;
 
-    host.scrollTop = scrollPositions.get(currentDocument.path) ?? 0;
+    host.scrollTop = scroll;
     if (currentFragment) {
       const target = shadow.querySelector<HTMLElement>(`[id="${CSS.escape(currentFragment)}"]`);
       if (target) {
@@ -328,7 +332,7 @@
   }
 
   function rememberScroll() {
-    if (document) scrollPositions.set(document.path, host.scrollTop);
+    if (document) onPosition?.(host.scrollTop);
   }
 
   async function installStyles(root: ShadowRoot) {

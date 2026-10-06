@@ -47,6 +47,67 @@ describe('App', () => {
     expect(screen.getByTestId('document-toolbar')).toHaveTextContent('Story');
   });
 
+  it('backs through mixed selections, rejects failed reads, and clears history on a launch update', async () => {
+    const library: LibrarySnapshot = {
+      rootName: 'Mixed',
+      diagnostics: [],
+      tree: [
+        { kind: 'document', documentKind: 'markdown', name: 'Guide.md', path: 'Guide.md' },
+        { kind: 'document', documentKind: 'html', name: 'Story.html', path: 'guides/Story.html' }
+      ]
+    };
+    let launch: ((update: { snapshot: LibrarySnapshot; document: null }) => void) | undefined;
+    const readDocument = vi.fn((path: string) =>
+      path === 'Guide.md'
+        ? Promise.resolve({ kind: 'markdown' as const, path, title: 'Guide', content: '# Guide' })
+        : path === 'guides/Story.html'
+          ? Promise.resolve({ kind: 'html' as const, path, title: 'Story' })
+          : Promise.reject(Error('Missing'))
+    );
+    const client: LibraryClient = {
+      snapshot: () => Promise.resolve(library),
+      readDocument,
+      refresh: () => Promise.resolve(library),
+      openFolder: () => Promise.resolve(undefined),
+      openExternalLink: () => Promise.resolve(),
+      onLaunchUpdate: async (handler) => {
+        launch = handler;
+        return () => undefined;
+      }
+    };
+    render(App, { client });
+    const back = await screen.findByRole('button', { name: 'Back' });
+    expect(back).toBeDisabled();
+    await fireEvent.click(screen.getByRole('treeitem', { name: 'Guide.md' }));
+    await waitFor(() => expect(screen.getByTestId('reader')).toBeInTheDocument());
+    expect(back).toBeDisabled();
+    await fireEvent.click(screen.getByRole('treeitem', { name: 'Story.html' }));
+    const frame = await screen.findByTestId<HTMLIFrameElement>('story-frame');
+    expect(back).toBeEnabled();
+    window.dispatchEvent(
+      new MessageEvent('message', {
+        source: frame.contentWindow,
+        data: {
+          type: 'mdhere:story-navigation',
+          href: 'Missing.md',
+          path: 'guides/Missing.md',
+          kind: 'markdown'
+        }
+      })
+    );
+    await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent('Missing'));
+    expect(back).toBeEnabled();
+    await fireEvent.click(back);
+    await waitFor(() => expect(screen.getByTestId('reader')).toBeInTheDocument());
+    expect(back).toBeDisabled();
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    await fireEvent.click(screen.getByRole('treeitem', { name: 'Story.html' }));
+    await waitFor(() => expect(back).toBeEnabled());
+    launch?.({ snapshot: library, document: null });
+    await waitFor(() => expect(back).toBeDisabled());
+    expect(screen.queryByTestId('story-frame')).not.toBeInTheDocument();
+  });
+
   it('ignores forged and stale story messages and keeps the view when native read fails', async () => {
     const library: LibrarySnapshot = {
       rootName: 'Story library',

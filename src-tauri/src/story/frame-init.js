@@ -11,15 +11,28 @@ if (window !== window.top && location.protocol === 'mdhere-story:') {
   );
 
   window.addEventListener('message', (event) => {
-    if (
-      event.source !== window.parent ||
-      event.data?.type !== 'mdhere:story-fragment' ||
-      typeof event.data.fragment !== 'string' ||
-      hasControl(event.data.fragment)
-    )
-      return;
-    location.hash = encodeURIComponent(event.data.fragment);
+    if (event.source !== window.parent || event.data?.type !== 'mdhere:story-position') return;
+    const { fragment, scroll } = event.data;
+    if (fragment !== null && (typeof fragment !== 'string' || hasControl(fragment))) return;
+    if (typeof scroll !== 'number' || !Number.isFinite(scroll) || scroll < 0) return;
+    if (fragment) location.hash = encodeURIComponent(fragment);
+    else window.scrollTo(0, scroll);
   });
+
+  const reportPosition = () => {
+    let fragment;
+    try {
+      fragment = location.hash ? decodeURIComponent(location.hash.slice(1)) : null;
+    } catch {
+      return;
+    }
+    window.parent.postMessage(
+      { type: 'mdhere:story-position', fragment, scroll: window.scrollY },
+      '*'
+    );
+  };
+  window.addEventListener('scroll', reportPosition, { passive: true });
+  window.addEventListener('hashchange', reportPosition);
 
   document.addEventListener('click', (event) => {
     if (

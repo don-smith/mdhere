@@ -31,6 +31,7 @@
   import type { LaunchUpdate, LibraryClient } from './lib/library-client';
   import { TauriLibraryClient } from './lib/tauri-library-client';
   import type { StoryDestination } from './lib/story/navigation';
+  import { NavigationCoordinator, type ViewingEntry } from './lib/navigation/coordinator';
 
   interface Props {
     client?: LibraryClient;
@@ -197,8 +198,30 @@
       : undefined
   );
   let libraryOperation = 0;
-  let selectionOperation = 0;
   let storyEpoch = $state(0);
+  const navigation = new NavigationCoordinator();
+  let viewingEntry = $state<ViewingEntry | null>(null);
+  let canBack = $state(false);
+
+  function showCurrent() {
+    viewingEntry = navigation.current;
+    canBack = navigation.canBack;
+    selectedDocument = viewingEntry?.document;
+    fragment = viewingEntry?.fragment;
+  }
+
+  function rememberPosition(path: string, scroll: number, nextFragment?: string, story = false) {
+    if (navigation.current?.path !== path) return;
+    if (story) navigation.anchor(nextFragment, scroll);
+    else navigation.position(scroll);
+  }
+
+  function goBack() {
+    if (!navigation.canBack) return;
+    navigation.back();
+    selectionError = undefined;
+    showCurrent();
+  }
 
   onMount(() => {
     presentationStore = new PresentationStore(presentationApi, (value) => (presentation = value));
@@ -252,10 +275,10 @@
 
   function applyLaunchUpdate(update: LaunchUpdate) {
     ++libraryOperation;
-    ++selectionOperation;
     ++storyEpoch;
+    navigation.reset(update.document ?? undefined);
+    showCurrent();
     snapshot = update.snapshot;
-    selectedDocument = update.document ?? undefined;
     error = undefined;
     selectionError = undefined;
     fragment = undefined;
@@ -272,19 +295,11 @@
       const nextSnapshot = await client.refresh();
       if (operation !== libraryOperation) return;
       snapshot = nextSnapshot;
-      const path = selectedDocument?.path;
-      const selectedOperation = selectionOperation;
-      if (path) {
-        try {
-          const refreshedDocument = await client.readDocument(path);
-          if (operation === libraryOperation && selectedOperation === selectionOperation) {
-            selectedDocument = refreshedDocument;
-            if (refreshedDocument.kind === 'html') ++storyEpoch;
-          }
-        } catch {
-          if (operation === libraryOperation && selectedOperation === selectionOperation)
-            selectedDocument = undefined;
-        }
+      const path = navigation.current?.path;
+      if (path && (await navigation.refresh(() => client.readDocument(path)))) {
+        if (operation !== libraryOperation) return;
+        showCurrent();
+        if (selectedDocument?.kind === 'html') ++storyEpoch;
       }
     } catch (reason) {
       if (operation === libraryOperation) error = messageFor(reason);
@@ -301,9 +316,9 @@
       if (operation !== libraryOperation) return;
       if (nextSnapshot) {
         ++storyEpoch;
-        ++selectionOperation;
+        navigation.reset();
+        showCurrent();
         snapshot = nextSnapshot;
-        selectedDocument = undefined;
         selectionError = undefined;
         fragment = undefined;
         needsFolder = false;
@@ -318,20 +333,16 @@
     nextFragment?: string,
     expectedKind?: 'html' | 'markdown'
   ) {
-    const operation = ++selectionOperation;
     selectionError = undefined;
-    try {
-      const nextDocument = await client.readDocument(path);
-      if (operation !== selectionOperation) return;
-      if (nextDocument.path !== path || (expectedKind && nextDocument.kind !== expectedKind)) {
-        selectionError = 'The linked document is not available as requested.';
-        return;
-      }
-      fragment = nextFragment;
-      selectedDocument = nextDocument;
-    } catch (reason) {
-      if (operation === selectionOperation) selectionError = messageFor(reason);
-    }
+    const result = await navigation.select(
+      path,
+      () => client.readDocument(path),
+      nextFragment,
+      expectedKind
+    );
+    if (result === 'stale') return;
+    if (result === 'failed') selectionError = messageFor(navigation.error);
+    else showCurrent();
   }
 
   function navigateFromStory(
@@ -658,6 +669,15 @@
             <h1>{selectedDocument?.title ?? 'Select a document'}</h1>
           </div>
           <div class="toolbar-controls">
+            <button
+              class="toolbar-action"
+              data-state="resting"
+              type="button"
+              aria-label="Back"
+              title="Back"
+              disabled={!canBack}
+              onclick={goBack}>←</button
+            >
             {#if presentation}
               <ThemeChooser
                 themes={presentation.themes}
@@ -732,10 +752,15 @@
         {#if selectionError}<p role="alert">{selectionError}</p>{/if}
         <div class="desk-reader">
           {#if selectedDocument?.kind !== 'html'}
+            {@const readerPath = selectedDocument?.path}
             <ReaderPane
               bind:this={readerPane}
               document={selectedDocument?.kind === 'markdown' ? selectedDocument : undefined}
               {fragment}
+              scroll={viewingEntry?.scroll ?? 0}
+              onPosition={(scroll: number) => {
+                if (readerPath) rememberPosition(readerPath, scroll);
+              }}
               onDocumentLink={selectDocument}
               onExternalLink={(url: string) => client.openExternalLink(url)}
               frontMatterExpanded={presentation?.frontMatterExpanded ?? false}
@@ -752,6 +777,10 @@
               <StoryPane
                 path={storyPath}
                 {fragment}
+                scroll={viewingEntry?.scroll ?? 0}
+                onPosition={(scroll: number, nextFragment?: string) => {
+                  if (storyEpoch === epoch) rememberPosition(storyPath, scroll, nextFragment, true);
+                }}
                 onNavigate={(destination: StoryDestination) =>
                   navigateFromStory(destination, storyPath, epoch)}
               />
