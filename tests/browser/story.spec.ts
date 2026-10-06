@@ -40,7 +40,7 @@ test('routes ordinary story links to rendered Markdown and another HTML story', 
     .poll(() => story.locator('body').evaluate((body) => body.baseURI))
     .toMatch(/#ending$/);
   await story.getByRole('link', { name: 'Previous story' }).click();
-  await story.getByRole('link', { name: 'Same-page section' }).click();
+  await story.getByRole('link', { name: 'Same-page section', exact: true }).click();
   expect(await story.locator('body').evaluate((body) => body.baseURI)).toMatch(/#local$/);
   await expect(page.getByTestId('document-toolbar')).toContainText('Story');
   await story.getByRole('link', { name: 'Missing chapter' }).click();
@@ -50,6 +50,37 @@ test('routes ordinary story links to rendered Markdown and another HTML story', 
   await expect(page.getByTestId('status-strip')).toContainText('Markdown');
   await expect(page.getByTestId('reader').locator('h1')).toBeVisible();
   await expect(page.getByTestId('story-frame')).toHaveCount(0);
+});
+
+test('routes a relative same-file fragment and percent-named page without adding history', async ({
+  page
+}) => {
+  await page.addInitScript({ content: bridge });
+  await page.goto('/?scenario=story');
+  await page.getByRole('treeitem', { name: 'Story.html' }).click();
+  const story = page.frameLocator('[data-testid="story-frame"]');
+  await expect(story.getByRole('heading', { name: 'Local story' })).toBeVisible();
+  await story.getByRole('link', { name: 'Relative same-page section' }).click();
+  await expect.poll(() => story.locator('body').evaluate(() => location.hash)).toBe('#local');
+  await expect(page.getByRole('button', { name: 'Back' })).toBeDisabled();
+  await story.getByRole('link', { name: 'Percent page' }).click();
+  await expect(story.getByRole('heading', { name: 'Percent page' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Back' })).toBeEnabled();
+});
+
+test('focused story Escape returns to the tree, not forged or stale frame actions', async ({
+  page
+}) => {
+  await page.addInitScript({ content: bridge });
+  await page.goto('/?scenario=story');
+  await page.getByRole('treeitem', { name: 'Story.html' }).click();
+  const story = page.frameLocator('[data-testid="story-frame"]');
+  await story.getByRole('link', { name: 'Next story' }).focus();
+  await page.keyboard.press('Escape');
+  await expect(page.getByRole('treeitem', { name: 'Story.html' })).toBeFocused();
+  await story.getByRole('link', { name: 'Next story' }).focus();
+  await page.evaluate(() => window.postMessage({ type: 'mdhere:story-focus-tree' }, '*'));
+  await expect(story.getByRole('link', { name: 'Next story' })).toBeFocused();
 });
 
 test('applies selected story palette only to the active frame and keeps Markdown themed', async ({

@@ -1,6 +1,6 @@
 <script lang="ts">
   import { invoke } from '@tauri-apps/api/core';
-  import { validateStoryMessage } from '../story/navigation';
+  import { isStoryFocusTreeMessage, validateStoryMessage } from '../story/navigation';
   import type { StoryPositionHandler } from '../navigation/coordinator';
   import { deriveStoryPalette } from '../story/palette';
   import type { Theme } from '../themes/types';
@@ -12,6 +12,7 @@
     scroll = 0,
     theme,
     onNavigate,
+    onFocusTree,
     onPosition
   }: {
     path: string;
@@ -19,10 +20,12 @@
     scroll?: number;
     theme?: Theme;
     onNavigate: Function;
+    onFocusTree?: () => void;
     onPosition?: StoryPositionHandler;
   } = $props();
   let source = $state<string>();
   let frame = $state<HTMLIFrameElement>();
+  let loaded = $state(false);
 
   function applyPalette() {
     const palette = theme && deriveStoryPalette(theme);
@@ -39,7 +42,6 @@
   });
 
   function applyPosition() {
-    applyPalette();
     frame?.contentWindow?.postMessage(
       { type: 'mdhere:story-position', fragment: fragment ?? null, scroll },
       '*'
@@ -47,8 +49,21 @@
   }
 
   $effect(() => {
+    if (loaded) applyPosition();
+  });
+
+  function frameLoaded() {
+    applyPalette();
+    loaded = true;
+  }
+
+  $effect(() => {
     const currentPath = path;
     const handleMessage = (event: MessageEvent) => {
+      if (isStoryFocusTreeMessage(event.source, frame?.contentWindow ?? null, event.data)) {
+        onFocusTree?.();
+        return;
+      }
       if (
         event.source === frame?.contentWindow &&
         event.data &&
@@ -85,8 +100,12 @@
     let current = true;
     source = undefined;
     if (import.meta.env.MODE === 'test') {
-      if (path === 'guides/Story.html' || path === 'guides/Next.html')
-        source = `/tests/fixtures/library/${path}`;
+      if (
+        path === 'guides/Story.html' ||
+        path === 'guides/Next.html' ||
+        path === 'guides/page%.html'
+      )
+        source = `/tests/fixtures/library/${path.split('/').map(encodeURIComponent).join('/')}`;
     } else {
       void invoke<string>('authorize_story', { path })
         .then((url) => {
@@ -110,7 +129,7 @@
     title="HTML story"
     sandbox="allow-scripts"
     src={source}
-    onload={applyPosition}
+    onload={frameLoaded}
   ></iframe>
 {:else}
   <div class="html-placeholder" role="status">Loading HTML story…</div>

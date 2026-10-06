@@ -23,7 +23,7 @@ export function resolveStoryLink(documentPath: string, href: string): StoryDesti
   if (!rawPath) return null;
   const parts = documentPath.split('/').slice(0, -1);
   for (const raw of rawPath.split('/')) {
-    if (/%(?:2f|5c|00|25)/i.test(raw)) return null;
+    if (/%(?:2f|5c|00)/i.test(raw)) return null;
     let segment: string;
     try {
       segment = decodeURIComponent(raw);
@@ -39,7 +39,8 @@ export function resolveStoryLink(documentPath: string, href: string): StoryDesti
       !segment ||
       segment === '.' ||
       segment === '..' ||
-      /[\\/%]/.test(segment) ||
+      /[\\/]/.test(segment) ||
+      /%(?:2f|5c|00|2e)/i.test(segment) ||
       containsControl(segment)
     )
       return null;
@@ -62,6 +63,22 @@ export function resolveStoryLink(documentPath: string, href: string): StoryDesti
     if (containsControl(fragment)) return null;
   }
   return { kind, path, ...(fragment === undefined ? {} : { fragment }) };
+}
+
+export function isStoryFocusTreeMessage(
+  source: MessageEventSource | null,
+  currentFrame: Window | null,
+  data: unknown
+): boolean {
+  return (
+    !!currentFrame &&
+    source === currentFrame &&
+    !!data &&
+    typeof data === 'object' &&
+    !Array.isArray(data) &&
+    Object.keys(data).length === 1 &&
+    (data as Record<string, unknown>).type === 'mdhere:story-focus-tree'
+  );
 }
 
 export function validateStoryMessage(

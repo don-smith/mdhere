@@ -74,7 +74,7 @@ describe('NavigationCoordinator', () => {
     await nav.select('a.md', () => Promise.resolve(doc('a.md')));
     await nav.select('b.md', () => Promise.resolve(doc('b.md')));
     expect(await nav.refresh(() => Promise.resolve({ ...doc('b.md'), title: 'Updated' }))).toBe(
-      true
+      'refreshed'
     );
     expect(nav.current?.document.title).toBe('Updated');
     const slow = deferred();
@@ -84,6 +84,22 @@ describe('NavigationCoordinator', () => {
     expect(await pending).toBe('stale');
     expect(nav.current?.path).toBe('a.md');
     expect(nav.canBack).toBe(false);
+  });
+
+  it('reports a failed selected reread but ignores a stale refresh', async () => {
+    const nav = new NavigationCoordinator();
+    await nav.select('a.md', () => Promise.resolve(doc('a.md')));
+    await nav.select('b.md', () => Promise.resolve(doc('b.md')));
+    expect(await nav.refresh(() => Promise.reject(Error('Deleted file')))).toBe('failed');
+    expect(nav.error).toMatchObject({ message: 'Deleted file' });
+    expect(nav.current?.path).toBe('b.md');
+    expect(nav.canBack).toBe(true);
+    const pending = deferred();
+    const result = nav.refresh(() => pending.promise);
+    nav.back();
+    pending.reject(Error('Stale failure'));
+    expect(await result).toBe('stale');
+    expect(nav.error).toBeUndefined();
   });
 
   it('rejects a mismatched native document without committing', async () => {

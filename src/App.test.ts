@@ -142,6 +142,20 @@ describe('App', () => {
     window.dispatchEvent(new MessageEvent('message', { data: message, source: window }));
     expect(readDocument).toHaveBeenCalledOnce();
     window.dispatchEvent(
+      new MessageEvent('message', {
+        data: { type: 'mdhere:story-focus-tree' },
+        source: window
+      })
+    );
+    expect(screen.getByRole('treeitem', { name: 'Story.html' })).not.toHaveFocus();
+    window.dispatchEvent(
+      new MessageEvent('message', {
+        data: { type: 'mdhere:story-focus-tree' },
+        source: frame.contentWindow
+      })
+    );
+    await waitFor(() => expect(screen.getByRole('treeitem', { name: 'Story.html' })).toHaveFocus());
+    window.dispatchEvent(
       new MessageEvent('message', { data: message, source: frame.contentWindow })
     );
     await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent('Missing document'));
@@ -153,6 +167,14 @@ describe('App', () => {
       new MessageEvent('message', { data: message, source: frame.contentWindow })
     );
     expect(readDocument).toHaveBeenCalledTimes(2);
+    (document.activeElement as HTMLElement).blur();
+    window.dispatchEvent(
+      new MessageEvent('message', {
+        data: { type: 'mdhere:story-focus-tree' },
+        source: frame.contentWindow
+      })
+    );
+    expect(screen.queryByRole('treeitem', { name: 'Story.html' })).not.toBeInTheDocument();
   });
 
   afterEach(() => {
@@ -479,6 +501,41 @@ describe('App', () => {
     });
     resolveRefresh?.(library);
     await waitFor(() => expect(refresh).toBeEnabled());
+  });
+
+  it('reports a failed selected reread after refresh while retaining the view and Back history', async () => {
+    const snapshot: LibrarySnapshot = {
+      rootName: 'Library',
+      diagnostics: [],
+      tree: [
+        { kind: 'document', documentKind: 'markdown', name: 'Guide.md', path: 'Guide.md' },
+        { kind: 'document', documentKind: 'markdown', name: 'Other.md', path: 'Other.md' }
+      ]
+    };
+    let missing = false;
+    const client: LibraryClient = {
+      snapshot: () => Promise.resolve(snapshot),
+      refresh: () => Promise.resolve(snapshot),
+      readDocument: (path) =>
+        missing && path === 'Other.md'
+          ? Promise.reject(Error('Selected file was deleted'))
+          : Promise.resolve({ kind: 'markdown', path, title: path, content: '# Original' }),
+      openFolder: () => Promise.resolve(undefined),
+      openExternalLink: () => Promise.resolve()
+    };
+    render(App, { client });
+    await fireEvent.click(await screen.findByRole('treeitem', { name: 'Guide.md' }));
+    await fireEvent.click(screen.getByRole('treeitem', { name: 'Other.md' }));
+    await waitFor(() =>
+      expect(screen.getByTestId('document-toolbar')).toHaveTextContent('Other.md')
+    );
+    missing = true;
+    await fireEvent.click(screen.getByRole('button', { name: 'Refresh library' }));
+    await waitFor(() =>
+      expect(screen.getByRole('alert')).toHaveTextContent('Selected file was deleted')
+    );
+    expect(screen.getByTestId('document-toolbar')).toHaveTextContent('Other.md');
+    expect(screen.getByRole('button', { name: 'Back' })).toBeEnabled();
   });
 
   it('does not let a refresh reread overwrite a newer document selection', async () => {

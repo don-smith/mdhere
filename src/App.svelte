@@ -87,13 +87,20 @@
               documentKind: 'html',
               name: 'Next.html',
               path: 'guides/Next.html'
+            },
+            {
+              kind: 'document',
+              documentKind: 'html',
+              name: 'page%.html',
+              path: 'guides/page%.html'
             }
           ]
         },
         {
           ...demoDocuments,
           'guides/Story.html': { kind: 'html', path: 'guides/Story.html', title: 'Story' },
-          'guides/Next.html': { kind: 'html', path: 'guides/Next.html', title: 'Next story' }
+          'guides/Next.html': { kind: 'html', path: 'guides/Next.html', title: 'Next story' },
+          'guides/page%.html': { kind: 'html', path: 'guides/page%.html', title: 'Percent page' }
         }
       );
     }
@@ -296,10 +303,14 @@
       if (operation !== libraryOperation) return;
       snapshot = nextSnapshot;
       const path = navigation.current?.path;
-      if (path && (await navigation.refresh(() => client.readDocument(path)))) {
+      if (path) {
+        const result = await navigation.refresh(() => client.readDocument(path));
         if (operation !== libraryOperation) return;
-        showCurrent();
-        if (selectedDocument?.kind === 'html') ++storyEpoch;
+        if (result === 'refreshed') {
+          selectionError = undefined;
+          showCurrent();
+          if (selectedDocument?.kind === 'html') ++storyEpoch;
+        } else if (result === 'failed') selectionError = messageFor(navigation.error);
       }
     } catch (reason) {
       if (operation === libraryOperation) error = messageFor(reason);
@@ -343,6 +354,17 @@
     if (result === 'stale') return;
     if (result === 'failed') selectionError = messageFor(navigation.error);
     else showCurrent();
+  }
+
+  function focusTreeFromStory(currentPath: string, currentEpoch: number) {
+    if (
+      selectedDocument?.kind !== 'html' ||
+      selectedDocument.path !== currentPath ||
+      storyEpoch !== currentEpoch
+    )
+      return;
+    keyboardState = { ...keyboardState, pane: 'tree' };
+    documentTree?.focus();
   }
 
   function navigateFromStory(
@@ -784,6 +806,7 @@
                 }}
                 onNavigate={(destination: StoryDestination) =>
                   navigateFromStory(destination, storyPath, epoch)}
+                onFocusTree={() => focusTreeFromStory(storyPath, epoch)}
               />
             {/key}
           {/if}

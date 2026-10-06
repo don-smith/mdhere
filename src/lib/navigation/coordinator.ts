@@ -86,23 +86,24 @@ export class NavigationCoordinator {
     return this.entries[--this.index] ?? null;
   }
 
-  async refresh(read: () => Promise<Document>): Promise<boolean> {
+  async refresh(read: () => Promise<Document>): Promise<'refreshed' | 'failed' | 'stale'> {
     const path = this.current?.path;
-    if (!path) return false;
+    if (!path) return 'stale';
     const operation = this.operation;
+    this.error = undefined;
     try {
       const document = await read();
-      if (
-        operation !== this.operation ||
-        this.current?.path !== path ||
-        document.path !== path ||
-        document.kind !== this.current.document.kind
-      )
-        return false;
+      if (operation !== this.operation || this.current?.path !== path) return 'stale';
+      if (document.path !== path || document.kind !== this.current.document.kind) {
+        this.error = Error('The selected document is not available as requested.');
+        return 'failed';
+      }
       this.entries[this.index] = { ...this.current, document };
-      return true;
-    } catch {
-      return false;
+      return 'refreshed';
+    } catch (error) {
+      if (operation !== this.operation || this.current?.path !== path) return 'stale';
+      this.error = error;
+      return 'failed';
     }
   }
 }

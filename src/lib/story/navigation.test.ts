@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { resolveStoryLink, validateStoryMessage } from './navigation';
+import { isStoryFocusTreeMessage, resolveStoryLink, validateStoryMessage } from './navigation';
 
 const current = 'guides/chapters/Start.html';
 
@@ -15,6 +15,11 @@ describe('story navigation', () => {
       path: 'guides/Next.html'
     });
     expect(resolveStoryLink(current, '#here')).toBeNull();
+    expect(resolveStoryLink(current, 'page%25.html#section')).toEqual({
+      kind: 'html',
+      path: 'guides/chapters/page%.html',
+      fragment: 'section'
+    });
   });
 
   it('rejects unsupported destinations, malformed encodings, root escape and schemes', () => {
@@ -31,10 +36,22 @@ describe('story navigation', () => {
       '%2fsecret.md',
       '%5csecret.md',
       '%2e%2e/next.html',
-      'bad%00.md'
+      'bad%00.md',
+      '%252fsecret.md',
+      '%252e%252e/next.html'
     ]) {
       expect(resolveStoryLink(current, href)).toBeNull();
     }
+  });
+
+  it('accepts only an exact focus action from the current frame', () => {
+    const frame = {} as Window;
+    const action = { type: 'mdhere:story-focus-tree' };
+    expect(isStoryFocusTreeMessage(frame, frame, action)).toBe(true);
+    expect(isStoryFocusTreeMessage({} as Window, frame, action)).toBe(false);
+    expect(isStoryFocusTreeMessage(frame, null, action)).toBe(false);
+    expect(isStoryFocusTreeMessage(frame, frame, { ...action, command: 'invoke' })).toBe(false);
+    expect(isStoryFocusTreeMessage(frame, frame, { type: 'mdhere:story-navigation' })).toBe(false);
   });
 
   it('validates the exact current frame, locally resolved path/kind and message shape', () => {

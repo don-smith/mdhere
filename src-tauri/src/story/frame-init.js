@@ -56,6 +56,13 @@ if (window !== window.top && location.protocol === 'mdhere-story:') {
   window.addEventListener('scroll', reportPosition, { passive: true });
   window.addEventListener('hashchange', reportPosition);
 
+  document.addEventListener('keydown', (event) => {
+    if (event.key !== 'Escape' || event.altKey || event.ctrlKey || event.metaKey || event.shiftKey)
+      return;
+    event.preventDefault();
+    window.parent.postMessage({ type: 'mdhere:story-focus-tree' }, '*');
+  });
+
   document.addEventListener('click', (event) => {
     if (
       event.defaultPrevented ||
@@ -88,9 +95,9 @@ if (window !== window.top && location.protocol === 'mdhere-story:') {
       )
         return;
       const rawPath = href.split('#')[0];
-      if (/%(?:2f|5c|00|25)/i.test(rawPath)) return;
+      if (/%(?:2f|5c|00)/i.test(rawPath)) return;
       const path = destination.pathname.split('/').slice(2).map(decodeURIComponent).join('/');
-      if (!path || /[\\%]/.test(path) || hasControl(path)) return;
+      if (!path || /\\/.test(path) || /%(?:2f|5c|00|2e)/i.test(path) || hasControl(path)) return;
       const kind = /\.html$/i.test(path)
         ? 'html'
         : /\.(?:md|markdown)$/i.test(path)

@@ -60,6 +60,38 @@ fn serves_only_bounded_typed_resources_with_exact_headers() {
 }
 
 #[test]
+fn serves_literal_percent_names_without_decoding_escapes_twice() {
+    let root = tempdir().unwrap();
+    write(root.path(), "page%.html", b"<h1>Percent</h1>");
+    write(root.path(), "art%.png", PNG);
+    let registry = LibraryRegistry::new();
+    registry
+        .register_root("mdhere", root.path().into())
+        .unwrap();
+    let revision = registry.root_revision("mdhere").unwrap();
+    let base = format!("mdhere-story://localhost/{revision}/");
+    for path in ["page%25.html", "art%25.png"] {
+        assert_eq!(
+            StoryProtocol::serve(&registry, "mdhere", &format!("{base}{path}")).status,
+            200
+        );
+    }
+    for path in [
+        "%252fescape.html",
+        "%255cescape.html",
+        "%252e%252e/page.html",
+        "%2fescape.html",
+        "%2e%2e/page.html",
+    ] {
+        assert_ne!(
+            StoryProtocol::serve(&registry, "mdhere", &format!("{base}{path}")).status,
+            200,
+            "{path}"
+        );
+    }
+}
+
+#[test]
 fn rejects_bad_urls_types_sizes_and_stale_roots() {
     let root = tempdir().unwrap();
     write(root.path(), "page.html", b"<h1>ok</h1>");
