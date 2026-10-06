@@ -1,0 +1,36 @@
+/* Zero-specificity defaults leave authored story layout and styles in control. */
+:where(html) {
+  color-scheme: light;
+}
+:where(body) {
+  background: var(--story-background, #fbfaf6);
+  color: var(--story-text, #24211c);
+  font-family: var(--story-font-body, Georgia, serif);
+  font-size: var(--story-text-size, 1.0625rem);
+  line-height: var(--story-line-height, 1.62);
+}
+:where(a) {
+  color: var(--story-link, #1d5c87);
+  text-underline-offset: 2px;
+}
+:where(button, input, select, textarea) {
+  font: inherit;
+}
+:where(:focus-visible) {
+  outline: 2px solid var(--story-focus, #1d5c87);
+  outline-offset: 2px;
+}
+:where(h1, h2, h3, h4, h5, h6) {
+  line-height: 1.2;
+}
+:where(blockquote) {
+  border-inline-start: 3px solid var(--story-border, #dcd5c7);
+  padding-inline-start: 1rem;
+}
+:where(code, pre) {
+  font-family: ui-monospace, Menlo, Consolas, monospace;
+}
+:where(img) {
+  max-inline-size: 100%;
+  height: auto;
+}

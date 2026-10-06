@@ -1,3 +1,7 @@
+/* Keep the fixture taller than the reader for deterministic Back/scroll checks under story typography. */
+body {
+  min-height: 1200px;
+}
 .animated {
   animation: story-motion 1s infinite alternate;
 }

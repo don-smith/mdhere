@@ -10,6 +10,7 @@ cleanup() {
 trap cleanup EXIT
 
 mkdir -p "$fixture_root/images"
+cp -R "$repo_root/docs/examples/story" "$fixture_root/story"
 
 cat >"$fixture_root/Readme.md" <<'MARKDOWN'
 ---
@@ -173,6 +174,21 @@ Use Command+=, Command++, Command+-, and Command+0 and confirm the entire applic
 terminal, run `mdhere "$fixture_root" "Readme.md"` and confirm the same reader window is focused and displays
 Readme.md rather than opening another window. Close and relaunch mdhere and confirm the saved zoom is restored.
 Confirm zoom shortcuts do not take over while focus is in the filter input, theme controls, or a dialog.
+
+For HTML story checks, select story/index.html in this mixed Markdown/HTML tree. Switch Paper,
+Midnight and Field Notes without reopening the story; check palette, typography and link contrast
+at normal and narrow widths. Follow its relative chapter.md link into the rendered Markdown reader,
+use header Back to return to HTML and confirm scroll/fragment restoration; select a Markdown file
+from the tree, then use Back again. Switch root to confirm the old story frame disappears. Repeat in
+one user theme and inspect any custom graph/status colors separately: they are page-owned and do
+not inherit the story palette automatically. The story example also works in a standalone browser
+(file://.../docs/examples/story/index.html); Markdown there may appear raw. For the final packaged
+security fixture (not this development window), first quit all mdhere processes normally and then
+run `node tests/security-story-gate/run.mjs` once. The runner builds and verifies the bundle, opens
+a control-checked request sink, and gives physical observation steps; its result is INCONCLUSIVE
+until the developer inspects and records approval. Never rebuild over a running app. Record the
+final bundle hash, request/IPC observations and manual theme/reader results in the workstream
+verify/ directory; prior Phase 2 evidence does not cover this final bundle.
 
 Close the development app to remove the temporary library.
 EOF

@@ -2,24 +2,44 @@
   import { invoke } from '@tauri-apps/api/core';
   import { validateStoryMessage } from '../story/navigation';
   import type { StoryPositionHandler } from '../navigation/coordinator';
+  import { deriveStoryPalette } from '../story/palette';
+  import type { Theme } from '../themes/types';
+  import semanticCss from '../story/semantic.css?raw';
 
   let {
     path,
     fragment,
     scroll = 0,
+    theme,
     onNavigate,
     onPosition
   }: {
     path: string;
     fragment?: string;
     scroll?: number;
+    theme?: Theme;
     onNavigate: Function;
     onPosition?: StoryPositionHandler;
   } = $props();
   let source = $state<string>();
   let frame = $state<HTMLIFrameElement>();
 
+  function applyPalette() {
+    const palette = theme && deriveStoryPalette(theme);
+    if (palette)
+      frame?.contentWindow?.postMessage(
+        { type: 'mdhere:story-palette', palette, css: semanticCss },
+        '*'
+      );
+  }
+
+  $effect(() => {
+    theme;
+    applyPalette();
+  });
+
   function applyPosition() {
+    applyPalette();
     frame?.contentWindow?.postMessage(
       { type: 'mdhere:story-position', fragment: fragment ?? null, scroll },
       '*'
@@ -103,6 +123,6 @@
     flex: 1;
     min-width: 0;
     border: 0;
-    background: white;
+    background: var(--shell-background, white);
   }
 </style>

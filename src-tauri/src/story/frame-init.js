@@ -11,7 +11,29 @@ if (window !== window.top && location.protocol === 'mdhere-story:') {
   );
 
   window.addEventListener('message', (event) => {
-    if (event.source !== window.parent || event.data?.type !== 'mdhere:story-position') return;
+    if (event.source !== window.parent) return;
+    if (event.data?.type === 'mdhere:story-palette') {
+      const { palette, css } = event.data;
+      if (!palette || typeof palette !== 'object' || typeof css !== 'string') return;
+      for (const [name, value] of Object.entries(palette)) {
+        if (typeof value !== 'string') return;
+        if (name === 'color-scheme') {
+          if (value !== 'light' && value !== 'dark') return;
+        } else if (!/^--story-[a-z-]+$/.test(name)) return;
+      }
+      const root = document.documentElement;
+      if (!root) return;
+      for (const [name, value] of Object.entries(palette)) root.style.setProperty(name, value);
+      let style = document.getElementById('mdhere-story-style');
+      if (!style) {
+        style = document.createElement('style');
+        style.id = 'mdhere-story-style';
+        (document.head || root).append(style);
+      }
+      style.textContent = css;
+      return;
+    }
+    if (event.data?.type !== 'mdhere:story-position') return;
     const { fragment, scroll } = event.data;
     if (fragment !== null && (typeof fragment !== 'string' || hasControl(fragment))) return;
     if (typeof scroll !== 'number' || !Number.isFinite(scroll) || scroll < 0) return;

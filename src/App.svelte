@@ -778,6 +778,7 @@
                 path={storyPath}
                 {fragment}
                 scroll={viewingEntry?.scroll ?? 0}
+                theme={presentation?.selected}
                 onPosition={(scroll: number, nextFragment?: string) => {
                   if (storyEpoch === epoch) rememberPosition(storyPath, scroll, nextFragment, true);
                 }}

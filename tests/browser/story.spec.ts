@@ -17,6 +17,10 @@ test('opens the portable example and its Markdown anchor without the app bridge'
 }) => {
   await page.goto(pathToFileURL(resolve('docs/examples/story/index.html')).href);
   await expect(page.getByRole('heading', { name: 'A small story' })).toBeVisible();
+  await expect(page.locator('body')).toHaveCSS('background-color', 'rgb(250, 248, 243)');
+  await page.getByRole('link', { name: 'Next page' }).click();
+  await expect(page).toHaveURL(/next\.html$/);
+  await page.getByRole('link', { name: 'Return to the story' }).click();
   await page.getByRole('link', { name: 'Continue in Markdown' }).click();
   await expect(page).toHaveURL(/chapter\.md$/);
   await expect(page.locator('body')).toContainText('A chapter');
@@ -48,6 +52,35 @@ test('routes ordinary story links to rendered Markdown and another HTML story', 
   await expect(page.getByTestId('story-frame')).toHaveCount(0);
 });
 
+test('applies selected story palette only to the active frame and keeps Markdown themed', async ({
+  page
+}) => {
+  await page.addInitScript({ content: bridge });
+  await page.goto('/?scenario=story');
+  await page.getByRole('treeitem', { name: 'Story.html' }).click();
+  const story = page.frameLocator('[data-testid="story-frame"]');
+  await expect(story.locator('html')).toHaveCSS('--story-background', '#f7f8fb');
+  await expect(story.locator('body')).toHaveCSS('background-color', 'rgb(247, 248, 251)');
+  await expect(story.locator('#mdhere-story-style')).toHaveCount(1);
+  await page.getByRole('button', { name: 'Theme: Paper' }).click();
+  await page.getByRole('option', { name: 'Midnight' }).click();
+  await expect(story.locator('html')).toHaveCSS('--story-background', '#18202d');
+  await expect(story.locator('body')).toHaveCSS('color', 'rgb(237, 242, 250)');
+  await expect(story.locator('#mdhere-story-style')).toHaveCount(1);
+  const previousFrame = page.frame({ url: /\/guides\/Story\.html$/ })!;
+  await page.getByRole('treeitem', { name: 'Next.html' }).click();
+  await expect(story.locator('html')).toHaveCSS('--story-background', '#18202d');
+  expect(previousFrame.isDetached()).toBe(true);
+  await page.getByRole('button', { name: 'Theme: Midnight' }).click();
+  await page.getByRole('option', { name: 'Field Notes' }).click();
+  await expect(story.locator('html')).toHaveCSS('--story-background', '#f1eee3');
+  await page.getByRole('treeitem', { name: 'Welcome.md' }).click();
+  await expect(page.getByTestId('story-frame')).toHaveCount(0);
+  await expect(page.getByTestId('reader').locator('h1')).toBeVisible();
+  await expect(page.getByTestId('reader').locator('h1')).toHaveCSS('color', /rgb\(/);
+  await expect(page.getByTestId('reader')).not.toContainText('mdhere-story-style');
+});
+
 test('Back restores mixed tree and link navigation, scroll and fragments without Forward', async ({
   page
 }) => {
@@ -58,6 +91,7 @@ test('Back restores mixed tree and link navigation, scroll and fragments without
   await page.getByRole('treeitem', { name: 'Story.html' }).click();
   const story = page.frameLocator('[data-testid="story-frame"]');
   await expect(story.getByRole('heading', { name: 'Local story' })).toBeVisible();
+  await page.frame({ url: /\/guides\/Story\.html$/ })!.waitForLoadState('load');
   await story.locator('body').evaluate((body) => {
     body.style.minHeight = '2400px';
     const next = [...body.querySelectorAll('a')].find((a) => a.textContent === 'Next story');
@@ -66,6 +100,7 @@ test('Back restores mixed tree and link navigation, scroll and fragments without
       next.style.top = '10px';
     }
     window.scrollTo(0, 300);
+    window.dispatchEvent(new Event('scroll'));
   });
   await expect.poll(() => story.locator('body').evaluate(() => window.scrollY)).toBeGreaterThan(0);
   await story.getByRole('link', { name: 'Next story' }).click();
@@ -73,6 +108,8 @@ test('Back restores mixed tree and link navigation, scroll and fragments without
   await expect(back).toBeEnabled();
   await back.click();
   await expect(page.getByTestId('document-toolbar')).toContainText('Story');
+  await expect(story.getByRole('heading', { name: 'Local story' })).toBeVisible();
+  await page.frame({ url: /\/guides\/Story\.html$/ })!.waitForLoadState('load');
   await expect.poll(() => story.locator('body').evaluate(() => window.scrollY)).toBeGreaterThan(0);
   await story.getByRole('link', { name: 'Read Markdown' }).click();
   await expect(page.getByTestId('status-strip')).toContainText('Markdown');
@@ -90,8 +127,13 @@ test('restores Markdown scroll when returning from a tree-selected story', async
   await page.getByRole('treeitem', { name: 'Welcome.md' }).click();
   const reader = page.getByTestId('reader');
   await expect(reader.locator('h1')).toBeVisible();
+  await expect(reader.locator('.mdhere-mermaid-diagram svg')).toHaveCount(1);
+  await expect
+    .poll(() => reader.evaluate((element) => element.scrollHeight > element.clientHeight))
+    .toBe(true);
   await reader.evaluate((element) => {
     element.scrollTop = 320;
+    element.dispatchEvent(new Event('scroll'));
   });
   await expect.poll(() => reader.evaluate((element) => element.scrollTop)).toBeGreaterThan(0);
   await page.getByRole('treeitem', { name: 'Story.html' }).click();

@@ -259,7 +259,7 @@ async function main() {
       '1. In Story.html, click "Run security attempts". Wait ~3 seconds; local script/image/animation should work, escapes and navigation should not.'
     );
     console.log(
-      '2. Click "Copy observations"; then choose prototype/myflow.html in the tree and check variant D, JS/CSS and layout.'
+      '2. Click "Copy observations"; then choose prototype/myflow.html in the tree. Check variant D, JS/CSS/layout and palette in Paper, Midnight, Field Notes and one user theme at normal/narrow widths. Check page-owned status/chart colors separately.'
     );
     console.log(
       '3. Return here and press Enter. If the app leaves its story, a native command succeeds, or outbound traffic appears, stop and report failure.'
@@ -305,7 +305,7 @@ async function main() {
       );
     }
     console.log(
-      'No automatic PASS. Developer must inspect actual response headers and command results before confirming the physical gate.'
+      'No automatic PASS. Developer must inspect visual behavior and command/request results; native tests assert constructed headers, but delivered WebKit headers remain unverified under the accepted scoped addendum.'
     );
     if (launched.exitCode === null)
       console.log(

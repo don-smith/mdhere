@@ -1,6 +1,6 @@
 # mdhere
 
-mdhere is a read-only, macOS-first Markdown reader for an existing local folder. It keeps one confined library in its single reader window, renders safe GitHub-flavored Markdown, and keeps local files under Rust’s authority rather than granting the webview filesystem access.
+mdhere is a read-only, macOS-first Markdown and local HTML story reader for an existing folder. It keeps one confined library in its single reader window, renders safe GitHub-flavored Markdown, and keeps local files under Rust’s authority rather than granting the webview filesystem access.
 
 ## Requirements
 
@@ -110,7 +110,9 @@ Keep this warning until a tagged GitHub-hosted run uses `developer-id` mode, its
 - **Open Folder** replaces the current window’s root only. Cancelling keeps its current root.
 - **Refresh** rescans the current root and retains the selected document when possible.
 - **⌘+=**, **⌘++**, **⌘-**, and **⌘0** adjust or reset application zoom on macOS. Use Control instead of Command on Windows and Linux. The zoom level is restored after restart.
-- Launching `mdhere` uses the shell’s current directory in the sole reader window. `mdhere <folder>` retargets that window to a folder. `mdhere <folder> <relative-file>` retargets it and displays that Markdown file relative to the supplied folder. A subsequent invocation focuses the existing window instead of opening another.
+- Launching `mdhere` uses the shell’s current directory in the sole reader window. `mdhere <folder>` retargets that window to a folder. `mdhere <folder> <relative-file>` retargets it and displays that Markdown or HTML file relative to the supplied folder. A subsequent invocation focuses the existing window instead of opening another.
+
+The tree lists Markdown and HTML together. HTML stories run local scripts, CSS and raster images in an isolated frame; ordinary relative links to Markdown open the rendered reader, and links to HTML open the story frame. Header **Back** follows successful tree and story-link navigation across both kinds. Section controls apply only to Markdown. For portable pages and theme colors see the [HTML authoring contract](docs/themes.md#html-story-authoring-contract) and [standalone example](docs/examples/story/index.html).
 
 ### Keyboard controls
 
@@ -148,7 +150,7 @@ Moving or replacing the `.app` requires rerunning the installer. The build is un
 ## Security boundaries
 
 - Rust canonicalizes every selected root and confines scans, document reads, local links, and image protocol requests to that root.
-- The reader permits Markdown, not raw HTML; rendered output is sanitized. Remote images, SVG, unsafe URL schemes, and paths outside the root are blocked.
+- Markdown remains sanitized in the privileged reader. HTML runs only in a sandboxed story frame with separate root-confined resource serving; remote resources, SVG, unsafe URL schemes and paths outside the root are blocked. The same-webview sandbox relies on story JavaScript not obtaining the main-frame native invoke key; stronger unconditional IPC isolation needs a separate webview.
 - The webview receives only Tauri’s `core:default` capability. It has no filesystem, shell, dialog, or plugin permission.
 - External links are limited to validated `https` URLs and open through a narrow native command.
 
@@ -158,4 +160,4 @@ mdhere includes light and dark themes, remembers the global choice, and supports
 
 ## v1 exclusions
 
-mdhere does not edit files, watch for filesystem changes, search, synchronize with Resonance, load remote content, support raw HTML or SVG, auto-update, publish through an app store or package manager, or sign Windows and Linux downloads. Developer ID signing and notarization activate only when the complete Apple secret set is configured; otherwise the macOS release is explicitly ad-hoc signed.
+mdhere does not edit files, watch for filesystem changes, search, synchronize with Resonance, load remote content, render raw HTML inside Markdown or support SVG, auto-update, publish through an app store or package manager, or sign Windows and Linux downloads. Developer ID signing and notarization activate only when the complete Apple secret set is configured; otherwise the macOS release is explicitly ad-hoc signed.
