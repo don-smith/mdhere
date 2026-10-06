@@ -1,0 +1,8 @@
+.animated {
+  animation: story-motion 1s infinite alternate;
+}
+@keyframes story-motion {
+  to {
+    transform: translateX(12px);
+  }
+}

@@ -41,7 +41,7 @@ describe('App', () => {
       )
     );
     await fireEvent.click(screen.getByRole('treeitem', { name: 'Story.html' }));
-    expect(await screen.findByText('HTML stories are not available yet.')).toBeInTheDocument();
+    expect(await screen.findByText('Loading HTML story…')).toBeInTheDocument();
     expect(screen.queryByTestId('reader')).not.toBeInTheDocument();
     expect(screen.getByTestId('status-strip')).toHaveTextContent('HTML');
     expect(screen.getByTestId('document-toolbar')).toHaveTextContent('Story');
@@ -587,7 +587,7 @@ describe('App', () => {
         })
     };
     render(App, { client });
-    expect(await screen.findByText('HTML stories are not available yet.')).toBeInTheDocument();
+    expect(await screen.findByText('Loading HTML story…')).toBeInTheDocument();
     expect(screen.queryByTestId('reader')).not.toBeInTheDocument();
     expect(client.readDocument).not.toHaveBeenCalled();
   });

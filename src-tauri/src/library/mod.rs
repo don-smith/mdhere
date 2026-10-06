@@ -13,7 +13,7 @@ use std::{
 pub use error::LibraryError;
 pub use types::{Diagnostic, Document, DocumentKind, LibrarySnapshot, TreeNode};
 
-use path_guard::PathGuard;
+pub(crate) use path_guard::PathGuard;
 
 const MAX_DOCUMENT_BYTES: u64 = 10 * 1024 * 1024;
 
@@ -26,7 +26,13 @@ pub struct PreparedLibrary {
 
 #[derive(Debug, Default)]
 pub struct LibraryRegistry {
-    roots: Mutex<HashMap<String, PathBuf>>,
+    roots: Mutex<RegisteredRoots>,
+}
+
+#[derive(Debug, Default)]
+struct RegisteredRoots {
+    next_revision: u64,
+    entries: HashMap<String, (PathBuf, u64)>,
 }
 
 impl LibraryRegistry {
@@ -86,17 +92,48 @@ impl LibraryRegistry {
         PathGuard::new(self.root_for(window_label)?).resolve(relative_path)
     }
 
+    pub fn root_revision(&self, window_label: &str) -> Result<u64, LibraryError> {
+        self.roots
+            .lock()
+            .map_err(|_| LibraryError::Io("library registry lock was poisoned".into()))?
+            .entries
+            .get(window_label)
+            .map(|(_, revision)| *revision)
+            .ok_or_else(|| LibraryError::NotRegistered(window_label.to_owned()))
+    }
+
+    // Keep the root lock through the bounded read, so a replaced root cannot serve
+    // bytes under a revision that was valid before the replacement.
+    pub fn with_root_revision<T>(
+        &self,
+        window_label: &str,
+        revision: u64,
+        read: impl FnOnce(&Path) -> T,
+    ) -> Option<T> {
+        let roots = self.roots.lock().ok()?;
+        let (root, current) = roots.entries.get(window_label)?;
+        (*current == revision).then(|| read(root))
+    }
+
     pub fn unregister(&self, window_label: &str) {
         if let Ok(mut roots) = self.roots.lock() {
-            roots.remove(window_label);
+            roots.entries.remove(window_label);
         }
     }
 
     fn replace_root(&self, window_label: &str, root: PathBuf) -> Result<(), LibraryError> {
-        self.roots
+        let mut roots = self
+            .roots
             .lock()
-            .map_err(|_| LibraryError::Io("library registry lock was poisoned".into()))?
-            .insert(window_label.to_owned(), root);
+            .map_err(|_| LibraryError::Io("library registry lock was poisoned".into()))?;
+        roots.next_revision = roots
+            .next_revision
+            .checked_add(1)
+            .ok_or_else(|| LibraryError::Io("library root revision exhausted".into()))?;
+        let revision = roots.next_revision;
+        roots
+            .entries
+            .insert(window_label.to_owned(), (root, revision));
         Ok(())
     }
 
@@ -104,8 +141,9 @@ impl LibraryRegistry {
         self.roots
             .lock()
             .map_err(|_| LibraryError::Io("library registry lock was poisoned".into()))?
+            .entries
             .get(window_label)
-            .cloned()
+            .map(|(root, _)| root.clone())
             .ok_or_else(|| LibraryError::NotRegistered(window_label.to_owned()))
     }
 }

@@ -14,6 +14,13 @@ export default defineConfig(({ mode }) => ({
     port: 1420,
     strictPort: true,
     headers:
-      mode === 'test' ? { 'Content-Security-Policy': tauriConfig.app.security.csp } : undefined
+      mode === 'test'
+        ? {
+            'Content-Security-Policy': tauriConfig.app.security.csp.replace(
+              'frame-src mdhere-story:',
+              "frame-src 'self'"
+            )
+          }
+        : undefined
   }
 }));

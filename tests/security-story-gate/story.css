@@ -1,0 +1,22 @@
+body {
+  font: 16px system-ui;
+  padding: 1rem;
+}
+#local-image,
+#escaped-image {
+  width: 20px;
+  height: 20px;
+}
+#motion {
+  animation: gate-motion 2s infinite alternate;
+}
+@keyframes gate-motion {
+  to {
+    transform: translateX(20px);
+  }
+}
+#results {
+  white-space: pre-wrap;
+  max-height: 40vh;
+  overflow: auto;
+}

@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Packaged story security gate</title>
+    <link rel="stylesheet" href="story.css" />
+  </head>
+  <body>
+    <h1>Packaged story security gate</h1>
+    <p>Results here are observations, not a pass. See verify procedure and the sink log.</p>
+    <img id="local-image" src="pixel.png" alt="Local PNG" />
+    <img id="escaped-image" src="escape.png" alt="Escaped PNG must fail" />
+    <div id="motion">Animated locally</div>
+    <pre id="results"></pre>
+    <button id="all-checks">Run security attempts</button>
+    <button id="copy-results">Copy observations</button>
+    <span id="copy-status" role="status"></span>
+    <button id="requests">Attempt denied requests and native commands</button>
+    <button id="navigation">Attempt popup and top navigation</button>
+    <label
+      >Self-navigation target
+      <select id="self-target">
+        <option value="http://127.0.0.1:8765/self">Local request sink</option>
+        <option value="file:///etc/hosts">file:</option>
+        <option value="asset://localhost/etc/hosts">asset:</option>
+        <option value="tauri://localhost/index.html">App origin</option>
+        <option value="mdhere-story://localhost/1/known.md">Other story document</option>
+      </select></label
+    >
+    <button id="self-navigation">Attempt selected self-navigation last</button>
+    <form id="form" method="post" action="http://127.0.0.1:8765/form">
+      <input name="gate" value="form-attempt" /><button type="submit">Attempt denied form</button>
+    </form>
+    <script src="story.js"></script>
+  </body>
+</html>

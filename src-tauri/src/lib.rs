@@ -3,6 +3,7 @@ pub mod external_links;
 pub mod launch;
 pub mod library;
 pub mod presentation;
+pub mod story;
 pub mod themes;
 
 use std::{
@@ -17,7 +18,9 @@ use launch::LaunchRequest;
 use library::{Document, LibraryError, LibraryRegistry, LibrarySnapshot};
 #[cfg(target_os = "macos")]
 use objc2_app_kit::{NSColor, NSWindow};
+use percent_encoding::{AsciiSet, CONTROLS, utf8_percent_encode};
 use presentation::PresentationManager;
+use story::{StoryNavigation, StoryProtocol};
 #[cfg(target_os = "macos")]
 use tauri::TitleBarStyle;
 use tauri::{AppHandle, Emitter, Manager, WebviewUrl, WebviewWindowBuilder, http::Response};
@@ -38,6 +41,39 @@ fn read_document(
     path: String,
 ) -> Result<Document, LibraryError> {
     registry.read_document(window.label(), &path)
+}
+
+const STORY_PATH_ENCODE: &AsciiSet = &CONTROLS
+    .add(b'%')
+    .add(b'/')
+    .add(b'?')
+    .add(b'#')
+    .add(b'\\')
+    .add(b' ');
+
+#[tauri::command]
+fn authorize_story(
+    window: tauri::Window,
+    registry: tauri::State<'_, LibraryRegistry>,
+    navigation: tauri::State<'_, StoryNavigation>,
+    path: String,
+) -> Result<String, LibraryError> {
+    let revision = registry.root_revision(window.label())?;
+    let document = registry.read_document(window.label(), &path)?;
+    let Document::Html { path, .. } = document else {
+        return Err(LibraryError::NotDocument);
+    };
+    if registry.root_revision(window.label())? != revision {
+        return Err(LibraryError::NotRegistered(window.label().to_owned()));
+    }
+    let relative = path
+        .split('/')
+        .map(|segment| utf8_percent_encode(segment, STORY_PATH_ENCODE).to_string())
+        .collect::<Vec<_>>()
+        .join("/");
+    let url = format!("mdhere-story://localhost/{revision}/{relative}");
+    navigation.authorize(&url);
+    Ok(url)
 }
 
 #[tauri::command]
@@ -206,6 +242,7 @@ fn request_folder(app: AppHandle, window: tauri::WebviewWindow) {
                 registry
                     .register_root(&label, path)
                     .map_err(|error| error.to_string())?;
+                app.state::<StoryNavigation>().invalidate();
                 registry.snapshot(&label).map_err(|error| error.to_string())
             })
             .transpose();
@@ -225,8 +262,18 @@ fn request_folder(app: AppHandle, window: tauri::WebviewWindow) {
 }
 
 fn create_window(app: &AppHandle) -> Result<(), String> {
+    let navigation_app = app.clone();
     let window =
         WebviewWindowBuilder::new(app, MAIN_WINDOW_LABEL, WebviewUrl::App("index.html".into()))
+            .on_navigation(move |url| {
+                let navigation = navigation_app.state::<StoryNavigation>();
+                if url.scheme() == "mdhere-story" {
+                    navigation.allow_story(url.as_str())
+                } else {
+                    navigation.allow_initial_app(url.as_str())
+                }
+            })
+            .initialization_script_for_all_frames(include_str!("story/frame-init.js"))
             .title("mdhere")
             .inner_size(1180.0, 760.0)
             .min_inner_size(800.0, 500.0)
@@ -283,6 +330,7 @@ fn apply_launch(app: &AppHandle, request: LaunchRequest) -> Result<(), String> {
         registry
             .commit(MAIN_WINDOW_LABEL, &prepared)
             .map_err(|error| error.to_string())?;
+        app.state::<StoryNavigation>().invalidate();
         window
             .emit(LAUNCH_UPDATE_EVENT, update)
             .map_err(|error| error.to_string())?;
@@ -322,6 +370,21 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .manage(LibraryRegistry::new())
         .manage(PendingLaunchUpdate::default())
+        .manage(StoryNavigation::default())
+        .register_uri_scheme_protocol("mdhere-story", |context, request| {
+            let response = StoryProtocol::serve(
+                &context.app_handle().state::<LibraryRegistry>(),
+                context.webview_label(),
+                &request.uri().to_string(),
+            );
+            let mut builder = Response::builder().status(response.status);
+            for (name, value) in response.headers {
+                builder = builder.header(name, value);
+            }
+            builder
+                .body(response.body)
+                .expect("story response is valid")
+        })
         .register_uri_scheme_protocol("mdhere-asset", |context, request| {
             let response = AssetProtocol::serve(
                 &context.app_handle().state::<LibraryRegistry>(),
@@ -368,6 +431,7 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             library_snapshot,
             read_document,
+            authorize_story,
             refresh_library,
             take_launch_update,
             open_folder,

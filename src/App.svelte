@@ -5,6 +5,7 @@
   import DocumentTree from './lib/components/DocumentTree.svelte';
   import KeyboardHelp from './lib/components/KeyboardHelp.svelte';
   import ReaderPane from './lib/components/ReaderPane.svelte';
+  import StoryPane from './lib/components/StoryPane.svelte';
   import ThemeChooser from './lib/components/ThemeChooser.svelte';
   import ThemeNotice from './lib/components/ThemeNotice.svelte';
   import {
@@ -66,6 +67,26 @@
     }
     if (scenario === 'mermaid') {
       return new InMemoryLibraryClient(demoSnapshot, mermaidDocuments);
+    }
+    if (scenario === 'story') {
+      return new InMemoryLibraryClient(
+        {
+          ...demoSnapshot,
+          tree: [
+            ...demoSnapshot.tree,
+            {
+              kind: 'document',
+              documentKind: 'html',
+              name: 'Story.html',
+              path: 'guides/Story.html'
+            }
+          ]
+        },
+        {
+          ...demoDocuments,
+          'guides/Story.html': { kind: 'html', path: 'guides/Story.html', title: 'Story' }
+        }
+      );
     }
     if (scenario === 'error') {
       return {
@@ -168,6 +189,7 @@
   );
   let libraryOperation = 0;
   let selectionOperation = 0;
+  let storyEpoch = $state(0);
 
   onMount(() => {
     presentationStore = new PresentationStore(presentationApi, (value) => (presentation = value));
@@ -222,6 +244,7 @@
   function applyLaunchUpdate(update: LaunchUpdate) {
     ++libraryOperation;
     ++selectionOperation;
+    ++storyEpoch;
     snapshot = update.snapshot;
     selectedDocument = update.document ?? undefined;
     error = undefined;
@@ -244,8 +267,10 @@
       if (path) {
         try {
           const refreshedDocument = await client.readDocument(path);
-          if (operation === libraryOperation && selectedOperation === selectionOperation)
+          if (operation === libraryOperation && selectedOperation === selectionOperation) {
             selectedDocument = refreshedDocument;
+            if (refreshedDocument.kind === 'html') ++storyEpoch;
+          }
         } catch {
           if (operation === libraryOperation && selectedOperation === selectionOperation)
             selectedDocument = undefined;
@@ -265,6 +290,8 @@
       const nextSnapshot = await client.openFolder();
       if (operation !== libraryOperation) return;
       if (nextSnapshot) {
+        ++storyEpoch;
+        ++selectionOperation;
         snapshot = nextSnapshot;
         selectedDocument = undefined;
         fragment = undefined;
@@ -684,7 +711,9 @@
               assetUrl={import.meta.env.MODE === 'test' ? browserFixtureAssetUrl : undefined}
             />
           {:else}
-            <div class="html-placeholder" role="status">HTML stories are not available yet.</div>
+            {#key `${storyEpoch}/${selectedDocument.path}`}
+              <StoryPane path={selectedDocument.path} />
+            {/key}
           {/if}
         </div>
 
