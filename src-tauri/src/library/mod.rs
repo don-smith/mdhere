@@ -161,7 +161,7 @@ fn canonical_root(root: PathBuf) -> Result<PathBuf, LibraryError> {
 fn read_document_from_root(root: &Path, relative_path: &Path) -> Result<Document, LibraryError> {
     let guard = PathGuard::new(root.to_path_buf());
     let path = guard.resolve(relative_path)?;
-    let kind = scanner::document_kind(&path).ok_or(LibraryError::NotDocument)?;
+    let kind = scanner::document_kind(relative_path).ok_or(LibraryError::NotDocument)?;
     let metadata = fs::metadata(&path).map_err(|error| LibraryError::Io(error.to_string()))?;
     if metadata.len() > MAX_DOCUMENT_BYTES {
         return Err(LibraryError::DocumentTooLarge);

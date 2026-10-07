@@ -273,6 +273,67 @@ fn listed_in_root_aliases_read_under_their_requested_paths() {
 
 #[cfg(unix)]
 #[test]
+fn differing_extension_aliases_keep_the_scanned_kind_and_root_confinement() {
+    use std::os::unix::fs::symlink;
+
+    let root = tempdir().unwrap();
+    let outside = tempdir().unwrap();
+    write(root.path(), "targets/source.md", b"# markdown bytes");
+    write(root.path(), "targets/source.txt", b"plain text bytes");
+    write(root.path(), "targets/source.html", b"<h1>html bytes</h1>");
+    write(outside.path(), "outside.md", b"# outside");
+    symlink(
+        "targets/source.md",
+        root.path().join("markdown-as-html.html"),
+    )
+    .unwrap();
+    symlink("targets/source.txt", root.path().join("text-as-html.html")).unwrap();
+    symlink(
+        "targets/source.html",
+        root.path().join("html-as-markdown.md"),
+    )
+    .unwrap();
+    symlink(
+        outside.path().join("outside.md"),
+        root.path().join("outside-as-html.html"),
+    )
+    .unwrap();
+
+    let registry = LibraryRegistry::new();
+    registry
+        .register_root("window", root.path().into())
+        .unwrap();
+    let snapshot = registry.snapshot("window").unwrap();
+    for (alias, kind) in [
+        ("markdown-as-html.html", DocumentKind::Html),
+        ("text-as-html.html", DocumentKind::Html),
+        ("html-as-markdown.md", DocumentKind::Markdown),
+    ] {
+        assert!(snapshot.tree.iter().any(|node| matches!(node,
+            TreeNode::Document { path, document_kind, .. }
+                if path == alias && *document_kind == kind
+        )));
+    }
+    assert!(!document_paths(&snapshot.tree).contains(&"outside-as-html.html".to_owned()));
+    for alias in ["markdown-as-html.html", "text-as-html.html"] {
+        assert!(matches!(
+            registry.read_document("window", alias),
+            Ok(Document::Html { path, title }) if path == alias && title == alias.trim_end_matches(".html")
+        ));
+    }
+    assert!(matches!(
+        registry.read_document("window", "html-as-markdown.md"),
+        Ok(Document::Markdown { path, title, content })
+            if path == "html-as-markdown.md" && title == "html-as-markdown" && content == "<h1>html bytes</h1>"
+    ));
+    assert!(matches!(
+        registry.read_document("window", "outside-as-html.html"),
+        Err(LibraryError::OutsideRoot)
+    ));
+}
+
+#[cfg(unix)]
+#[test]
 fn snapshot_ignores_broken_symlinks_outside_markdown_files() {
     use std::os::unix::fs::symlink;
 
