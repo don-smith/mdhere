@@ -47,9 +47,6 @@ fn parse_request(url: &str) -> Option<(u64, String)> {
             || segment == ".."
             || segment.contains(['/', '\\', '\0'])
             || segment.chars().any(char::is_control)
-            || ["%2f", "%5c", "%00", "%2e"]
-                .iter()
-                .any(|escape| segment.to_ascii_lowercase().contains(escape))
         {
             return None;
         }

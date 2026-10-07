@@ -40,7 +40,6 @@ export function resolveStoryLink(documentPath: string, href: string): StoryDesti
       segment === '.' ||
       segment === '..' ||
       /[\\/]/.test(segment) ||
-      /%(?:2f|5c|00|2e)/i.test(segment) ||
       containsControl(segment)
     )
       return null;

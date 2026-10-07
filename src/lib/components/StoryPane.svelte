@@ -26,6 +26,8 @@
   let source = $state<string>();
   let frame = $state<HTMLIFrameElement>();
   let loaded = $state(false);
+  let authorizationError = $state<string>();
+  let authorizationAttempt = $state(0);
 
   function applyPalette() {
     const palette = theme && deriveStoryPalette(theme);
@@ -97,13 +99,18 @@
   });
 
   $effect(() => {
+    authorizationAttempt;
     let current = true;
     source = undefined;
+    authorizationError = undefined;
+    loaded = false;
     if (import.meta.env.MODE === 'test') {
       if (
         path === 'guides/Story.html' ||
         path === 'guides/Next.html' ||
-        path === 'guides/page%.html'
+        path === 'guides/page%.html' ||
+        path === 'guides/a%2e.html' ||
+        path === 'guides/a%2f.html'
       )
         source = `/tests/fixtures/library/${path.split('/').map(encodeURIComponent).join('/')}`;
     } else {
@@ -111,8 +118,11 @@
         .then((url) => {
           if (current) source = url;
         })
-        .catch(() => {
-          if (current) source = undefined;
+        .catch((reason: unknown) => {
+          if (current) {
+            source = undefined;
+            authorizationError = reason instanceof Error ? reason.message : 'Story could not open.';
+          }
         });
     }
     return () => {
@@ -131,6 +141,11 @@
     src={source}
     onload={frameLoaded}
   ></iframe>
+{:else if authorizationError}
+  <div class="html-placeholder" role="alert">
+    <p>Could not open HTML story: {authorizationError}</p>
+    <button type="button" onclick={() => authorizationAttempt++}>Retry story</button>
+  </div>
 {:else}
   <div class="html-placeholder" role="status">Loading HTML story…</div>
 {/if}

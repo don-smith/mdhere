@@ -41,18 +41,20 @@ if (window !== window.top && location.protocol === 'mdhere-story:') {
     else window.scrollTo(0, scroll);
   });
 
-  const reportPosition = () => {
-    let fragment;
-    try {
-      fragment = location.hash ? decodeURIComponent(location.hash.slice(1)) : null;
-    } catch {
-      return;
-    }
+  const postPosition = (fragment) =>
     window.parent.postMessage(
       { type: 'mdhere:story-position', fragment, scroll: window.scrollY },
       '*'
     );
+  const reportPosition = () => {
+    try {
+      postPosition(location.hash ? decodeURIComponent(location.hash.slice(1)) : null);
+    } catch {
+      /* Ignore malformed browser fragments. */
+    }
   };
+  const fragmentTarget = (fragment) =>
+    document.getElementById(fragment) || document.getElementsByName(fragment)[0];
   window.addEventListener('scroll', reportPosition, { passive: true });
   window.addEventListener('hashchange', reportPosition);
 
@@ -77,9 +79,29 @@ if (window !== window.top && location.protocol === 'mdhere-story:') {
     if (!anchor || anchor.hasAttribute('download') || (anchor.target && anchor.target !== '_self'))
       return;
     const href = anchor.getAttribute('href');
+    if (!href) return;
+    if (href.startsWith('#')) {
+      if (href.length === 1) return;
+      let fragment;
+      try {
+        fragment = decodeURIComponent(href.slice(1));
+      } catch {
+        event.preventDefault();
+        return;
+      }
+      if (!fragment || hasControl(fragment)) {
+        event.preventDefault();
+        return;
+      }
+      const target = fragmentTarget(fragment);
+      if (!target) return;
+      event.preventDefault();
+      location.hash = encodeURIComponent(fragment);
+      target.scrollIntoView();
+      requestAnimationFrame(() => postPosition(fragment));
+      return;
+    }
     if (
-      !href ||
-      href.startsWith('#') ||
       href.startsWith('/') ||
       href.includes('?') ||
       href.includes('\\') ||
@@ -97,7 +119,7 @@ if (window !== window.top && location.protocol === 'mdhere-story:') {
       const rawPath = href.split('#')[0];
       if (/%(?:2f|5c|00)/i.test(rawPath)) return;
       const path = destination.pathname.split('/').slice(2).map(decodeURIComponent).join('/');
-      if (!path || /\\/.test(path) || /%(?:2f|5c|00|2e)/i.test(path) || hasControl(path)) return;
+      if (!path || /\\/.test(path) || hasControl(path)) return;
       const kind = /\.html$/i.test(path)
         ? 'html'
         : /\.(?:md|markdown)$/i.test(path)
@@ -105,6 +127,12 @@ if (window !== window.top && location.protocol === 'mdhere-story:') {
           : null;
       if (!kind) return;
       event.preventDefault();
+      // Packaged WebKit may not scroll on a parent-requested hash change; move
+      // the validated same-file target directly before the parent handoff.
+      if (kind === 'html' && destination.pathname === location.pathname && destination.hash) {
+        const fragment = decodeURIComponent(destination.hash.slice(1));
+        fragmentTarget(fragment)?.scrollIntoView();
+      }
       window.parent.postMessage({ type: 'mdhere:story-navigation', href, path, kind }, '*');
     } catch {
       /* Leave an invalid anchor inert under the frame's navigation policy. */

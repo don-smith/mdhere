@@ -211,6 +211,66 @@ fn skips_directory_symlinks_and_symlinks_that_escape_the_root() {
     ));
 }
 
+#[test]
+fn literal_escape_shaped_names_remain_readable_under_their_scanned_paths() {
+    let root = tempdir().unwrap();
+    for name in ["a%2e.html", "a%2f.html"] {
+        write(root.path(), name, b"<h1>literal</h1>");
+    }
+    let registry = LibraryRegistry::new();
+    registry
+        .register_root("window", root.path().into())
+        .unwrap();
+    let paths = document_paths(&registry.snapshot("window").unwrap().tree);
+    for name in ["a%2e.html", "a%2f.html"] {
+        assert!(paths.contains(&name.to_owned()));
+        assert!(
+            matches!(registry.read_document("window", name), Ok(Document::Html { path, .. }) if path == name)
+        );
+    }
+}
+
+#[cfg(unix)]
+#[test]
+fn listed_in_root_aliases_read_under_their_requested_paths() {
+    use std::os::unix::fs::symlink;
+
+    let root = tempdir().unwrap();
+    let outside = tempdir().unwrap();
+    write(root.path(), "targets/real.md", b"# real");
+    write(root.path(), "targets/real.html", b"<h1>real</h1>");
+    write(outside.path(), "escape.html", b"outside");
+    for (target, alias) in [
+        ("targets/real.md", "alias.md"),
+        ("targets/real.html", "alias.html"),
+    ] {
+        symlink(root.path().join(target), root.path().join(alias)).unwrap();
+    }
+    symlink(
+        outside.path().join("escape.html"),
+        root.path().join("escape.html"),
+    )
+    .unwrap();
+    let registry = LibraryRegistry::new();
+    registry
+        .register_root("window", root.path().into())
+        .unwrap();
+    let paths = document_paths(&registry.snapshot("window").unwrap().tree);
+    assert!(paths.contains(&"alias.md".to_owned()));
+    assert!(paths.contains(&"alias.html".to_owned()));
+    assert!(!paths.contains(&"escape.html".to_owned()));
+    assert!(
+        matches!(registry.read_document("window", "alias.md"), Ok(Document::Markdown { path, content, .. }) if path == "alias.md" && content == "# real")
+    );
+    assert!(
+        matches!(registry.read_document("window", "alias.html"), Ok(Document::Html { path, title }) if path == "alias.html" && title == "alias")
+    );
+    assert!(matches!(
+        registry.read_document("window", "escape.html"),
+        Err(LibraryError::OutsideRoot)
+    ));
+}
+
 #[cfg(unix)]
 #[test]
 fn snapshot_ignores_broken_symlinks_outside_markdown_files() {

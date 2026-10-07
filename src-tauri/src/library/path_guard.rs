@@ -33,8 +33,4 @@ impl PathGuard {
             Err(LibraryError::OutsideRoot)
         }
     }
-
-    pub fn root(&self) -> &Path {
-        &self.root
-    }
 }

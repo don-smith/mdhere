@@ -68,6 +68,103 @@ test('routes a relative same-file fragment and percent-named page without adding
   await expect(page.getByRole('button', { name: 'Back' })).toBeEnabled();
 });
 
+test('bare same-page anchors scroll on first and repeated clicks and hand position to the parent', async ({
+  page
+}) => {
+  await page.addInitScript({ content: bridge });
+  await page.goto('/?scenario=story');
+  await page.getByRole('button', { name: 'Refresh library' }).click();
+  await page.getByRole('treeitem', { name: 'Story.html' }).click();
+  const story = page.frameLocator('[data-testid="story-frame"]');
+  const link = story.getByRole('link', { name: 'Same-page section', exact: true });
+  await expect(link).toBeVisible();
+  await story.locator('#local').evaluate((target) => {
+    const spacer = document.createElement('div');
+    spacer.style.height = '1400px';
+    target.before(spacer);
+  });
+  type StoryPosition = { fragment: string | null; scroll: number };
+  await page.evaluate(() => {
+    window.addEventListener('message', (event) => {
+      if (event.data?.type === 'mdhere:story-position')
+        (window as Window & { storyPositions?: StoryPosition[] }).storyPositions?.push(event.data);
+    });
+    (window as Window & { storyPositions?: StoryPosition[] }).storyPositions = [];
+  });
+  for (const click of [1, 2]) {
+    await link.click();
+    await expect.poll(() => story.locator('body').evaluate(() => scrollY)).toBeGreaterThan(0);
+    await expect
+      .poll(() => story.locator('#local').evaluate((target) => target.getBoundingClientRect().top))
+      .toBeLessThan(50);
+    await expect
+      .poll(() =>
+        page.evaluate(
+          () =>
+            (window as Window & { storyPositions?: StoryPosition[] }).storyPositions?.some(
+              (position) => position.fragment === 'local' && position.scroll > 0
+            ) ?? false
+        )
+      )
+      .toBe(true);
+    await expect(page.getByRole('button', { name: 'Back' })).toBeDisabled();
+    if (click === 1) {
+      await story.locator('body').evaluate(() => window.scrollTo(0, 0));
+      await expect.poll(() => story.locator('body').evaluate(() => scrollY)).toBe(0);
+    }
+  }
+});
+
+test('first and repeated relative same-file fragments scroll to the target after tree selection', async ({
+  page
+}) => {
+  await page.addInitScript({ content: bridge });
+  await page.goto('/?scenario=story');
+  await page.getByRole('button', { name: 'Refresh library' }).click();
+  await page.getByRole('treeitem', { name: 'Story.html' }).click();
+  const story = page.frameLocator('[data-testid="story-frame"]');
+  const link = story.getByRole('link', { name: 'Relative same-page section' });
+  await expect(link).toBeVisible();
+  await story.locator('#local').evaluate((target) => {
+    const spacer = document.createElement('div');
+    spacer.style.height = '1400px';
+    target.before(spacer);
+  });
+  await link.click();
+  await expect.poll(() => story.locator('body').evaluate(() => location.hash)).toBe('#local');
+  await expect.poll(() => story.locator('body').evaluate(() => scrollY)).toBeGreaterThan(0);
+  await expect
+    .poll(() => story.locator('#local').evaluate((target) => target.getBoundingClientRect().top))
+    .toBeLessThan(50);
+  await story.locator('body').evaluate(() => window.scrollTo(0, 0));
+  await expect.poll(() => story.locator('body').evaluate(() => scrollY)).toBe(0);
+  await link.click();
+  await expect.poll(() => story.locator('body').evaluate(() => scrollY)).toBeGreaterThan(0);
+  await expect
+    .poll(() => story.locator('#local').evaluate((target) => target.getBoundingClientRect().top))
+    .toBeLessThan(50);
+  await expect(page.getByRole('button', { name: 'Back' })).toBeDisabled();
+  await story.locator('body').evaluate(() => window.scrollTo(0, 0));
+  await expect.poll(() => story.locator('body').evaluate(() => scrollY)).toBe(0);
+});
+
+test('opens literal escape-shaped filenames from both tree and same-kind story links', async ({
+  page
+}) => {
+  await page.addInitScript({ content: bridge });
+  await page.goto('/?scenario=story');
+  await page.getByRole('treeitem', { name: 'a%2e.html' }).click();
+  const story = page.frameLocator('[data-testid="story-frame"]');
+  await expect(story.getByRole('heading', { name: 'Literal dot escape page' })).toBeVisible();
+  await story.getByRole('link', { name: 'Literal slash escape page' }).click();
+  await expect(story.getByRole('heading', { name: 'Literal slash escape page' })).toBeVisible();
+  await page.getByRole('treeitem', { name: 'Story.html' }).click();
+  await story.getByRole('link', { name: 'Literal dot escape page' }).click();
+  await expect(story.getByRole('heading', { name: 'Literal dot escape page' })).toBeVisible();
+  await page.getByRole('treeitem', { name: 'a%2f.html' }).click();
+  await expect(story.getByRole('heading', { name: 'Literal slash escape page' })).toBeVisible();
+});
+
 test('focused story Escape returns to the tree, not forged or stale frame actions', async ({
   page
 }) => {

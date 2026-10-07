@@ -168,15 +168,13 @@ fn read_document_from_root(root: &Path, relative_path: &Path) -> Result<Document
     }
     let bytes = fs::read(&path).map_err(|error| LibraryError::Io(error.to_string()))?;
     let content = String::from_utf8(bytes).map_err(|_| LibraryError::InvalidUtf8)?;
-    let relative = path
-        .strip_prefix(guard.root())
-        .map_err(|_| LibraryError::OutsideRoot)?;
-    let title = path
+    // The canonical path confines the read; the requested alias is the tree/navigation identity.
+    let title = relative_path
         .file_stem()
         .and_then(|name| name.to_str())
         .unwrap_or("Document")
         .to_owned();
-    let path = relative
+    let path = relative_path
         .components()
         .filter_map(|component| component.as_os_str().to_str())
         .collect::<Vec<_>>()

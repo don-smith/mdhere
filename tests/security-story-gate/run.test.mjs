@@ -1,8 +1,8 @@
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { mkdtempSync, readFileSync, readdirSync, rmSync } from 'node:fs';
-import { tmpdir, homedir } from 'node:os';
+import { mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { createServer } from 'node:net';
 import test from 'node:test';
@@ -11,45 +11,75 @@ import { chromium } from '@playwright/test';
 
 import { adaptPrototype, assessEvidence, startSink } from './run.mjs';
 
-const source = join(homedir(), '.myflow/repositories/github.com/don-smith/myflow/story-PROTOTYPE');
 const hash = (path) => createHash('sha256').update(readFileSync(path)).digest('hex');
 
-test('dry run copies the local prototype alongside relative assets, defaults D without changing source or starting a process', () => {
-  const output = mkdtempSync(join(tmpdir(), 'mdhere-gate-test-'));
-  const originalHashes = ['myflow.html', 'prototype.js', 'story.css'].map((file) =>
-    hash(join(source, file))
+function dryRun(output, extra = []) {
+  return spawnSync(
+    process.execPath,
+    [join(import.meta.dirname, 'run.mjs'), '--dry-run', '--output', output, ...extra],
+    { encoding: 'utf8' }
   );
+}
+
+test('default dry run prepares only committed fixture with no external prototype or app process', () => {
+  const output = mkdtempSync(join(tmpdir(), 'mdhere-gate-test-'));
   try {
-    const run = spawnSync(
-      process.execPath,
-      [join(import.meta.dirname, 'run.mjs'), '--dry-run', '--output', output],
-      { encoding: 'utf8' }
-    );
+    const run = dryRun(output);
     assert.equal(run.status, 0, run.stderr);
     const sessions = readdirSync(output);
     assert.equal(sessions.length, 1);
     const session = join(output, sessions[0]);
-    const { fixtureRoot, dryRun } = JSON.parse(readFileSync(join(session, 'setup.json'), 'utf8'));
-    assert.equal(dryRun, true);
+    const {
+      fixtureRoot,
+      dryRun: dry,
+      prototypeCopy
+    } = JSON.parse(readFileSync(join(session, 'setup.json'), 'utf8'));
+    assert.equal(dry, true);
+    assert.equal(prototypeCopy, null);
+    assert.equal(readdirSync(fixtureRoot).includes('prototype'), false);
     assert.equal(
-      readFileSync(join(fixtureRoot, 'prototype/myflow.html'), 'utf8'),
-      readFileSync(join(source, 'myflow.html'), 'utf8')
+      hash(join(fixtureRoot, 'Story.html')),
+      hash(join(import.meta.dirname, 'Story.html'))
     );
-    assert.equal(hash(join(fixtureRoot, 'prototype/story.css')), hash(join(source, 'story.css')));
-    const copied = readFileSync(join(fixtureRoot, 'prototype/prototype.js'), 'utf8');
-    assert.match(copied, /let current = 'D'/);
-    assert.doesNotMatch(copied, /location\.search\s*=/);
     assert.match(readFileSync(join(fixtureRoot, 'story.js'), 'utf8'), /mdhere-story-gate/);
-    assert.deepEqual(
-      ['myflow.html', 'prototype.js', 'story.css'].map((file) => hash(join(source, file))),
-      originalHashes
-    );
     assert.equal(
       readdirSync(session).some((name) => name === 'sink.pid' || name === 'app.log'),
       false
     );
   } finally {
     rmSync(output, { recursive: true, force: true });
+  }
+});
+
+test('explicit optional prototype is adapted without changing source', () => {
+  const output = mkdtempSync(join(tmpdir(), 'mdhere-gate-prototype-'));
+  const source = mkdtempSync(join(tmpdir(), 'mdhere-optional-prototype-'));
+  try {
+    writeFileSync(join(source, 'myflow.html'), '<title>Optional</title>');
+    writeFileSync(join(source, 'story.css'), 'body { color: red }');
+    writeFileSync(
+      join(source, 'prototype.js'),
+      `let current = keys.includes(params.get('variant')) ? params.get('variant') : keys[0];\nif (push) {
+      const p = new URLSearchParams(location.search);
+      p.set('variant', key);
+      try { history.replaceState(null, '', '?' + p.toString()); }
+      catch { location.search = '?' + p.toString(); }
+    }`
+    );
+    const original = hash(join(source, 'prototype.js'));
+    const run = dryRun(output, ['--prototype', source]);
+    assert.equal(run.status, 0, run.stderr);
+    const session = join(output, readdirSync(output)[0]);
+    const { fixtureRoot, prototypeCopy } = JSON.parse(
+      readFileSync(join(session, 'setup.json'), 'utf8')
+    );
+    assert.equal(prototypeCopy, join(fixtureRoot, 'prototype'));
+    assert.match(readFileSync(join(prototypeCopy, 'prototype.js'), 'utf8'), /let current = 'D'/);
+    assert.equal(hash(join(source, 'prototype.js')), original);
+    assert.notEqual(dryRun(output, ['--prototype', join(output, 'missing')]).status, 0);
+  } finally {
+    rmSync(output, { recursive: true, force: true });
+    rmSync(source, { recursive: true, force: true });
   }
 });
 
@@ -83,7 +113,7 @@ test('sink startup checks control, clears it, logs a denied request and cleans u
   }
 });
 
-test('disposable prototype actually opens variant D with relative stylesheet and JS in Chromium', async () => {
+test('committed fixture loads local stylesheet and script in Chromium without a prototype', async () => {
   const output = mkdtempSync(join(tmpdir(), 'mdhere-prototype-browser-'));
   let browser;
   try {
@@ -97,17 +127,16 @@ test('disposable prototype actually opens variant D with relative stylesheet and
     const { fixtureRoot } = JSON.parse(readFileSync(join(session, 'setup.json'), 'utf8'));
     browser = await chromium.launch();
     const page = await browser.newPage();
-    await page.goto(`file://${join(fixtureRoot, 'prototype/myflow.html')}`);
-    assert.match(await page.title(), / · D$/);
-    assert.equal(await page.locator('[data-variant="D"]').isVisible(), true);
-    assert.equal(await page.locator('[data-prototype-bar]').count(), 1);
+    await page.goto(`file://${join(fixtureRoot, 'Story.html')}`);
+    assert.match(await page.title(), /Packaged story security gate/);
+    assert.equal(await page.locator('#local-image').isVisible(), true);
     assert.equal(
       await page.evaluate(() =>
-        [...document.styleSheets].some((sheet) => sheet.href?.endsWith('/prototype/story.css'))
+        [...document.styleSheets].some((sheet) => sheet.href?.endsWith('/story.css'))
       ),
       true
     );
-    assert.equal(new URL(page.url()).search, '');
+    assert.match(await page.locator('#results').textContent(), /script: local classic JS ran/);
   } finally {
     if (browser) await browser.close();
     rmSync(output, { recursive: true, force: true });

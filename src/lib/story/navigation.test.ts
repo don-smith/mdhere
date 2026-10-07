@@ -20,6 +20,12 @@ describe('story navigation', () => {
       path: 'guides/chapters/page%.html',
       fragment: 'section'
     });
+    for (const escape of ['2e', '2f']) {
+      expect(resolveStoryLink(current, `a%25${escape}.html`)).toEqual({
+        kind: 'html',
+        path: `guides/chapters/a%${escape}.html`
+      });
+    }
   });
 
   it('rejects unsupported destinations, malformed encodings, root escape and schemes', () => {
@@ -34,14 +40,22 @@ describe('story navigation', () => {
       'next.html?x=1',
       '%E0%A4%A.md',
       '%2fsecret.md',
+      'a%2f.html',
+      '%2e/next.html',
       '%5csecret.md',
       '%2e%2e/next.html',
-      'bad%00.md',
-      '%252fsecret.md',
-      '%252e%252e/next.html'
+      'bad%00.md'
     ]) {
       expect(resolveStoryLink(current, href)).toBeNull();
     }
+    expect(resolveStoryLink(current, '%252fsecret.md')).toEqual({
+      kind: 'markdown',
+      path: 'guides/chapters/%2fsecret.md'
+    });
+    expect(resolveStoryLink(current, '%252e%252e/next.html')).toEqual({
+      kind: 'html',
+      path: 'guides/chapters/%2e%2e/next.html'
+    });
   });
 
   it('accepts only an exact focus action from the current frame', () => {

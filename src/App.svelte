@@ -93,14 +93,30 @@
               documentKind: 'html',
               name: 'page%.html',
               path: 'guides/page%.html'
-            }
+            },
+            ...['2e', '2f'].map((escape) => ({
+              kind: 'document' as const,
+              documentKind: 'html' as const,
+              name: `a%${escape}.html`,
+              path: `guides/a%${escape}.html`
+            }))
           ]
         },
         {
           ...demoDocuments,
           'guides/Story.html': { kind: 'html', path: 'guides/Story.html', title: 'Story' },
           'guides/Next.html': { kind: 'html', path: 'guides/Next.html', title: 'Next story' },
-          'guides/page%.html': { kind: 'html', path: 'guides/page%.html', title: 'Percent page' }
+          'guides/page%.html': { kind: 'html', path: 'guides/page%.html', title: 'Percent page' },
+          'guides/a%2e.html': {
+            kind: 'html',
+            path: 'guides/a%2e.html',
+            title: 'Literal dot escape'
+          },
+          'guides/a%2f.html': {
+            kind: 'html',
+            path: 'guides/a%2f.html',
+            title: 'Literal slash escape'
+          }
         }
       );
     }

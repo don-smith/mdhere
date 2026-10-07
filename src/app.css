@@ -580,10 +580,12 @@ select {
   width: 1rem;
   height: 1rem;
 }
-.toolbar-action[data-state='loading'],
 .toolbar-action:disabled {
-  cursor: wait;
+  cursor: default;
   opacity: 0.52;
+}
+.toolbar-action[data-state='loading'] {
+  cursor: wait;
 }
 
 .desk-reader {

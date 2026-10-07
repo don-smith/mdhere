@@ -16,10 +16,6 @@ import { fileURLToPath } from 'node:url';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const repo = resolve(here, '../..');
-const prototype = join(
-  homedir(),
-  '.myflow/repositories/github.com/don-smith/myflow/story-PROTOTYPE'
-);
 const defaultVerify = join(
   homedir(),
   '.myflow/repositories/github.com/don-smith/mdhere/workstreams/html-story-pages/verify'
@@ -47,9 +43,9 @@ export function adaptPrototype(script) {
     );
 }
 
-export function preparePrototype(library) {
+export function preparePrototype(library, prototype) {
   for (const file of ['myflow.html', 'story.css', 'prototype.js']) {
-    if (!existsSync(join(prototype, file))) throw new Error(`Local prototype missing: ${file}`);
+    if (!existsSync(join(prototype, file))) throw new Error(`Optional prototype missing: ${file}`);
   }
   const directory = join(library, 'prototype');
   mkdirSync(directory);
@@ -164,18 +160,30 @@ async function main() {
   const args = process.argv.slice(2);
   if (args.includes('--help')) {
     console.log(
-      'Usage: node tests/security-story-gate/run.mjs [--dry-run] [--output ABSOLUTE_DIRECTORY]'
+      'Usage: node tests/security-story-gate/run.mjs [--dry-run] [--output ABSOLUTE_DIRECTORY] [--prototype ABSOLUTE_DIRECTORY]'
     );
     return;
   }
   const dryRun = args.includes('--dry-run');
   const outputIndex = args.indexOf('--output');
+  const prototypeIndex = args.indexOf('--prototype');
   if (
-    args.some((arg, i) => !['--dry-run', '--output'].includes(arg) && i !== outputIndex + 1) ||
-    (outputIndex >= 0 && !args[outputIndex + 1]?.startsWith('/'))
+    args.some(
+      (arg, i) =>
+        !['--dry-run', '--output', '--prototype'].includes(arg) &&
+        i !== outputIndex + 1 &&
+        i !== prototypeIndex + 1
+    ) ||
+    (outputIndex >= 0 && !args[outputIndex + 1]?.startsWith('/')) ||
+    (prototypeIndex >= 0 && !args[prototypeIndex + 1]?.startsWith('/')) ||
+    (outputIndex >= 0 && outputIndex + 1 === prototypeIndex) ||
+    (prototypeIndex >= 0 && prototypeIndex + 1 === outputIndex)
   ) {
-    throw new Error('Only --dry-run and --output ABSOLUTE_DIRECTORY are accepted');
+    throw new Error(
+      'Only --dry-run, --output ABSOLUTE_DIRECTORY and --prototype ABSOLUTE_DIRECTORY are accepted'
+    );
   }
+  const prototype = prototypeIndex >= 0 ? args[prototypeIndex + 1] : null;
   const verify = outputIndex >= 0 ? args[outputIndex + 1] : defaultVerify;
   if (process.platform !== 'darwin' && !dryRun)
     throw new Error('Packaged security gate requires macOS');
@@ -200,7 +208,7 @@ async function main() {
     throw new Error('Fixture path did not resolve under session');
   const gateScript = join(root, 'story.js');
   writeFileSync(gateScript, readFileSync(gateScript, 'utf8').replace('__GATE_RUN_ID__', runId));
-  const prototypeDirectory = preparePrototype(root);
+  const prototypeDirectory = prototype ? preparePrototype(root, prototype) : null;
   const metadata = {
     runId,
     session,
@@ -214,7 +222,7 @@ async function main() {
   writeFileSync(join(session, 'setup.json'), `${JSON.stringify(metadata, null, 2)}\n`);
   if (dryRun) {
     console.log(
-      `Dry run prepared ${session}; no build, sink or app started. Prototype copy defaults to D; source unchanged.`
+      `Dry run prepared ${session}; no build, sink or app started.${prototype ? ' Optional prototype copy defaults to D; source unchanged.' : ''}`
     );
     return;
   }
@@ -259,8 +267,12 @@ async function main() {
       '1. In Story.html, click "Run security attempts". Wait ~3 seconds; local script/image/animation should work, escapes and navigation should not.'
     );
     console.log(
-      '2. Click "Copy observations"; then choose prototype/myflow.html in the tree. Check variant D, JS/CSS/layout and palette in Paper, Midnight, Field Notes and one user theme at normal/narrow widths. Check page-owned status/chart colors separately.'
+      '2. Click "Copy observations"; check the committed fixture in Paper, Midnight, Field Notes and one user theme at normal/narrow widths.'
     );
+    if (prototype)
+      console.log(
+        '   Optional: choose prototype/myflow.html in the tree. Check variant D, JS/CSS/layout, palette and page-owned status/chart colors separately.'
+      );
     console.log(
       '3. Return here and press Enter. If the app leaves its story, a native command succeeds, or outbound traffic appears, stop and report failure.'
     );

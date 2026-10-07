@@ -64,13 +64,15 @@ fn serves_literal_percent_names_without_decoding_escapes_twice() {
     let root = tempdir().unwrap();
     write(root.path(), "page%.html", b"<h1>Percent</h1>");
     write(root.path(), "art%.png", PNG);
+    write(root.path(), "a%2e.html", b"literal dot escape");
+    write(root.path(), "a%2f.html", b"literal slash escape");
     let registry = LibraryRegistry::new();
     registry
         .register_root("mdhere", root.path().into())
         .unwrap();
     let revision = registry.root_revision("mdhere").unwrap();
     let base = format!("mdhere-story://localhost/{revision}/");
-    for path in ["page%25.html", "art%25.png"] {
+    for path in ["page%25.html", "art%25.png", "a%252e.html", "a%252f.html"] {
         assert_eq!(
             StoryProtocol::serve(&registry, "mdhere", &format!("{base}{path}")).status,
             200
@@ -82,6 +84,8 @@ fn serves_literal_percent_names_without_decoding_escapes_twice() {
         "%252e%252e/page.html",
         "%2fescape.html",
         "%2e%2e/page.html",
+        "a%2f.html",
+        "%2e/a%252e.html",
     ] {
         assert_ne!(
             StoryProtocol::serve(&registry, "mdhere", &format!("{base}{path}")).status,
